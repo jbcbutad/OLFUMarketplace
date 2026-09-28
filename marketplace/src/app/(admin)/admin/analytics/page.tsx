@@ -1,10 +1,12 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+export const dynamic = 'force-dynamic';
+
+import dynamicImport from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import { Suspense } from 'react';
 
-const AnalyticsContent = dynamic(
+const AnalyticsContent = dynamicImport(
     () => import('./AnalyticsContent'),
     {
         ssr: false,
