@@ -202,7 +202,7 @@ export default function ProductDetailPage({ params }) {
           This product may have been deleted or is no longer available.
         </p>
         <Link
-          href="/"
+          href="/marketplace"
           className="px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition-opacity text-sm"
         >
           Back to Marketplace
@@ -245,7 +245,7 @@ export default function ProductDetailPage({ params }) {
 
         <div className="flex items-center justify-between mb-6">
           <Link
-            href="/"
+            href="/marketplace"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-semibold transition-colors"
           >
             <ArrowLeft size={16} /> Back to Marketplace

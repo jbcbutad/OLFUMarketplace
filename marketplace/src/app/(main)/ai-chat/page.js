@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { 
-  ArrowLeft, 
-  Send, 
-  Bot, 
-  User, 
-  Loader2, 
+import {
+  ArrowLeft,
+  Send,
+  Bot,
+  User,
+  Loader2,
   Sparkles,
   Trash2
 } from 'lucide-react';
@@ -38,9 +38,9 @@ export default function AiChatPage() {
         } else {
           // Default initial greeting if no history exists
           setMessages([
-            { 
-              role: 'assistant', 
-              content: 'Hello! I am your OLFU Marketplace AI assistant. How can I help you find listings, check items, or navigate the platform today?' 
+            {
+              role: 'assistant',
+              content: 'Hello! I am your OLFU Marketplace AI assistant. How can I help you find listings, check items, or navigate the platform today?'
             }
           ]);
         }
@@ -63,7 +63,7 @@ export default function AiChatPage() {
 
     const userMessage = input.trim();
     setInput('');
-    
+
     const newMessages = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
     setLoading(true);
@@ -97,7 +97,7 @@ export default function AiChatPage() {
       }
     } catch (err) {
       setMessages((prev) => [
-        ...prev, 
+        ...prev,
         { role: 'assistant', content: 'Sorry, I encountered an error connecting to the AI service.' }
       ]);
     } finally {
@@ -117,12 +117,12 @@ export default function AiChatPage() {
 
   return (
     <div className="text-foreground min-h-screen flex flex-col justify-between">
-      
+
       {/* HEADER BAR */}
       <div className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-20 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href="/marketplace"
             className="p-2 rounded-xl bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft size={18} />
@@ -158,22 +158,19 @@ export default function AiChatPage() {
           return (
             <div
               key={index}
-              className={`flex items-start gap-3 max-w-[80%] sm:max-w-[70%] ${
-                isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
-              }`}
+              className={`flex items-start gap-3 max-w-[80%] sm:max-w-[70%] ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
+                }`}
             >
-              <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border ${
-                isUser 
-                  ? 'bg-foreground text-background border-transparent' 
+              <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border ${isUser
+                  ? 'bg-foreground text-background border-transparent'
                   : 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
-              }`}>
+                }`}>
                 {isUser ? <User size={14} /> : <Bot size={14} />}
               </div>
-              <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${
-                isUser
+              <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${isUser
                   ? 'bg-foreground text-background rounded-tr-none font-medium'
                   : 'bg-card border border-border text-foreground rounded-tl-none font-normal'
-              }`}>
+                }`}>
                 {msg.content}
               </div>
             </div>

@@ -134,7 +134,7 @@ export default function Navbar() {
   return (
     <nav className="navigation-surface h-20 border-b border-neutral-200/80 dark:border-neutral-800/80 text-foreground px-6 flex items-center justify-between sticky top-0 z-50 transition-colors">
       <div className="flex items-center space-x-6 flex-1">
-        <Link href="/" className="flex items-center gap-3 shrink-0">
+        <Link href="/marketplace" className="flex items-center gap-3 shrink-0">
           <div className="relative w-12 h-12">
             <Image
               src="/olfu_logo.png"

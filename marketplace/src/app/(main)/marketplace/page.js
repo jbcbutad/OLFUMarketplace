@@ -121,7 +121,7 @@ export default async function Home({ searchParams }) {
                 {filteredCategories?.map((cat) => (
                   <Link
                     key={cat.id}
-                    href={`/?category=${encodeURIComponent(cat.name)}`}
+                    href={`/marketplace?category=${encodeURIComponent(cat.name)}`}
                     className="shrink-0 snap-start flex flex-row items-center gap-3 px-6 py-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 shadow-sm hover:border-foreground transition-all group active:scale-95"
                   >
                     <span className="text-3xl group-hover:scale-110 transition-transform duration-200">
@@ -140,7 +140,7 @@ export default async function Home({ searchParams }) {
 
               <div className="mb-4 md:mb-0">
                 <Link
-                  href="/"
+                  href="/marketplace"
                   className="inline-flex items-center gap-2 text-neutral-500 dark:text-neutral-400 hover:text-foreground mb-3 transition-colors text-sm font-medium"
                 >
                   <ArrowLeft size={16} /> Back to all categories
@@ -155,7 +155,7 @@ export default async function Home({ searchParams }) {
               </div>
 
               <Link
-                href="/"
+                href="/marketplace"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-foreground text-background hover:opacity-90 rounded-xl transition-all font-bold active:scale-95"
               >
                 <X size={18} /> Clear Filter
@@ -176,7 +176,7 @@ export default async function Home({ searchParams }) {
               No products found in "{selectedCategory}".
             </p>
             <Link
-              href="/"
+              href="/marketplace"
               className="text-blue-600 dark:text-blue-400 font-bold mt-4 inline-block hover:underline"
             >
               Clear filter and see all items

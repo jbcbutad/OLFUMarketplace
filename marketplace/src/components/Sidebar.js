@@ -196,9 +196,9 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
         {/* NAVIGATION LINKS */}
         <nav className="space-y-1">
           <Link
-            href="/"
+            href="/marketplace"
             title="Home"
-            className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive("/")
+            className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive("/marketplace")
               ? "bg-foreground text-background font-bold shadow-sm [&_svg]:text-background dark:[&_svg]:text-background"
               : "text-muted-foreground hover:bg-accent hover:text-foreground"
               } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}

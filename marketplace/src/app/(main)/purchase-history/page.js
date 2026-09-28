@@ -105,7 +105,7 @@ export default function PurchaseHistoryPage() {
         <div className="text-foreground w-full min-h-screen p-6 md:p-10 transition-colors">
             <div className="max-w-5xl mx-auto">
                 <div className="mb-6">
-                    <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium mb-4 transition-colors">
+                    <Link href="/marketplace" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium mb-4 transition-colors">
                         <ArrowLeft size={16} /> Back to Marketplace
                     </Link>
                     <h1 className="text-3xl font-black uppercase italic tracking-tight flex items-center gap-3">
@@ -135,8 +135,8 @@ export default function PurchaseHistoryPage() {
                                     key={type}
                                     onClick={() => setFilterType(type)}
                                     className={`px-3 py-1.5 rounded-lg capitalize transition-all ${filterType === type
-                                            ? "bg-yellow-500 text-black shadow-xs font-black"
-                                            : "text-muted-foreground hover:text-foreground"
+                                        ? "bg-yellow-500 text-black shadow-xs font-black"
+                                        : "text-muted-foreground hover:text-foreground"
                                         }`}
                                 >
                                     {type}

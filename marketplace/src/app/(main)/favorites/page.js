@@ -57,7 +57,7 @@ export default function FavoritesPage() {
             <div className="max-w-7xl mx-auto">
                 <div className="mb-8">
                     <Link
-                        href="/"
+                        href="/marketplace"
                         className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium mb-4 transition-colors"
                     >
                         <ArrowLeft size={16} /> Back to Marketplace
