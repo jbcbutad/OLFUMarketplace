@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --background-grid: rgba(73, 91, 73, 0.18);
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --background-grid: rgba(95, 116, 91, 0.16);
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.marketplace-surface {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(45deg, transparent 48%, var(--background-grid) 49%, var(--background-grid) 51%, transparent 52%),
+    linear-gradient(-45deg, transparent 48%, var(--background-grid) 49%, var(--background-grid) 51%, transparent 52%);
+  background-size: 32px 32px;
+  background-attachment: fixed;
+}
+
+.navigation-surface {
+  background-color: color-mix(in srgb, var(--background) 42%, transparent);
+  backdrop-filter: blur(2px);
+}

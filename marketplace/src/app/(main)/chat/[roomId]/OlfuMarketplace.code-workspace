@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "../../../../.."
+		}
+	],
+	"settings": {
+		"liveshare.allowGuestDebugControl": true,
+		"liveshare.allowGuestTaskControl": true,
+		"liveshare.alwaysFollowHost": false,
+		"liveshare.anonymousGuestApproval": "accept",
+		"liveshare.diagnosticLogging": true,
+		"liveshare.guestApprovalRequired": false
+	}
+}
