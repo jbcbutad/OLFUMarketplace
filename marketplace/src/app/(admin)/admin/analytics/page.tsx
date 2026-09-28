@@ -3,7 +3,8 @@
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 
-const AdminAnalyticsDashboard = dynamic(
+// Dynamically import the dashboard with Server-Side Rendering (SSR) completely disabled
+const AnalyticsContent = dynamic(
     () => import('./AnalyticsContent'),
     {
         ssr: false,
@@ -17,5 +18,5 @@ const AdminAnalyticsDashboard = dynamic(
 );
 
 export default function Page() {
-    return <AdminAnalyticsDashboard />;
+    return <AnalyticsContent />;
 }
