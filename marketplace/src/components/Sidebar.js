@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -28,7 +28,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-export default function Sidebar({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }) {
+function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -555,5 +555,13 @@ export default function Sidebar({ isOpen: propIsOpen, toggleSidebar: propToggleS
         </Link>
       </div>
     </aside>
+  );
+}
+
+export default function Sidebar(props) {
+  return (
+    <Suspense fallback={null}>
+      <SidebarContent {...props} />
+    </Suspense>
   );
 }

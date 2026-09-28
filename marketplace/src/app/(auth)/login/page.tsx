@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react"; // 1. Added useEffect
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation"; // 2. Added useSearchParams
 import { supabase } from "@/lib/supabase/client";
 import { Loader2, GraduationCap, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import TermsModal from "@/components/TermsModal";
 
-export default function AuthPortal() {
+function AuthPortalContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -166,5 +166,13 @@ export default function AuthPortal() {
       </div>
 
     </div>
+  );
+}
+
+export default function AuthPortal() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPortalContent />
+    </Suspense>
   );
 }

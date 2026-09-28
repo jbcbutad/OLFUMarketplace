@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -39,7 +39,7 @@ const compressAndConvertToBase64 = (file, maxWidth = 1024, quality = 0.75) => {
   });
 };
 
-export default function CreateListing() {
+function CreateListingContent() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -666,5 +666,13 @@ export default function CreateListing() {
 
       </div>
     </div>
+  );
+}
+
+export default function CreateListing() {
+  return (
+    <Suspense fallback={null}>
+      <CreateListingContent />
+    </Suspense>
   );
 }
