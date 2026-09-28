@@ -19,6 +19,7 @@ export default function AdminAnalyticsDashboard() {
         totalRevenue: 0,
     });
 
+
     const [trendChartData, setTrendChartData] = useState([]);
     const [categoryChartData, setCategoryChartData] = useState([]);
     const [pricingChartData, setPricingChartData] = useState([]);
