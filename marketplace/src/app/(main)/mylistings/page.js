@@ -204,30 +204,101 @@ function MyListingsContent() {
     e.preventDefault();
     if (!activeItem) return;
     setIsProcessing(true);
-    let updatedTags = Array.isArray(activeItem.tags) ? [...activeItem.tags] : [];
 
-    if (editForm.isRental && !updatedTags.includes("Rentals")) updatedTags.push("Rentals");
-    if (!editForm.isRental) updatedTags = updatedTags.filter(t => t !== "Rentals");
+    try {
+      // 1. Prepare form data to re-run AI moderation on the edited content
+      const moderationForm = new FormData();
+      moderationForm.append("title", editForm.title.trim());
+      moderationForm.append("description", editForm.description.trim());
 
-    const { error } = await supabase
-      .from("products")
-      .update({
-        title: editForm.title,
+      // If the listing has existing images, fetch the first one as a blob for re-moderation
+      if (activeItem.image_urls && activeItem.image_urls.length > 0) {
+        try {
+          const imgRes = await fetch(activeItem.image_urls[0]);
+          const blob = await imgRes.blob();
+          moderationForm.append("images", blob, "existing-photo.jpg");
+        } catch (imgErr) {
+          console.warn("Could not fetch existing image for re-moderation, proceeding with text check:", imgErr);
+        }
+      }
+
+      // 2. Call your moderation endpoint
+      const modRes = await fetch("/api/moderate-listing", {
+        method: "POST",
+        body: moderationForm,
+      });
+
+      if (modRes.status === 401) {
+        throw new Error("Your session expired. Please log in again.");
+      }
+
+      const moderation = await modRes.json();
+
+      // 3. Block if rejected
+      if (moderation.verdict === "rejected") {
+        alert(`Listing update blocked: ${moderation.reason || "it violates our posting guidelines."}`);
+        setIsProcessing(false);
+        return;
+      }
+
+      const needsReview = moderation.verdict === "flagged";
+      let updatedTags = Array.isArray(activeItem.tags) ? [...activeItem.tags] : [];
+
+      if (editForm.isRental && !updatedTags.includes("Rentals")) updatedTags.push("Rentals");
+      if (!editForm.isRental) updatedTags = updatedTags.filter(t => t !== "Rentals");
+
+      // Remove flagged/pending tags if now approved, or add flagged state if needed
+      if (needsReview) {
+        if (!updatedTags.includes("Flagged")) updatedTags.push("Flagged");
+      } else {
+        updatedTags = updatedTags.filter(t => t !== "Flagged");
+      }
+
+      // 4. Update product payload in Supabase with moderation enforcement
+      const updatePayload = {
+        title: editForm.title.trim(),
         price: parseFloat(editForm.price),
-        description: editForm.description,
+        description: editForm.description.trim(),
         condition: editForm.condition,
         course_code: editForm.course_code,
-        tags: updatedTags
-      })
-      .eq("id", activeItem.id);
+        tags: updatedTags,
+        is_available: !needsReview && activeItem.is_available,
+        status: needsReview ? "flagged" : activeItem.status === "flagged" ? "active" : activeItem.status
+      };
 
-    if (!error) {
-      setListings(listings.map(item => item.id === activeItem.id ? { ...item, ...editForm, price: parseFloat(editForm.price), tags: updatedTags } : item));
+      const { error } = await supabase
+        .from("products")
+        .update(updatePayload)
+        .eq("id", activeItem.id);
+
+      if (error) throw error;
+
+      // 5. If flagged during edit, log it to moderation_flags table for admins
+      if (needsReview) {
+        await supabase.from("moderation_flags").insert([
+          {
+            user_id: currentUserId,
+            product_id: activeItem.id,
+            image_url: activeItem.image_urls?.[0] || null,
+            verdict: "flagged",
+            categories: moderation.categories || [],
+            reason: moderation.reason || "Flagged during edit update",
+          },
+        ]);
+
+        alert("Your edits were saved, but the changes triggered a safety flag and have been sent for moderator review.");
+      }
+
+      // Update local state smoothly
+      setListings(listings.map(item => item.id === activeItem.id ? { ...item, ...updatePayload, price: parseFloat(editForm.price) } : item));
       setIsEditModalOpen(false);
+    } catch (err) {
+      console.error("Update error:", err);
+      alert("Failed to update listing: " + (err.message || "Unknown error"));
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
-
   const confirmDelete = async () => {
     if (!activeItem) return;
     setIsProcessing(true);

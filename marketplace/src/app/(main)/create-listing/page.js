@@ -404,6 +404,7 @@ function CreateListingContent() {
       if (dbError) throw dbError;
 
       // NEW: record the flagged photos so moderators see them on /admin/flagged
+      // NEW: record the flagged photos so moderators see them on /admin/flagged
       if (needsReview) {
         const { error: flagError } = await supabase
           .from("moderation_flags")
@@ -411,7 +412,7 @@ function CreateListingContent() {
             {
               user_id: user.id,
               product_id: productId,
-              image_url: null,
+              image_url: uploadedUrls[0] || null, // ✔️ FIXED: matches the uploadedUrls array name
               verdict: "flagged",
               categories: moderation.categories || [],
               reason: moderation.reason || null,
