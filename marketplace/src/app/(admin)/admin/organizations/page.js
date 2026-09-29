@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Check, X, ShieldCheck, Loader2, RotateCcw } from "lucide-react";
+import { Building2, Check, X, ShieldCheck, Loader2, RotateCcw, Trash2 } from "lucide-react";
 
 export default function AdminOrganizationsPage() {
     const [apps, setApps] = useState([]);
@@ -70,6 +70,29 @@ export default function AdminOrganizationsPage() {
         }
     };
 
+    const deleteApplication = async (app) => {
+        if (!confirm(`Remove "${app.org_name}" from the list? This can't be undone.`)) return;
+        setProcessingId(app.id);
+        try {
+            const { data, error } = await supabase
+                .from("org_applications")
+                .delete()
+                .eq("id", app.id)
+                .select();
+
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                throw new Error("Nothing was deleted. Check your delete permissions (RLS).");
+            }
+
+            setApps((prev) => prev.filter((item) => item.id !== app.id));
+        } catch (err) {
+            alert("Error removing application: " + err.message);
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -104,10 +127,10 @@ export default function AdminOrganizationsPage() {
                                         <h3 className="text-lg font-bold text-foreground">{app.org_name}</h3>
                                         <span
                                             className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${app.status === "approved"
-                                                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
-                                                    : app.status === "rejected"
-                                                        ? "bg-rose-500/10 text-rose-500 border-rose-500/30"
-                                                        : "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
+                                                : app.status === "rejected"
+                                                    ? "bg-rose-500/10 text-rose-500 border-rose-500/30"
+                                                    : "bg-amber-500/10 text-amber-500 border-amber-500/30"
                                                 }`}
                                         >
                                             {app.status}
@@ -160,13 +183,23 @@ export default function AdminOrganizationsPage() {
                                     )}
 
                                     {app.status === "rejected" && (
-                                        <button
-                                            onClick={() => updateOrgStatus(app, "approved")}
-                                            disabled={processingId === app.id}
-                                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                                        >
-                                            <RotateCcw size={14} /> Re-Approve
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() => updateOrgStatus(app, "approved")}
+                                                disabled={processingId === app.id}
+                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                            >
+                                                <RotateCcw size={14} /> Re-Approve
+                                            </button>
+                                            <button
+                                                onClick={() => deleteApplication(app)}
+                                                disabled={processingId === app.id}
+                                                title="Remove from list"
+                                                className="p-2.5 bg-muted hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 border border-border rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             </div>
