@@ -74,7 +74,7 @@ export async function POST(req) {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({
             // Use the same model name your generate-listing route uses, or set GEMINI_MODEL in Vercel
-            model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
+            model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
             generationConfig: { responseMimeType: "application/json", temperature: 0 },
         });
 
