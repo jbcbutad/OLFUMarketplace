@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { generateWithRetry } from "@/lib/geminiRetry";
 
 export const dynamic = "force-dynamic";
 
@@ -64,11 +65,13 @@ Price must be a realistic number in Philippine Pesos (PHP). Do not wrap in backt
       }
     }
 
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
-      contents,
-      config: { responseMimeType: "application/json" },
-    });
+    const response = await generateWithRetry(() =>
+      ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
+        contents,
+        config: { responseMimeType: "application/json" },
+      })
+    );
 
     const parsed: ListingOutput = JSON.parse(response.text);
     return NextResponse.json({ success: true, listing: parsed, provider: "gemini" });
