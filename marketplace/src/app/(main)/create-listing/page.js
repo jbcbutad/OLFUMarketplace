@@ -345,6 +345,18 @@ function CreateListingContent() {
       // NEW: created here so the flags can point at this listing without reading it back
       const productId = crypto.randomUUID();
 
+      const merchCategory = categories.find(
+        (c) => c.name.toLowerCase() === "merchandise"
+      );
+
+      if (
+        merchCategory &&
+        finalCategoryId === merchCategory.id &&
+        !isVerifiedOrg
+      ) {
+        throw new Error("Only verified organizations can create merchandise listings.");
+      }
+
       const productPayload = {
         id: productId, // NEW
         title: title.trim(),
@@ -598,9 +610,20 @@ function CreateListingContent() {
                 onChange={(e) => setCategoryId(e.target.value)}
               >
                 <option value="" className="bg-background text-foreground">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id} className="bg-background text-foreground">{cat.name}</option>
-                ))}
+                {categories
+                  .filter(cat =>
+                    isVerifiedOrg ||
+                    cat.name.toLowerCase() !== "merchandise"
+                  )
+                  .map((cat) => (
+                    <option
+                      key={cat.id}
+                      value={cat.id}
+                      className="bg-background text-foreground"
+                    >
+                      {cat.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
