@@ -355,8 +355,13 @@ export default function ProductDetailPage({ params }) {
                 {product.title}
               </h1>
 
-              <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400">
-                ₱{Number(product.price).toLocaleString()}
+              <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 flex items-baseline gap-2">
+                <span>₱{Number(product.price).toLocaleString()}</span>
+                {product.tags?.map(t => t.toLowerCase()).includes("rentals") && (
+                  <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                    / Day
+                  </span>
+                )}
               </div>
 
               {product.stock_quantity !== null && product.stock_quantity !== undefined && (

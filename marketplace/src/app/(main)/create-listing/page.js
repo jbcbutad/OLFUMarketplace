@@ -623,7 +623,7 @@ function CreateListingContent() {
             </div>
           </div>
 
-          {/* BASIC INFO */}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2 relative">
               <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 mb-2 block">Product Title</label>
@@ -665,100 +665,107 @@ function CreateListingContent() {
             </div>
 
             <div className="relative">
-              <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 mb-2 block">Price</label>
+              <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 mb-2 flex items-center justify-between">
+                <span>Price</span>
+                {listingType === "Rentals" && (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider">
+                    Rental Rate (/ Day)
+                  </span>
+                )}
+              </label>
               <span className="absolute left-4 top-[46px] text-neutral-400 font-bold">₱</span>
               <input
                 required
                 type="number"
                 className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 pl-10 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all placeholder:text-neutral-400"
-                placeholder="0.00"
+                placeholder={listingType === "Rentals" ? "0.00 (Per Day)" : "0.00"}
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
               />
             </div>
-          </div>
 
-          {/* TAGS SECTION */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 block">Product Tags</label>
-              <span className="text-xs text-neutral-400 flex items-center gap-1">
-                <Info size={12} /> Press Enter or Comma to add
-              </span>
+            {/* TAGS SECTION */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 block">Product Tags</label>
+                <span className="text-xs text-neutral-400 flex items-center gap-1">
+                  <Info size={12} /> Press Enter or Comma to add
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2 p-3 min-h-[58px] bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl focus-within:ring-2 focus-within:ring-foreground transition-all">
+                {tags.map((tag, idx) => (
+                  <span key={idx} className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 text-foreground px-3 py-1 rounded-lg text-xs font-bold border border-neutral-300 dark:border-neutral-700">
+                    #{tag}
+                    <X size={14} className="cursor-pointer hover:text-red-500" onClick={() => removeTag(tag)} />
+                  </span>
+                ))}
+                <input
+                  className="bg-transparent outline-none text-foreground text-sm flex-grow min-w-[140px] placeholder:text-neutral-400"
+                  placeholder={tags.length === 0 ? "Type tag & press Enter..." : ""}
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                />
+              </div>
+
+              <div className="pt-1">
+                <p className="text-[11px] text-neutral-500 font-medium mb-1.5">Click to quick-add tags:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {suggestedTags.map((suggestion) => {
+                    const isAdded = tags.includes(suggestion);
+                    return (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        disabled={isAdded}
+                        onClick={() => addTag(suggestion)}
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all flex items-center gap-1 ${isAdded
+                          ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 border-transparent cursor-not-allowed"
+                          : "bg-background border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-foreground"}`}
+                      >
+                        <Plus size={10} /> #{suggestion}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 p-3 min-h-[58px] bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl focus-within:ring-2 focus-within:ring-foreground transition-all">
-              {tags.map((tag, idx) => (
-                <span key={idx} className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 text-foreground px-3 py-1 rounded-lg text-xs font-bold border border-neutral-300 dark:border-neutral-700">
-                  #{tag}
-                  <X size={14} className="cursor-pointer hover:text-red-500" onClick={() => removeTag(tag)} />
-                </span>
-              ))}
-              <input
-                className="bg-transparent outline-none text-foreground text-sm flex-grow min-w-[140px] placeholder:text-neutral-400"
-                placeholder={tags.length === 0 ? "Type tag & press Enter..." : ""}
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagKeyDown}
+            {/* DESCRIPTION */}
+            <div className="relative">
+              <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 mb-2 block">Description</label>
+              <FileText className="absolute left-4 top-[46px] text-neutral-400" size={18} />
+              <textarea
+                rows="4"
+                required
+                className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 pl-12 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none placeholder:text-neutral-400"
+                placeholder="Tell buyers more about your product..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 
-            <div className="pt-1">
-              <p className="text-[11px] text-neutral-500 font-medium mb-1.5">Click to quick-add tags:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {suggestedTags.map((suggestion) => {
-                  const isAdded = tags.includes(suggestion);
-                  return (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      disabled={isAdded}
-                      onClick={() => addTag(suggestion)}
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all flex items-center gap-1 ${isAdded
-                        ? "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 border-transparent cursor-not-allowed"
-                        : "bg-background border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-foreground"}`}
-                    >
-                      <Plus size={10} /> #{suggestion}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* SUBMIT */}
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={loading || images.length === 0}
+                className="w-full bg-foreground text-background border border-foreground font-bold py-5 rounded-2xl flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? (
+                  <><Loader2 className="animate-spin" size={20} /> Processing Listing...</>
+                ) : isOfficialOrgMerch ? (
+                  `Submit Merchandise (Fee: ₱${calculatedFee.toFixed(2)})`
+                ) : (
+                  "Post Listing Now"
+                )}
+              </button>
             </div>
-          </div>
-
-          {/* DESCRIPTION */}
-          <div className="relative">
-            <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 mb-2 block">Description</label>
-            <FileText className="absolute left-4 top-[46px] text-neutral-400" size={18} />
-            <textarea
-              rows="4"
-              required
-              className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 pl-12 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none placeholder:text-neutral-400"
-              placeholder="Tell buyers more about your product..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          {/* SUBMIT */}
-          <div className="pt-6">
-            <button
-              type="submit"
-              disabled={loading || images.length === 0}
-              className="w-full bg-foreground text-background border border-foreground font-bold py-5 rounded-2xl flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
-            >
-              {loading ? (
-                <><Loader2 className="animate-spin" size={20} /> Processing Listing...</>
-              ) : isOfficialOrgMerch ? (
-                `Submit Merchandise (Fee: ₱${calculatedFee.toFixed(2)})`
-              ) : (
-                "Post Listing Now"
-              )}
-            </button>
           </div>
         </form>
 
-        {/* 👉 PAYMENT INSTRUCTIONS MODAL (Placed properly INSIDE the main return layout) */}
+        {/* 👉 PAYMENT INSTRUCTIONS MODAL (Placed INSIDE the main wrapper, but AFTER the form) */}
         {submittedMerch && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl space-y-6">

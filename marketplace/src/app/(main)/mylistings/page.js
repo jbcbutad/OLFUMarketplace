@@ -427,12 +427,11 @@ function MyListingsContent() {
 
                   {/* 👉 FLAGGED BANNER NOTICE ON LISTING ROW IF FLAGGED */}
                   {isFlagged && (
-                    <div className="bg-rose-500/15 border border-rose-500/30 px-3 py-2 rounded-xl flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold">
-                      <AlertTriangle size={15} className="shrink-0" />
-                      <span><strong>Under Safety Review (Flagged):</strong> This listing has triggered moderation checks and is hidden from the marketplace.</span>
+                    <div className="bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-xl flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold">
+                      <AlertTriangle size={15} className="shrink-0 text-rose-500" />
+                      <span><strong className="text-rose-600 dark:text-rose-400">Under Safety Review (Flagged):</strong> This listing has triggered moderation checks and is hidden from the marketplace.</span>
                     </div>
                   )}
-
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     <Link href={`/products/${item.id}`} className="shrink-0 relative">
                       <img
