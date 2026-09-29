@@ -261,30 +261,44 @@ function CreateListingContent() {
   // NEW: sends every photo to /api/moderate-image in one request.
   // Returns one { verdict, categories, reason } per photo, in the same order as `files`.
   // Anything that cannot be checked is held for review ("flagged") instead of passing through.
-  const moderateImages = async (files) => {
-    const held = (reason) => ({ verdict: "flagged", categories: [], reason });
-    const results = files.map(() => held("moderation_unavailable"));
-
-    const blobs = await Promise.all(files.map((f) => compressToBlob(f).catch(() => null)));
-    const sendable = [];
-    blobs.forEach((blob, i) => {
-      if (blob) sendable.push({ i, blob });
-      else results[i] = held("could_not_read_image");
-    });
-    if (sendable.length === 0) return results;
-
+  const moderateListing = async () => {
     const form = new FormData();
-    sendable.forEach(({ blob }, k) => form.append("images", blob, `photo-${k}.jpg`));
 
-    const res = await fetch("/api/moderate-image", { method: "POST", body: form });
-    if (res.status === 401) throw new Error("Your session expired. Please log in again.");
-    if (!res.ok) return results; // stays held for review
+    form.append("title", title.trim());
+    form.append("description", description.trim());
 
-    const data = await res.json();
-    sendable.forEach(({ i }, k) => {
-      if (data.results?.[k]) results[i] = data.results[k];
+    const blobs = await Promise.all(
+      images.map((file) => compressToBlob(file))
+    );
+
+    blobs.forEach((blob, index) => {
+      if (blob) {
+        form.append(
+          "images",
+          blob,
+          `photo-${index}.jpg`
+        );
+      }
     });
-    return results;
+
+    const res = await fetch("/api/moderate-listing", {
+      method: "POST",
+      body: form,
+    });
+
+    if (res.status === 401) {
+      throw new Error(
+        "Your session expired. Please log in again."
+      );
+    }
+
+    if (!res.ok) {
+      throw new Error(
+        "Unable to moderate this listing."
+      );
+    }
+
+    return await res.json();
   };
 
   const handleSubmit = async (e) => {
@@ -295,19 +309,27 @@ function CreateListingContent() {
 
     try {
       // NEW: check every photo before anything is uploaded
-      const results = await moderateImages(images);
+      const moderation = await moderateListing();
 
-      const rejectedIndex = results.findIndex((r) => r.verdict === "rejected");
-      if (rejectedIndex !== -1) {
-        const why = (results[rejectedIndex].reason || "it appears to break our posting rules").replace(/[.\s]+$/, "");
-        alert(`Photo ${rejectedIndex + 1} can't be used: ${why}. Please remove it and try again.`);
+      if (moderation.verdict === "rejected") {
+        const sourceText =
+          moderation.sources?.includes("text") &&
+            moderation.sources?.includes("image")
+            ? "Your listing text and an uploaded image"
+            : moderation.sources?.includes("text")
+              ? "Your listing text"
+              : "An uploaded image";
+
+        alert(
+          `${sourceText} cannot be used: ${moderation.reason ||
+          "it appears to break our posting rules"
+          }`
+        );
+
         return;
       }
 
-      const flaggedIndexes = results
-        .map((r, i) => (r.verdict === "flagged" ? i : -1))
-        .filter((i) => i !== -1);
-      const needsReview = flaggedIndexes.length > 0;
+      const needsReview = moderation.verdict === "flagged";
 
       const uploadPromises = images.map(async (image) => {
         const fileExt = image.name.split('.').pop();
@@ -383,19 +405,24 @@ function CreateListingContent() {
 
       // NEW: record the flagged photos so moderators see them on /admin/flagged
       if (needsReview) {
-        const { error: flagError } = await supabase.from("moderation_flags").insert(
-          flaggedIndexes.map((i) => ({
-            user_id: user.id,
-            product_id: productId,
-            image_url: uploadedUrls[i],
-            verdict: "flagged",
-            categories: results[i].categories || [],
-            reason: results[i].reason || null,
-          }))
-        );
+        const { error: flagError } = await supabase
+          .from("moderation_flags")
+          .insert([
+            {
+              user_id: user.id,
+              product_id: productId,
+              image_url: null,
+              verdict: "flagged",
+              categories: moderation.categories || [],
+              reason: moderation.reason || null,
+            },
+          ]);
+
         if (flagError) throw flagError;
 
-        alert("Your listing was submitted, but a photo needs a quick check by our moderators. It will go live once approved.");
+        alert(
+          "Your listing was submitted for a moderator review. It will go live once approved."
+        );
       }
 
       // Trigger payment instruction modal for merch drops instead of direct router redirect
