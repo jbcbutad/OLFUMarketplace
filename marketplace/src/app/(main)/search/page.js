@@ -121,7 +121,7 @@ export default async function SearchPage({ searchParams }) {
         {!products || products.length === 0 ? (
           <div className="text-center py-24 bg-background rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-700 animate-in fade-in duration-500">
             <p className="text-neutral-500 dark:text-neutral-400 text-lg mb-4">No listings found. Try a different keyword!</p>
-            <Link href="/" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-foreground text-background hover:opacity-90 rounded-xl transition-all font-bold active:scale-95 text-sm uppercase tracking-wider">
+            <Link href="/marketplace" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-foreground text-background hover:opacity-90 rounded-xl transition-all font-bold active:scale-95 text-sm uppercase tracking-wider">
               Back to Home
             </Link>
           </div>

@@ -39,6 +39,31 @@ const compressAndConvertToBase64 = (file, maxWidth = 1024, quality = 0.75) => {
   });
 };
 
+// NEW: shrinks a photo to a small JPEG so a whole listing fits in one moderation request
+const compressToBlob = (file, maxSize = 768, quality = 0.7) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("compress failed"))),
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("load failed"));
+    };
+    img.src = url;
+  });
+
 function CreateListingContent() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -233,6 +258,35 @@ function CreateListingContent() {
     }
   };
 
+  // NEW: sends every photo to /api/moderate-image in one request.
+  // Returns one { verdict, categories, reason } per photo, in the same order as `files`.
+  // Anything that cannot be checked is held for review ("flagged") instead of passing through.
+  const moderateImages = async (files) => {
+    const held = (reason) => ({ verdict: "flagged", categories: [], reason });
+    const results = files.map(() => held("moderation_unavailable"));
+
+    const blobs = await Promise.all(files.map((f) => compressToBlob(f).catch(() => null)));
+    const sendable = [];
+    blobs.forEach((blob, i) => {
+      if (blob) sendable.push({ i, blob });
+      else results[i] = held("could_not_read_image");
+    });
+    if (sendable.length === 0) return results;
+
+    const form = new FormData();
+    sendable.forEach(({ blob }, k) => form.append("images", blob, `photo-${k}.jpg`));
+
+    const res = await fetch("/api/moderate-image", { method: "POST", body: form });
+    if (res.status === 401) throw new Error("Your session expired. Please log in again.");
+    if (!res.ok) return results; // stays held for review
+
+    const data = await res.json();
+    sendable.forEach(({ i }, k) => {
+      if (data.results?.[k]) results[i] = data.results[k];
+    });
+    return results;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (images.length === 0) return alert("Please upload at least one image!");
@@ -240,6 +294,21 @@ function CreateListingContent() {
     setLoading(true);
 
     try {
+      // NEW: check every photo before anything is uploaded
+      const results = await moderateImages(images);
+
+      const rejectedIndex = results.findIndex((r) => r.verdict === "rejected");
+      if (rejectedIndex !== -1) {
+        const why = (results[rejectedIndex].reason || "it appears to break our posting rules").replace(/[.\s]+$/, "");
+        alert(`Photo ${rejectedIndex + 1} can't be used: ${why}. Please remove it and try again.`);
+        return;
+      }
+
+      const flaggedIndexes = results
+        .map((r, i) => (r.verdict === "flagged" ? i : -1))
+        .filter((i) => i !== -1);
+      const needsReview = flaggedIndexes.length > 0;
+
       const uploadPromises = images.map(async (image) => {
         const fileExt = image.name.split('.').pop();
         const fileName = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
@@ -273,7 +342,11 @@ function CreateListingContent() {
         }
       }
 
+      // NEW: created here so the flags can point at this listing without reading it back
+      const productId = crypto.randomUUID();
+
       const productPayload = {
+        id: productId, // NEW
         title: title.trim(),
         description: description.trim(),
         price: parseFloat(price),
@@ -282,8 +355,9 @@ function CreateListingContent() {
         category_id: finalCategoryId,
         tags: finalTags,
         price_type: 'Fixed',
-        is_available: true,
-        status: isOfficialOrgMerch ? "pending" : "active",
+        is_available: !needsReview, // CHANGED (was: true)
+        is_published: !needsReview, // NEW
+        status: needsReview ? "flagged" : isOfficialOrgMerch ? "pending" : "active", // CHANGED
         stock_quantity: parsedStock,
         listing_duration: isOfficialOrgMerch ? listingDuration.trim() : null,
         listing_fee: calculatedFee
@@ -294,6 +368,23 @@ function CreateListingContent() {
         .insert([productPayload]);
 
       if (dbError) throw dbError;
+
+      // NEW: record the flagged photos so moderators see them on /admin/flagged
+      if (needsReview) {
+        const { error: flagError } = await supabase.from("moderation_flags").insert(
+          flaggedIndexes.map((i) => ({
+            user_id: user.id,
+            product_id: productId,
+            image_url: uploadedUrls[i],
+            verdict: "flagged",
+            categories: results[i].categories || [],
+            reason: results[i].reason || null,
+          }))
+        );
+        if (flagError) throw flagError;
+
+        alert("Your listing was submitted, but a photo needs a quick check by our moderators. It will go live once approved.");
+      }
 
       // Trigger payment instruction modal for merch drops instead of direct router redirect
       if (isOfficialOrgMerch) {

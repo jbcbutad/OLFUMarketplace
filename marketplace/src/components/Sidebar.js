@@ -26,6 +26,7 @@ import {
   TrendingUp,
   Building2,
   ShieldCheck,
+  Flag,
 } from "lucide-react";
 
 function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }) {
@@ -495,6 +496,18 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
               >
                 <ShieldAlert size={18} className={`${pathname.startsWith("/admin/reports") ? "text-white" : themeConfig.icon} shrink-0`} />
                 {isOpen && <span className="truncate">Reports</span>}
+              </Link>
+
+              <Link
+                href="/admin/flagged"
+                title="Flagged Content"
+                className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/flagged")
+                  ? themeConfig.activeLink
+                  : themeConfig.inactiveLink
+                  } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
+              >
+                <Flag size={18} className={`${pathname.startsWith("/admin/flagged") ? "text-white" : themeConfig.icon} shrink-0`} />
+                {isOpen && <span className="truncate">Flagged Content</span>}
               </Link>
 
               <Link
