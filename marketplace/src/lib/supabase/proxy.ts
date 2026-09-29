@@ -32,7 +32,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-
   // ---------------------------------------------------------
   // SUPABASE SERVER CLIENT
   // ---------------------------------------------------------
@@ -74,27 +73,28 @@ export async function proxy(request: NextRequest) {
   // ---------------------------------------------------------
   const {
     data: { user },
-    error,
   } = await supabase.auth.getUser();
 
-  // If the session is invalid or the user is not authenticated,
-  // send them to login.
-  if (error || !user) {
+  // Only protected routes should redirect unauthenticated users.
+  if ((isProtectedAdmin || isProtectedDashboard) && !user) {
     url.pathname = "/login";
 
     return NextResponse.redirect(url);
   }
-
   // ---------------------------------------------------------
   // GET USER ROLE
   // ---------------------------------------------------------
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  let role = "buyer";
 
-  const role = profile?.role || "buyer";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    role = profile?.role || "buyer";
+  }
 
   const ADMIN_ROLES = [
     "super_admin",
