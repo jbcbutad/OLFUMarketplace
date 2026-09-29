@@ -51,24 +51,32 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Fetch role only when entering restricted areas
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   const role = profile?.role || "buyer";
 
-  // Check permissions for /admin
-  if (isProtectedAdmin && role !== "admin") {
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+  const ADMIN_ROLES = ["super_admin", "superadmin", "admin", "moderator"];
+  const isSuper = role === "super_admin" || role === "superadmin";
+
+  if (isProtectedAdmin) {
+    // Must be some kind of staff to enter /admin at all
+    if (!ADMIN_ROLES.includes(role)) {
+      url.pathname = "/marketplace";
+      return NextResponse.redirect(url);
+    }
+    // Users management: moderators are not allowed (matches your sidebar)
+    if (url.pathname.startsWith("/admin/users") && role === "moderator") {
+      url.pathname = "/admin/reports";
+      return NextResponse.redirect(url);
+    }
   }
 
-  // Check permissions for /dashboard (seller or admin allowed)
-  if (isProtectedDashboard && role !== "seller" && role !== "admin") {
-    url.pathname = "/";
+  if (isProtectedDashboard && role !== "seller" && !ADMIN_ROLES.includes(role)) {
+    url.pathname = "/marketplace";
     return NextResponse.redirect(url);
   }
 
