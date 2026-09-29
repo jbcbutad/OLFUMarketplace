@@ -26,7 +26,6 @@ function MyListingsContent() {
   const [isTransactModalOpen, setIsTransactModalOpen] = useState(false);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
 
-  // State for GCash payment instructions modal
   const [submittedMerch, setSubmittedMerch] = useState(null);
 
   const [targetStatus, setTargetStatus] = useState("unavailable");
@@ -157,7 +156,6 @@ function MyListingsContent() {
     setOpenDropdownId(null);
 
     if (targetStatusChoice === "available") {
-      // 🔒 SURGICAL FIX: Block activating items that are still pending admin review or flagged!
       if (item.status === "pending" || item.status === "flagged" || !item.is_published) {
         alert("This listing cannot be made available because it is still awaiting admin approval or has been flagged.");
         return;
@@ -186,6 +184,11 @@ function MyListingsContent() {
         .eq("id", item.id);
 
     } else {
+      // 👉 PREVENT REDUNDANT CLICKS: If already unavailable and not available, don't re-trigger
+      if (!item.is_available && item.status === "unavailable") {
+        return;
+      }
+
       setActiveItem(item);
       setTargetStatus("unavailable");
       setIsTransactModalOpen(true);
@@ -211,23 +214,20 @@ function MyListingsContent() {
     setIsProcessing(true);
 
     try {
-      // 1. Prepare form data to re-run AI moderation on the edited content
       const moderationForm = new FormData();
       moderationForm.append("title", editForm.title.trim());
       moderationForm.append("description", editForm.description.trim());
 
-      // If the listing has existing images, fetch the first one as a blob for re-moderation
       if (activeItem.image_urls && activeItem.image_urls.length > 0) {
         try {
           const imgRes = await fetch(activeItem.image_urls[0]);
           const blob = await imgRes.blob();
           moderationForm.append("images", blob, "existing-photo.jpg");
         } catch (imgErr) {
-          console.warn("Could not fetch existing image for re-moderation, proceeding with text check:", imgErr);
+          console.warn("Could not fetch existing image for re-moderation:", imgErr);
         }
       }
 
-      // 2. Call your moderation endpoint
       const modRes = await fetch("/api/moderate-listing", {
         method: "POST",
         body: moderationForm,
@@ -239,7 +239,6 @@ function MyListingsContent() {
 
       const moderation = await modRes.json();
 
-      // 3. Block if rejected
       if (moderation.verdict === "rejected") {
         alert(`Listing update blocked: ${moderation.reason || "it violates our posting guidelines."}`);
         setIsProcessing(false);
@@ -252,14 +251,12 @@ function MyListingsContent() {
       if (editForm.isRental && !updatedTags.includes("Rentals")) updatedTags.push("Rentals");
       if (!editForm.isRental) updatedTags = updatedTags.filter(t => t !== "Rentals");
 
-      // Remove flagged/pending tags if now approved, or add flagged state if needed
       if (needsReview) {
         if (!updatedTags.includes("Flagged")) updatedTags.push("Flagged");
       } else {
         updatedTags = updatedTags.filter(t => t !== "Flagged");
       }
 
-      // 4. Update product payload in Supabase with moderation enforcement
       const updatePayload = {
         title: editForm.title.trim(),
         price: parseFloat(editForm.price),
@@ -278,7 +275,6 @@ function MyListingsContent() {
 
       if (error) throw error;
 
-      // 5. If flagged during edit, log it and give an unmistakable warning
       if (needsReview) {
         await supabase.from("moderation_flags").insert([
           {
@@ -300,7 +296,6 @@ function MyListingsContent() {
         alert("Your listing updates were successfully saved and approved!");
       }
 
-      // Update local state smoothly
       setListings(listings.map(item => item.id === activeItem.id ? { ...item, ...updatePayload, price: parseFloat(editForm.price) } : item));
       setIsEditModalOpen(false);
     } catch (err) {
@@ -324,6 +319,7 @@ function MyListingsContent() {
 
   const filteredListings = listings.filter(item => {
     const isPendingAdminReview = item.status === "pending";
+    const isFlagged = item.status === "flagged";
     const isMerchandise = item.categories?.name === "Merchandise";
     const createdAt = new Date(item.created_at);
     const durationDays = parseInt(item.listing_duration) || 7;
@@ -333,7 +329,8 @@ function MyListingsContent() {
 
     if (activeTab === "expired") return isExpiredTag;
     if (activeTab === "pending") return isPendingAdminReview;
-    if (activeTab === "active") return !isPendingAdminReview && !isExpiredTag && item.is_available;
+    if (activeTab === "flagged") return isFlagged;
+    if (activeTab === "active") return !isPendingAdminReview && !isFlagged && !isExpiredTag && item.is_available;
     return true;
   });
 
@@ -355,6 +352,7 @@ function MyListingsContent() {
           </Link>
         </div>
 
+        {/* Navigation Tabs */}
         <div className="flex items-center gap-2 mb-6 border-b border-neutral-200 dark:border-neutral-800 pb-4 overflow-x-auto">
           <button
             onClick={() => setActiveTab("all")}
@@ -367,6 +365,12 @@ function MyListingsContent() {
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "active" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
           >
             Active
+          </button>
+          <button
+            onClick={() => setActiveTab("flagged")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === "flagged" ? "bg-rose-600 text-white shadow-sm font-black" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+          >
+            <AlertTriangle size={14} /> Flagged
           </button>
           <button
             onClick={() => setActiveTab("pending")}
@@ -386,6 +390,7 @@ function MyListingsContent() {
           {filteredListings.length > 0 ? (
             filteredListings.map((item) => {
               const isPendingAdmin = item.status === "pending";
+              const isFlagged = item.status === "flagged";
               const isMerchandise = item.categories?.name === "Merchandise";
               const createdAt = new Date(item.created_at);
               const durationDays = parseInt(item.listing_duration) || 7;
@@ -396,13 +401,17 @@ function MyListingsContent() {
               const isUnavailable = !item.is_available || isExpiredTag;
 
               let cardBgStyles = "bg-neutral-50 dark:bg-neutral-900/60 border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md";
-              if (isPendingAdmin) cardBgStyles = "bg-amber-50/40 dark:bg-amber-950/20 border-amber-500/50 shadow-sm";
+              if (isFlagged) cardBgStyles = "bg-rose-500/10 dark:bg-rose-950/20 border-rose-500/50 shadow-sm";
+              else if (isPendingAdmin) cardBgStyles = "bg-amber-50/40 dark:bg-amber-950/20 border-amber-500/50 shadow-sm";
               else if (isExpiredTag) cardBgStyles = "bg-red-500/10 dark:bg-red-950/30 border-red-500/40";
               else if (isUnavailable) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-300 dark:border-neutral-800 opacity-75";
 
               let currentStatusLabel = "Available";
               let dropdownTriggerStyles = "bg-foreground text-background border-foreground";
-              if (isPendingAdmin) {
+              if (isFlagged) {
+                currentStatusLabel = "Flagged";
+                dropdownTriggerStyles = "bg-rose-600 text-white border-rose-700";
+              } else if (isPendingAdmin) {
                 currentStatusLabel = "Awaiting Admin";
                 dropdownTriggerStyles = "bg-amber-500 text-black border-amber-600";
               } else if (isExpiredTag) {
@@ -414,84 +423,104 @@ function MyListingsContent() {
               }
 
               return (
-                <div key={item.id} className={`flex flex-col md:flex-row items-center gap-6 p-4 rounded-2xl border transition-all ${cardBgStyles}`}>
+                <div key={item.id} className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all ${cardBgStyles}`}>
 
-                  <Link href={`/products/${item.id}`} className="shrink-0 relative">
-                    <img
-                      src={item.image_urls?.[0] || "/placeholder.png"}
-                      className={`w-24 h-24 rounded-xl object-cover border border-neutral-200 dark:border-neutral-800 transition-opacity ${isUnavailable ? "grayscale" : "hover:opacity-80"}`}
-                      alt={item.title}
-                    />
-                    {isExpiredTag && (
-                      <div className="absolute inset-0 bg-red-600/40 rounded-xl flex items-center justify-center">
-                        <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest">EXPIRED</span>
-                      </div>
-                    )}
-                  </Link>
-
-                  <div className="flex-grow w-full md:w-auto text-center md:text-left">
-                    <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5 flex-wrap">
-                      <span className="text-[9px] bg-neutral-200 dark:bg-neutral-800 border text-foreground px-2 py-0.5 rounded font-bold uppercase tracking-widest">{item.categories?.name}</span>
-                      {isExpiredTag && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Duration Expired</span>}
+                  {/* 👉 FLAGGED BANNER NOTICE ON LISTING ROW IF FLAGGED */}
+                  {isFlagged && (
+                    <div className="bg-rose-500/15 border border-rose-500/30 px-3 py-2 rounded-xl flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold">
+                      <AlertTriangle size={15} className="shrink-0" />
+                      <span><strong>Under Safety Review (Flagged):</strong> This listing has triggered moderation checks and is hidden from the marketplace.</span>
                     </div>
+                  )}
 
-                    <Link href={`/products/${item.id}`}>
-                      <h3 className={`text-xl font-black uppercase tracking-tight ${isUnavailable && !isExpiredTag ? "text-neutral-500 line-through" : "text-foreground hover:opacity-80"} transition-colors inline-block`}>{item.title}</h3>
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    <Link href={`/products/${item.id}`} className="shrink-0 relative">
+                      <img
+                        src={item.image_urls?.[0] || "/placeholder.png"}
+                        className={`w-24 h-24 rounded-xl object-cover border border-neutral-200 dark:border-neutral-800 transition-opacity ${isUnavailable ? "grayscale" : "hover:opacity-80"}`}
+                        alt={item.title}
+                      />
+                      {isFlagged && (
+                        <div className="absolute inset-0 bg-rose-600/40 rounded-xl flex items-center justify-center">
+                          <span className="text-[9px] bg-rose-600 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest">FLAGGED</span>
+                        </div>
+                      )}
+                      {isExpiredTag && !isFlagged && (
+                        <div className="absolute inset-0 bg-red-600/40 rounded-xl flex items-center justify-center">
+                          <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest">EXPIRED</span>
+                        </div>
+                      )}
                     </Link>
 
-                    <p className="font-bold flex items-center justify-center md:justify-start gap-1 mt-1 text-foreground">
-                      <PhilippinePeso size={14} /> {item.price.toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto justify-center md:justify-end mt-4 md:mt-0 items-center">
-                    {isExpiredTag ? (
-                      <button
-                        onClick={() => { setActiveItem(item); setIsRenewModalOpen(true); }}
-                        className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all"
-                      >
-                        <RefreshCcw size={14} /> Renew Listing
-                      </button>
-                    ) : (
-                      <div className="relative" ref={openDropdownId === item.id ? dropdownRef : null}>
-                        {isPendingAdmin ? (
-                          <div className="px-4 py-2.5 bg-amber-500 text-black border border-amber-600 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm min-w-[135px] cursor-not-allowed opacity-90">
-                            <span>Awaiting Admin</span>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setOpenDropdownId(openDropdownId === item.id ? null : item.id)}
-                            className={`px-4 py-2.5 border rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm min-w-[135px] justify-between ${dropdownTriggerStyles}`}
-                          >
-                            <span>{currentStatusLabel}</span>
-                            <ChevronDown size={14} className={`transition-transform duration-200 ${openDropdownId === item.id ? "rotate-180" : ""}`} />
-                          </button>
-                        )}
-
-                        {!isPendingAdmin && openDropdownId === item.id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-background border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(item, "available")}
-                              className="w-full text-left px-4 py-2.5 text-xs font-bold text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors uppercase tracking-wider"
-                            >
-                              Set Available
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleStatusChange(item, "unavailable")}
-                              className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors uppercase tracking-wider"
-                            >
-                              Mark Unavailable
-                            </button>
-                          </div>
-                        )}
+                    <div className="flex-grow w-full md:w-auto text-center md:text-left">
+                      <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5 flex-wrap">
+                        <span className="text-[9px] bg-neutral-200 dark:bg-neutral-800 border text-foreground px-2 py-0.5 rounded font-bold uppercase tracking-widest">{item.categories?.name}</span>
+                        {isFlagged && <span className="text-[9px] bg-rose-100 dark:bg-rose-950/60 border border-rose-300 text-rose-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Safety Flag</span>}
+                        {isExpiredTag && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Duration Expired</span>}
                       </div>
-                    )}
 
-                    <button onClick={() => openEditModal(item)} className="p-2.5 bg-background border border-foreground rounded-xl text-foreground hover:opacity-80 transition-all active:scale-95"><Edit3 size={16} /></button>
-                    <button onClick={() => { setActiveItem(item); setIsDeleteModalOpen(true); }} className="p-2.5 bg-red-50 dark:bg-red-950/30 border border-red-400 dark:border-red-800 rounded-xl text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95"><Trash2 size={16} /></button>
+                      <Link href={`/products/${item.id}`}>
+                        <h3 className={`text-xl font-black uppercase tracking-tight ${isUnavailable && !isExpiredTag && !isFlagged ? "text-neutral-500 line-through" : "text-foreground hover:opacity-80"} transition-colors inline-block`}>{item.title}</h3>
+                      </Link>
+
+                      <p className="font-bold flex items-center justify-center md:justify-start gap-1 mt-1 text-foreground">
+                        <PhilippinePeso size={14} /> {item.price.toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto justify-center md:justify-end mt-4 md:mt-0 items-center">
+                      {isExpiredTag ? (
+                        <button
+                          onClick={() => { setActiveItem(item); setIsRenewModalOpen(true); }}
+                          className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all"
+                        >
+                          <RefreshCcw size={14} /> Renew Listing
+                        </button>
+                      ) : (
+                        <div className="relative" ref={openDropdownId === item.id ? dropdownRef : null}>
+                          {isPendingAdmin ? (
+                            <div className="px-4 py-2.5 bg-amber-500 text-black border border-amber-600 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm min-w-[135px] cursor-not-allowed opacity-90">
+                              <span>Awaiting Admin</span>
+                            </div>
+                          ) : isFlagged ? (
+                            <div className="px-4 py-2.5 bg-rose-600 text-white border border-rose-700 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm min-w-[135px] cursor-not-allowed">
+                              <span>Flagged</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setOpenDropdownId(openDropdownId === item.id ? null : item.id)}
+                              className={`px-4 py-2.5 border rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm min-w-[135px] justify-between ${dropdownTriggerStyles}`}
+                            >
+                              <span>{currentStatusLabel}</span>
+                              <ChevronDown size={14} className={`transition-transform duration-200 ${openDropdownId === item.id ? "rotate-180" : ""}`} />
+                            </button>
+                          )}
+
+                          {!isPendingAdmin && !isFlagged && openDropdownId === item.id && (
+                            <div className="absolute right-0 mt-2 w-48 bg-background border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(item, "available")}
+                                className="w-full text-left px-4 py-2.5 text-xs font-bold text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors uppercase tracking-wider"
+                              >
+                                Set Available
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(item, "unavailable")}
+                                className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors uppercase tracking-wider"
+                              >
+                                Mark Unavailable
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <button onClick={() => openEditModal(item)} className="p-2.5 bg-background border border-foreground rounded-xl text-foreground hover:opacity-80 transition-all active:scale-95"><Edit3 size={16} /></button>
+                      <button onClick={() => { setActiveItem(item); setIsDeleteModalOpen(true); }} className="p-2.5 bg-red-50 dark:bg-red-950/30 border border-red-400 dark:border-red-800 rounded-xl text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95"><Trash2 size={16} /></button>
+                    </div>
                   </div>
                 </div>
               );
@@ -504,7 +533,7 @@ function MyListingsContent() {
         </div>
       </div>
 
-      {/* 👉 PROPERLY WIRED MARK AS TRANSACTED MODAL */}
+      {/* MODALS */}
       {isTransactModalOpen && activeItem && (
         <MarkAsTransactedModal
           productId={activeItem.id}
@@ -526,7 +555,6 @@ function MyListingsContent() {
         />
       )}
 
-      {/* RENEW MODAL */}
       {isRenewModalOpen && activeItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-background border border-neutral-200 dark:border-neutral-800 w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
@@ -597,7 +625,6 @@ function MyListingsContent() {
         </div>
       )}
 
-      {/* GCASH PAYMENT INSTRUCTIONS MODAL WORKFLOW */}
       {submittedMerch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl space-y-6">
@@ -634,7 +661,7 @@ function MyListingsContent() {
                 <ol className="list-decimal pl-4 space-y-1 text-[11px]">
                   <li>Take a screenshot of your GCash payment receipt.</li>
                   <li>Send an email to <strong className="text-foreground">olfumarketplace@gmail.com</strong>.</li>
-                  <li>Include your item title (<span className="italic">"{submittedMerch.title}"</span>) and attach the receipt screenshot.</li>
+                  <li>Include your item title (<span className="italic">&quot;{submittedMerch.title}&quot;</span>) and attach the receipt screenshot.</li>
                 </ol>
               </div>
             </div>
@@ -655,7 +682,6 @@ function MyListingsContent() {
         </div>
       )}
 
-      {/* EDIT MODAL */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-background border border-neutral-200 dark:border-neutral-800 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -692,7 +718,6 @@ function MyListingsContent() {
         </div>
       )}
 
-      {/* DELETE MODAL */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">

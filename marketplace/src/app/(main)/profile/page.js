@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Star,
   Trophy,
-  Shield
+  Shield,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 
@@ -274,9 +275,23 @@ export default function ProfilePage() {
     ? (buyerReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / buyerReviews.length).toFixed(1)
     : "0.0";
 
+  // Check if user has any flagged listings
+  const hasFlaggedListings = myProducts.some((item) => item.status === "flagged");
+
   return (
     <div className="w-full min-h-screen text-foreground transition-colors">
       <div className="max-w-7xl mx-auto px-6 py-10">
+
+        {/* 👉 FLAGGED NOTIFICATION BANNER ON PROFILE IF ANY LISTINGS ARE FLAGGED */}
+        {hasFlaggedListings && (
+          <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl mb-8 flex items-center gap-3 text-rose-600 dark:text-rose-400 shadow-sm animate-in fade-in duration-200">
+            <AlertTriangle size={20} className="shrink-0 animate-pulse" />
+            <div className="text-xs font-bold">
+              <span className="uppercase tracking-wider block font-black">Safety Review Alert</span>
+              One or more of your listings have been flagged by the moderation system and are hidden pending review. Check your listings below.
+            </div>
+          </div>
+        )}
 
         {/* PROFILE HEADER CARD */}
         <div className="bg-card border border-neutral-200 dark:border-neutral-800 rounded-3xl p-8 mb-12 shadow-xl flex flex-col md:flex-row items-center md:items-start gap-8">
@@ -423,7 +438,7 @@ export default function ProfilePage() {
 
         {myProducts.length === 0 ? (
           <div className="text-center py-20 bg-card rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-800">
-            <p className="text-muted-foreground mb-4 font-medium">You haven't listed any products yet.</p>
+            <p className="text-muted-foreground mb-4 font-medium">You haven&apos;t listed any products yet.</p>
             <Link href="/create-listing" className="px-6 py-3 bg-foreground text-background rounded-xl font-bold inline-block hover:opacity-90 transition-colors">
               Start Selling
             </Link>
@@ -432,12 +447,12 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {myProducts.map((product) => {
               const isPending = product.status === "pending" || (product.tags && product.tags.includes("Pending"));
-              const isUnavailable = !product.is_available && !isPending;
+              const isFlagged = product.status === "flagged";
+              const isUnavailable = !product.is_available && !isPending && !isFlagged;
 
               return (
                 <div key={product.id} className="relative group transition-all duration-300 hover:-translate-y-1">
                   <Link href={`/products/${product.id}`} className="block">
-                    {/* Product card wrapper */}
                     <div className="relative overflow-hidden rounded-2xl">
                       <div className="transition-all duration-300">
                         <ProductCard
@@ -453,20 +468,27 @@ export default function ProfilePage() {
                         />
                       </div>
 
-                      {/* Lighter semi-transparent gray veil overlay (reduced to 25% opacity) */}
-                      {(isUnavailable || isPending) && (
+                      {/* Veils */}
+                      {(isUnavailable || isPending || isFlagged) && (
                         <div className="absolute inset-0 bg-neutral-900/25 pointer-events-none transition-all" />
                       )}
 
-                      {/* CENTERED BADGES OVERLAY */}
-                      {isPending && (
+                      {/* CENTERED STATUS OVERLAYS */}
+                      {isFlagged && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                          <span className="text-[10px] bg-rose-600 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-rose-700 shadow-xl">
+                            FLAGGED / REVIEW
+                          </span>
+                        </div>
+                      )}
+                      {isPending && !isFlagged && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                           <span className="text-[10px] bg-amber-500 text-black px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-amber-600 shadow-xl">
                             PENDING APPROVAL
                           </span>
                         </div>
                       )}
-                      {isUnavailable && (
+                      {isUnavailable && !isFlagged && !isPending && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                           <span className="text-[10px] bg-neutral-900 text-neutral-100 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-white/20 shadow-xl">
                             UNAVAILABLE
@@ -553,7 +575,6 @@ export default function ProfilePage() {
               className="relative z-10 w-full max-w-2xl max-h-[85vh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal Header */}
               <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900 shrink-0">
                 <h3 className="text-xl font-bold text-neutral-900 dark:text-white">Community Feedback</h3>
                 <button
@@ -564,7 +585,6 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              {/* Modal Body */}
               <div className="p-6 overflow-y-auto bg-neutral-50 dark:bg-neutral-900/50">
                 <ProductReviews
                   initialReviews={reviews}

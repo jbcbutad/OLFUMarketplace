@@ -63,8 +63,41 @@ export default function PublicProfilePage() {
     setLoading(true);
 
     try {
-      const [sessionRes, profileRes, legacyUserRes, productsRes, reviewsRes, summaryRes, soldRes, boughtRes] = await Promise.all([
-        supabase.auth.getSession(),
+      // 1. First fetch session to see who is viewing
+      const sessionRes = await supabase.auth.getSession();
+      const loggedInUserId = sessionRes.data?.session?.user?.id || null;
+      setCurrentUserId(loggedInUserId);
+
+      const isSelf = loggedInUserId === viewedUserId;
+
+      // 2. Build dynamic products query depending on whether it's the owner viewing or a public viewer
+      let productsQuery = supabase
+        .from("products")
+        .select(`
+          id, 
+          title, 
+          price, 
+          image_urls, 
+          created_at, 
+          tags, 
+          stock_quantity,
+          is_available,
+          status,
+          categories ( name )
+        `)
+        .eq("seller_id", viewedUserId);
+
+      // If NOT the owner, restrict database query to only available, non-flagged, non-pending products
+      if (!isSelf) {
+        productsQuery = productsQuery
+          .eq("is_available", true)
+          .neq("status", "flagged")
+          .neq("status", "pending");
+      }
+
+      productsQuery = productsQuery.order("created_at", { ascending: false });
+
+      const [profileRes, legacyUserRes, productsRes, reviewsRes, summaryRes, soldRes, boughtRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, full_name, avatar_url, email, role, ai_summary, is_verified_org, org_name")
@@ -75,20 +108,7 @@ export default function PublicProfilePage() {
           .select("id, First_Name, Last_Name, avatar_url, email")
           .eq("id", viewedUserId)
           .maybeSingle(),
-        supabase
-          .from("products")
-          .select(`
-            id, 
-            title, 
-            price, 
-            image_urls, 
-            created_at, 
-            tags, 
-            stock_quantity,
-            categories ( name )
-          `)
-          .eq("seller_id", viewedUserId)
-          .order("created_at", { ascending: false }),
+        productsQuery,
         supabase
           .from("reviews")
           .select(`
@@ -125,10 +145,6 @@ export default function PublicProfilePage() {
           .eq("status", "completed"),
       ]);
 
-      if (sessionRes.data?.session) {
-        setCurrentUserId(sessionRes.data.session.user.id);
-      }
-
       const primaryProfile: any = profileRes.data || {};
       const legacy: any = legacyUserRes.data || {};
 
@@ -148,7 +164,16 @@ export default function PublicProfilePage() {
       setProfileData(mergedProfile);
 
       if (productsRes.error) throw productsRes.error;
-      setProducts((productsRes.data as unknown as Product[]) || []);
+
+      const rawProducts = (productsRes.data as unknown as Product[]) || [];
+
+      // 🔒 SECONDARY CLIENT SAFEGUARD FILTER: Double check visibility rules
+      const visibleProducts = rawProducts.filter((p: any) => {
+        if (isSelf) return true;
+        return p.is_available && p.status !== "flagged" && p.status !== "pending";
+      });
+
+      setProducts(visibleProducts);
 
       setSoldCount(soldRes.count || 0);
       setBoughtCount(boughtRes.count || 0);
