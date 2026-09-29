@@ -301,6 +301,7 @@ function CreateListingContent() {
     return await res.json();
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (images.length === 0) return alert("Please upload at least one image!");
@@ -308,7 +309,7 @@ function CreateListingContent() {
     setLoading(true);
 
     try {
-      // NEW: check every photo before anything is uploaded
+      // 1. Run safety moderation check
       const moderation = await moderateListing();
 
       if (moderation.verdict === "rejected") {
@@ -325,11 +326,13 @@ function CreateListingContent() {
           "it appears to break our posting rules"
           }`
         );
-
+        setLoading(false);
         return;
       }
 
-      const needsReview = moderation.verdict === "flagged";
+      // If it's official org merch, we prioritize the "pending" merchandise status 
+      // unless it was explicitly rejected by safety guidelines.
+      const isActuallyFlagged = moderation.verdict === "flagged" && !isOfficialOrgMerch;
 
       const uploadPromises = images.map(async (image) => {
         const fileExt = image.name.split('.').pop();
@@ -364,7 +367,6 @@ function CreateListingContent() {
         }
       }
 
-      // NEW: created here so the flags can point at this listing without reading it back
       const productId = crypto.randomUUID();
 
       const merchCategory = categories.find(
@@ -379,8 +381,16 @@ function CreateListingContent() {
         throw new Error("Only verified organizations can create merchandise listings.");
       }
 
+      // 2. Determine correct status: Official merch defaults to "pending" for payment verification.
+      let finalStatus = "active";
+      if (isActuallyFlagged) {
+        finalStatus = "flagged";
+      } else if (isOfficialOrgMerch) {
+        finalStatus = "pending";
+      }
+
       const productPayload = {
-        id: productId, // NEW
+        id: productId,
         title: title.trim(),
         description: description.trim(),
         price: parseFloat(price),
@@ -389,9 +399,9 @@ function CreateListingContent() {
         category_id: finalCategoryId,
         tags: finalTags,
         price_type: 'Fixed',
-        is_available: !needsReview, // CHANGED (was: true)
-        is_published: !needsReview, // NEW
-        status: needsReview ? "flagged" : isOfficialOrgMerch ? "pending" : "active", // CHANGED
+        is_available: !isActuallyFlagged && !isOfficialOrgMerch,
+        is_published: !isActuallyFlagged && !isOfficialOrgMerch,
+        status: finalStatus,
         stock_quantity: parsedStock,
         listing_duration: isOfficialOrgMerch ? listingDuration.trim() : null,
         listing_fee: calculatedFee
@@ -403,16 +413,15 @@ function CreateListingContent() {
 
       if (dbError) throw dbError;
 
-      // NEW: record the flagged photos so moderators see them on /admin/flagged
-      // NEW: record the flagged photos so moderators see them on /admin/flagged
-      if (needsReview) {
+      // Only insert into moderation flags if it's genuinely flagged and NOT an official merch override
+      if (isActuallyFlagged) {
         const { error: flagError } = await supabase
           .from("moderation_flags")
           .insert([
             {
               user_id: user.id,
               product_id: productId,
-              image_url: uploadedUrls[0] || null, // ✔️ FIXED: matches the uploadedUrls array name
+              image_url: uploadedUrls[0] || null,
               verdict: "flagged",
               categories: moderation.categories || [],
               reason: moderation.reason || null,
@@ -422,11 +431,11 @@ function CreateListingContent() {
         if (flagError) throw flagError;
 
         alert(
-          "Your listing was submitted for a moderator review. It will go live once approved."
+          "Your listing was submitted for a moderator review due to safety flags. It will go live once approved."
         );
       }
 
-      // Trigger payment instruction modal for merch drops instead of direct router redirect
+      // Trigger payment instruction modal for merch drops
       if (isOfficialOrgMerch) {
         setSubmittedMerch({
           title: title.trim(),
@@ -434,7 +443,7 @@ function CreateListingContent() {
           stock: parsedStock,
           duration: listingDuration.trim()
         });
-      } else {
+      } else if (!isActuallyFlagged) {
         router.push("/mylistings");
         router.refresh();
       }
