@@ -401,7 +401,7 @@ function MyListingsContent() {
               const isUnavailable = !item.is_available || isExpiredTag;
 
               let cardBgStyles = "bg-neutral-50 dark:bg-neutral-900/60 border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md";
-              if (isFlagged) cardBgStyles = "bg-rose-500/10 dark:bg-rose-950/20 border-rose-500/50 shadow-sm";
+              if (isFlagged) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-300 dark:border-neutral-800 opacity-75";
               else if (isPendingAdmin) cardBgStyles = "bg-amber-50/40 dark:bg-amber-950/20 border-amber-500/50 shadow-sm";
               else if (isExpiredTag) cardBgStyles = "bg-red-500/10 dark:bg-red-950/30 border-red-500/40";
               else if (isUnavailable) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-300 dark:border-neutral-800 opacity-75";

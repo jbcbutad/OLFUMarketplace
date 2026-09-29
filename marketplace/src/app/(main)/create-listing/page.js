@@ -414,6 +414,7 @@ function CreateListingContent() {
       if (dbError) throw dbError;
 
       // Only insert into moderation flags if it's genuinely flagged and NOT an official merch override
+      // Only insert into moderation flags if it's genuinely flagged and NOT an official merch override
       if (isActuallyFlagged) {
         const { error: flagError } = await supabase
           .from("moderation_flags")
@@ -435,7 +436,7 @@ function CreateListingContent() {
         );
       }
 
-      // Trigger payment instruction modal for merch drops
+      // Trigger payment instruction modal for merch drops, otherwise redirect to My Listings
       if (isOfficialOrgMerch) {
         setSubmittedMerch({
           title: title.trim(),
@@ -443,7 +444,7 @@ function CreateListingContent() {
           stock: parsedStock,
           duration: listingDuration.trim()
         });
-      } else if (!isActuallyFlagged) {
+      } else {
         router.push("/mylistings");
         router.refresh();
       }
