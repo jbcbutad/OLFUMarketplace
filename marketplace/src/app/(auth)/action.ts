@@ -25,5 +25,5 @@ export async function signUp(formData: FormData) {
     return redirect('/signup?error=' + encodeURIComponent(error.message));
   }
 
-  return redirect('/dashboard');
+  return redirect('/marketplace');
 }

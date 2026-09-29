@@ -2,7 +2,36 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const url = request.nextUrl.clone();
+
+  const isProtectedAdmin = url.pathname.startsWith("/admin");
+  const isProtectedDashboard = url.pathname.startsWith("/dashboard");
+
+  // ---------------------------------------------------------
+  // PUBLIC ROUTES
+  // ---------------------------------------------------------
+  // Do NOT contact Supabase for public pages.
+  //
+  // This includes:
+  // /login
+  // /register
+  // /auth/callback
+  // /marketplace
+  // /
+  //
+  // This prevents unnecessary auth requests and avoids the
+  // middleware timeout during the OAuth callback.
+  // ---------------------------------------------------------
+  if (!isProtectedAdmin && !isProtectedDashboard) {
+    return NextResponse.next();
+  }
+
+  // ---------------------------------------------------------
+  // SUPABASE SERVER CLIENT
+  // ---------------------------------------------------------
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,45 +41,46 @@ export async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
+
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          // Update request cookies
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
+
+          // Recreate response with updated request cookies
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+
+          // Persist cookies on the response
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set(name, value, options);
+          });
         },
       },
     }
   );
 
-  const url = request.nextUrl.clone();
-  const isProtectedAdmin = url.pathname.startsWith("/admin");
-  const isProtectedDashboard = url.pathname.startsWith("/dashboard");
-
-  // 1. Refresh auth session token safely
+  // ---------------------------------------------------------
+  // AUTHENTICATION
+  // ---------------------------------------------------------
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
 
-  // Clear broken refresh tokens to prevent auth error loops
-  if (error && error.code === "refresh_token_not_found") {
-    await supabase.auth.signOut();
-  }
-
-  // FAST PATH: Return immediately for public pages (e.g., /recent, /)
-  if (!isProtectedAdmin && !isProtectedDashboard) {
-    return supabaseResponse;
-  }
-
-  // PROTECTED PATH: Redirect unauthenticated users
-  if (!user) {
+  // If the session is invalid or the user is not authenticated,
+  // send them to login.
+  if (error || !user) {
     url.pathname = "/login";
+
     return NextResponse.redirect(url);
   }
 
+  // ---------------------------------------------------------
+  // GET USER ROLE
+  // ---------------------------------------------------------
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -59,26 +89,50 @@ export async function proxy(request: NextRequest) {
 
   const role = profile?.role || "buyer";
 
-  const ADMIN_ROLES = ["super_admin", "superadmin", "admin", "moderator"];
-  const isSuper = role === "super_admin" || role === "superadmin";
+  const ADMIN_ROLES = [
+    "super_admin",
+    "superadmin",
+    "admin",
+    "moderator",
+  ];
 
+  // ---------------------------------------------------------
+  // ADMIN PROTECTION
+  // ---------------------------------------------------------
   if (isProtectedAdmin) {
-    // Must be some kind of staff to enter /admin at all
+    // Only staff/admin roles can access /admin
     if (!ADMIN_ROLES.includes(role)) {
       url.pathname = "/marketplace";
+
       return NextResponse.redirect(url);
     }
-    // Users management: moderators are not allowed (matches your sidebar)
-    if (url.pathname.startsWith("/admin/users") && role === "moderator") {
+
+    // Moderators cannot access /admin/users
+    if (
+      url.pathname.startsWith("/admin/users") &&
+      role === "moderator"
+    ) {
       url.pathname = "/admin/reports";
+
       return NextResponse.redirect(url);
     }
   }
 
-  if (isProtectedDashboard && role !== "seller" && !ADMIN_ROLES.includes(role)) {
+  // ---------------------------------------------------------
+  // DASHBOARD PROTECTION
+  // ---------------------------------------------------------
+  if (
+    isProtectedDashboard &&
+    role !== "seller" &&
+    !ADMIN_ROLES.includes(role)
+  ) {
     url.pathname = "/marketplace";
+
     return NextResponse.redirect(url);
   }
 
+  // ---------------------------------------------------------
+  // ALLOW REQUEST
+  // ---------------------------------------------------------
   return supabaseResponse;
 }
