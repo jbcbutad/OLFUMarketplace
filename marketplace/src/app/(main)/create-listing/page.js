@@ -734,11 +734,11 @@ function CreateListingContent() {
             </div>
 
             {/* DESCRIPTION */}
-            <div className="relative">
+            <div className="relative md:col-span-2">
               <label className="text-sm font-bold text-neutral-600 dark:text-neutral-400 mb-2 block">Description</label>
               <FileText className="absolute left-4 top-[46px] text-neutral-400" size={18} />
               <textarea
-                rows="4"
+                rows="7"
                 required
                 className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 pl-12 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none placeholder:text-neutral-400"
                 placeholder="Tell buyers more about your product..."
