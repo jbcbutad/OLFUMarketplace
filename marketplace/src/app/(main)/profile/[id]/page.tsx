@@ -109,9 +109,9 @@ export default function PublicProfilePage() {
           .eq("reviewee_id", viewedUserId)
           .order("created_at", { ascending: false }),
         supabase
-          .from("seller_summaries")
-          .select("summary, pros, cons")
-          .eq("seller_id", viewedUserId)
+          .from("profiles")
+          .select("ai_summary")
+          .eq("id", viewedUserId)
           .maybeSingle(),
         supabase
           .from("transactions")
@@ -164,7 +164,9 @@ export default function PublicProfilePage() {
       }
 
       setReviews(finalReviews);
-      if (summaryRes.data) setAiSummary(summaryRes.data);
+      if (summaryRes.data?.ai_summary) {
+        setAiSummary(summaryRes.data.ai_summary);
+      }
     } catch (e) {
       console.error("Profile fetch error:", e);
     } finally {
