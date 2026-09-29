@@ -22,9 +22,16 @@ export async function proxy(request: NextRequest) {
   // This prevents unnecessary auth requests and avoids the
   // middleware timeout during the OAuth callback.
   // ---------------------------------------------------------
-  if (!isProtectedAdmin && !isProtectedDashboard) {
+  const needsAuthRefresh = url.pathname === "/marketplace";
+
+  if (
+    !isProtectedAdmin &&
+    !isProtectedDashboard &&
+    !needsAuthRefresh
+  ) {
     return NextResponse.next();
   }
+
 
   // ---------------------------------------------------------
   // SUPABASE SERVER CLIENT
