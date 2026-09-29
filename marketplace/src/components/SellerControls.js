@@ -61,12 +61,17 @@ export default function SellerControls({ product, currentUserId }) {
         stock_quantity: currentStock,
     });
 
+    const isFlagged = product.status === "flagged";
+    const isPendingAdmin = product.status === "pending" || product.tags?.includes("Pending");
     const isExpiredTag = product.tags?.includes("Expired") || isActuallyExpired;
     const isUnavailable = !product.is_available || isExpiredTag;
 
     let statusLabel = "Available";
     let statusBadgeStyle = "bg-foreground text-background border-foreground";
-    if (isExpiredTag) {
+    if (isFlagged) {
+        statusLabel = "Flagged / Review";
+        statusBadgeStyle = "bg-rose-600 text-white border-rose-600";
+    } else if (isExpiredTag) {
         statusLabel = "Expired";
         statusBadgeStyle = "bg-amber-600 text-white border-amber-600";
     } else if (isUnavailable) {
@@ -78,6 +83,12 @@ export default function SellerControls({ product, currentUserId }) {
         setOpenDropdown(false);
 
         if (choice === "available") {
+            // 👉 BLOCK FLAGGED ITEMS FROM BEING MADE AVAILABLE
+            if (isFlagged) {
+                alert("This listing cannot be made available because it is flagged under safety review by moderators.");
+                return;
+            }
+
             if (isMerchandise) {
                 if (isActuallyExpired) {
                     alert("Your merchandise listing duration has expired! You must renew your drop to add stocks and make it available again.");
@@ -206,9 +217,24 @@ export default function SellerControls({ product, currentUserId }) {
         }
     };
 
-    // 👉 RESTORED: Admin Approval Pending Lock Check
-    const isPendingAdmin = product.status === "pending" || product.tags?.includes("Pending");
+    // Early return if flagged by system
+    if (isFlagged) {
+        return (
+            <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl my-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                    <span className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                        Flagged by Moderation System — Awaiting Review
+                    </span>
+                </div>
+                <span className="px-3 py-1 bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">
+                    Flagged
+                </span>
+            </div>
+        );
+    }
 
+    // Early return if pending admin approval
     if (isPendingAdmin) {
         return (
             <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl my-4 flex items-center justify-between">
@@ -379,7 +405,7 @@ export default function SellerControls({ product, currentUserId }) {
                 </div>
             )}
 
-            {/* Transact Modal — Pass proper merchandise flags and stock constraints */}
+            {/* Transact Modal */}
             {isTransactOpen && (
                 <MarkAsTransactedModal
                     productId={product.id}

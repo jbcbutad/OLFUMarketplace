@@ -157,6 +157,12 @@ function MyListingsContent() {
     setOpenDropdownId(null);
 
     if (targetStatusChoice === "available") {
+      // 🔒 SURGICAL FIX: Block activating items that are still pending admin review or flagged!
+      if (item.status === "pending" || item.status === "flagged" || !item.is_published) {
+        alert("This listing cannot be made available because it is still awaiting admin approval or has been flagged.");
+        return;
+      }
+
       const isMerchandise = item.categories?.name === "Merchandise";
       const createdAt = new Date(item.created_at);
       const durationDays = parseInt(item.listing_duration) || 7;
@@ -180,7 +186,6 @@ function MyListingsContent() {
         .eq("id", item.id);
 
     } else {
-      // Triggers MarkAsTransactedModal correctly
       setActiveItem(item);
       setTargetStatus("unavailable");
       setIsTransactModalOpen(true);
@@ -273,7 +278,7 @@ function MyListingsContent() {
 
       if (error) throw error;
 
-      // 5. If flagged during edit, log it to moderation_flags table for admins
+      // 5. If flagged during edit, log it and give an unmistakable warning
       if (needsReview) {
         await supabase.from("moderation_flags").insert([
           {
@@ -286,7 +291,13 @@ function MyListingsContent() {
           },
         ]);
 
-        alert("Your edits were saved, but the changes triggered a safety flag and have been sent for moderator review.");
+        alert(
+          "⚠️ SAFETY REVIEW REQUIRED\n\nYour recent edits triggered our automated content check. " +
+          "Your listing has been automatically set to UNAVAILABLE and sent to the admin queue for manual review. " +
+          "It will become active again once approved by a moderator."
+        );
+      } else {
+        alert("Your listing updates were successfully saved and approved!");
       }
 
       // Update local state smoothly
@@ -299,6 +310,7 @@ function MyListingsContent() {
       setIsProcessing(false);
     }
   };
+
   const confirmDelete = async () => {
     if (!activeItem) return;
     setIsProcessing(true);

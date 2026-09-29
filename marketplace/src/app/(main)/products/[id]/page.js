@@ -285,6 +285,19 @@ export default function ProductDetailPage({ params }) {
           updatedAt={product.updated_at}
         />
 
+        {/* 👉 ADDED FLAG BANNER HERE */}
+        {product.status === "flagged" && (
+          <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl mb-6 flex items-center gap-3 text-rose-600 dark:text-rose-400">
+            <AlertTriangle size={20} className="shrink-0" />
+            <div className="text-xs font-bold">
+              <span className="uppercase tracking-wider block font-black">Under Safety Review (Flagged)</span>
+              This listing has triggered automated moderation flags and is currently hidden from public view pending admin review.
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12"></div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
 
           <div className="lg:col-span-5 flex flex-col gap-4 sticky top-6">
