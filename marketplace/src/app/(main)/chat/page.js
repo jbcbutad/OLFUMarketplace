@@ -79,11 +79,14 @@ export default function ChatHub() {
     const { data: authData, error: authErr } = await supabase.auth.getUser();
     const user = authData?.user;
 
+    // A logged-out visitor makes getUser() return an "Auth session missing" error,
+    // so check for "no user" first and send them to login instead of spinning forever.
+    if (!user) return router.push("/login");
     if (authErr) {
       console.error("Auth error:", authErr);
+      setLoading(false);
       return;
     }
-    if (!user) return router.push("/login");
 
     setCurrentUser(user);
 
@@ -344,8 +347,8 @@ export default function ChatHub() {
                     key={room.id}
                     onClick={() => router.push(`/chat/${room.id}`)}
                     className={`w-full p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 transition-colors group text-left ${hasUnread
-                        ? "bg-neutral-100/80 dark:bg-neutral-800/40 font-semibold"
-                        : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+                      ? "bg-neutral-100/80 dark:bg-neutral-800/40 font-semibold"
+                      : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
                       }`}
                   >
                     <div className="relative w-12 h-12 flex items-center justify-center shrink-0">

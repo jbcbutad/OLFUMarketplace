@@ -64,7 +64,6 @@ export default function ProductDetailPage({ params }) {
           profiles!products_seller_id_fkey (
             id,
             full_name,
-            email,
             avatar_url,
             "First_Name",
             "Last_Name",
@@ -219,8 +218,7 @@ export default function ProductDetailPage({ params }) {
 
   // Real Full Name (Never replaced with org_name)
   const derivedFullName = `${profile?.First_Name || ""} ${profile?.Last_Name || ""}`.trim();
-  const sellerName = profile?.full_name || (derivedFullName.length > 0 ? derivedFullName : null) || profile?.email || "Unknown Seller";
-  const sellerEmail = profile?.email || "";
+  const sellerName = profile?.full_name || (derivedFullName.length > 0 ? derivedFullName : null) || "Unknown Seller";
 
   // Check if product is categorized as Merchandise
   const isMerchandiseCategory = product.categories?.name === "Merchandise";
@@ -411,7 +409,6 @@ export default function ProductDetailPage({ params }) {
                 product={product}
                 profile={profile}
                 sellerName={sellerName}
-                sellerEmail={sellerEmail}
                 isVerifiedOrg={isVerifiedOrg}
                 orgName={orgName}
               />

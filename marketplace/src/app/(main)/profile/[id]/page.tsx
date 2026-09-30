@@ -101,12 +101,12 @@ export default function PublicProfilePage() {
       const [profileRes, legacyUserRes, productsRes, reviewsRes, summaryRes, soldRes, boughtRes] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, avatar_url, email, role, ai_summary, is_verified_org, org_name")
+          .select("id, full_name, avatar_url, role, ai_summary, is_verified_org, org_name")
           .eq("id", viewedUserId)
           .maybeSingle(),
         supabase
           .from("users")
-          .select("id, First_Name, Last_Name, avatar_url, email")
+          .select("id, First_Name, Last_Name, avatar_url")
           .eq("id", viewedUserId)
           .maybeSingle(),
         productsQuery,
@@ -156,7 +156,7 @@ export default function PublicProfilePage() {
           `${legacy.First_Name || ""} ${legacy.Last_Name || ""}`.trim() ||
           null,
         avatar_url: primaryProfile.avatar_url || legacy.avatar_url || null,
-        email: primaryProfile.email || legacy.email || null,
+        email: null,
         role: primaryProfile.role || "user",
         is_verified_org: primaryProfile.is_verified_org || false,
         org_name: primaryProfile.org_name || null,
@@ -319,11 +319,6 @@ export default function PublicProfilePage() {
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-4 text-muted-foreground mb-4 justify-center md:justify-start">
-            <div className="flex items-center gap-2">
-              <Mail size={16} />
-              <span>{profileData?.email || "—"}</span>
-            </div>
-            <div className="hidden md:block w-1.5 h-1.5 bg-neutral-600 rounded-full" />
             <div className="flex items-center gap-2">
               <User size={16} />
               <span>Account active</span>

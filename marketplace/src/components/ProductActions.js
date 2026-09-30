@@ -15,7 +15,6 @@ export default function ProductActions({
   product,
   profile,
   sellerName,
-  sellerEmail,
   isVerifiedOrg = false,
   orgName = null,
 }) {
@@ -187,11 +186,6 @@ export default function ProductActions({
               )}
             </div>
 
-            {sellerEmail && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Mail size={12} /> {sellerEmail}
-              </p>
-            )}
           </div>
         </Link>
 
