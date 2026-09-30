@@ -10,6 +10,7 @@ export default async function CategoriesPage({ searchParams }) {
   const activeCategory = resolvedParams?.category || null;
   const activeTag = resolvedParams?.tag || null;
   const searchQuery = resolvedParams?.q || "";
+  const nowIso = new Date().toISOString();
 
   // 1. Fetch categories and filter out "Merchandise" from the filter pill list
   const { data: rawCategoriesData } = await supabase
@@ -36,6 +37,8 @@ export default async function CategoriesPage({ searchParams }) {
       categories!inner ( name )
     `)
     .eq("is_available", true)
+    .eq("status", "active")
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("created_at", { ascending: false });
 
   if (activeCategory) {
@@ -101,8 +104,8 @@ export default async function CategoriesPage({ searchParams }) {
             <Link
               href="/categories"
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${!activeCategory
-                  ? "bg-foreground text-background"
-                  : "bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-700"
+                ? "bg-foreground text-background"
+                : "bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-700"
                 }`}
             >
               ALL CATEGORIES
@@ -113,8 +116,8 @@ export default async function CategoriesPage({ searchParams }) {
                 href={`/categories?category=${encodeURIComponent(cat.name)}${activeTag ? `&tag=${encodeURIComponent(activeTag)}` : ""
                   }`}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === cat.name
-                    ? "bg-foreground text-background"
-                    : "bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-700"
+                  ? "bg-foreground text-background"
+                  : "bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-700"
                   }`}
               >
                 <span>{cat.icon}</span>
@@ -137,8 +140,8 @@ export default async function CategoriesPage({ searchParams }) {
                   href={`/categories?${activeCategory ? `category=${encodeURIComponent(activeCategory)}&` : ""
                     }tag=${encodeURIComponent(tag)}`}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTag === tag
-                      ? "bg-yellow-500 text-black font-bold"
-                      : "bg-neutral-900 text-neutral-400 border border-neutral-800 hover:text-foreground"
+                    ? "bg-yellow-500 text-black font-bold"
+                    : "bg-neutral-900 text-neutral-400 border border-neutral-800 hover:text-foreground"
                     }`}
                 >
                   #{tag}

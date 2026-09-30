@@ -40,7 +40,11 @@ export default function MerchandisePage() {
     try {
       setLoading(true);
 
-      // 👉 Strict Query: Requires both active product status AND an actively verified organization profile
+      // Computed at fetch time so it is always current, even if the page stays open
+      const nowIso = new Date().toISOString();
+
+      // 👉 Strict Query: Requires an active product, not past its expiry date,
+      // AND an actively verified organization profile
       const { data, error } = await supabase
         .from("products")
         .select(`
@@ -53,6 +57,7 @@ export default function MerchandisePage() {
           status,
           is_available,
           stock_quantity,
+          expires_at,
           profiles!inner ( full_name, org_name, is_verified_org ),
           categories!inner ( name )
         `)
@@ -60,6 +65,7 @@ export default function MerchandisePage() {
         .eq("status", "active")
         .eq("categories.name", "Merchandise")
         .eq("profiles.is_verified_org", true) // 👈 Automatically hides items if organization verification is revoked
+        .or(`expires_at.is.null,expires_at.gt.${nowIso}`) // 👈 Hides drops that expired but the hourly job hasn't flipped yet
         .order("created_at", { ascending: false });
 
       if (error) {

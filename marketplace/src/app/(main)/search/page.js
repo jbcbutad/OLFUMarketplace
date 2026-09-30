@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function SearchPage({ searchParams }) {
   const resolvedParams = await searchParams;
   const searchQuery = resolvedParams?.q || "";
+  const nowIso = new Date().toISOString();
 
   let products = [];
   let error = null;
@@ -65,7 +66,9 @@ export default async function SearchPage({ searchParams }) {
         )
       `)
       .or(searchRule)
-      .eq("is_available", true);
+      .eq("is_available", true)
+      .eq("status", "active")
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
 
     if (res.data) {
       const lowerQuery = sanitizedQuery.toLowerCase();

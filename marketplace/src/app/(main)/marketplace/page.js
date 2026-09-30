@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }) {
   const resolvedParams = await searchParams;
+  const nowIso = new Date().toISOString();
   const selectedCategory = resolvedParams?.category || null;
 
   // 1. Fetch ALL categories
@@ -35,6 +36,7 @@ export default async function Home({ searchParams }) {
   `)
     .eq("is_available", true)
     .eq("status", "active")
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("created_at", { ascending: false });
 
   if (selectedCategory) {
@@ -53,6 +55,7 @@ export default async function Home({ searchParams }) {
     `)
       .eq("is_available", true)
       .eq("status", "active")
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .eq("categories.name", selectedCategory)
       .order("created_at", { ascending: false });
   }

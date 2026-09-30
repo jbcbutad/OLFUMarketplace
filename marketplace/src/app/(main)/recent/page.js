@@ -5,6 +5,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function RecentListingsPage() {
+  const nowIso = new Date().toISOString();
   // Fetch recent products joining against public.profiles and categories
   const { data: rawProducts, error } = await supabase
     .from("products")
@@ -20,6 +21,8 @@ export default async function RecentListingsPage() {
       categories ( name )
     `)
     .eq("is_available", true)
+    .eq("status", "active")
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("created_at", { ascending: false })
     .limit(50); // Fetch a slightly higher limit to account for filtered out merch items
 
