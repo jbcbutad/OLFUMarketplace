@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createSessionClient } from "@/lib/supabase/server";
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
@@ -17,12 +18,41 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(req) {
     try {
+        // Only signed-in users may trigger a summary
+        const session = await createSessionClient();
+        const { data: { user } } = await session.auth.getUser();
+        if (!user) {
+            return NextResponse.json(
+                { success: false, error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
         const { sellerId } = await req.json();
 
         if (!sellerId) {
             return NextResponse.json(
                 { success: false, error: "Seller ID required" },
                 { status: 400 }
+            );
+        }
+
+        // The caller must have left a seller review for this seller (this is
+        // exactly when the app calls this route), so it cannot be used to
+        // burn AI quota for arbitrary sellers.
+        const { data: myReview } = await session
+            .from("reviews")
+            .select("id")
+            .eq("reviewer_id", user.id)
+            .eq("reviewee_id", sellerId)
+            .eq("role_reviewed", "seller")
+            .limit(1)
+            .maybeSingle();
+
+        if (!myReview) {
+            return NextResponse.json(
+                { success: false, error: "Forbidden" },
+                { status: 403 }
             );
         }
 
