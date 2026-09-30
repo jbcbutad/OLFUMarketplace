@@ -134,16 +134,8 @@ export default function PublicProfilePage() {
           .select("ai_summary")
           .eq("id", viewedUserId)
           .maybeSingle(),
-        supabase
-          .from("transactions")
-          .select("*", { count: "exact", head: true })
-          .eq("seller_id", viewedUserId)
-          .eq("status", "completed"),
-        supabase
-          .from("transactions")
-          .select("*", { count: "exact", head: true })
-          .eq("buyer_id", viewedUserId)
-          .eq("status", "completed"),
+        supabase.rpc("count_completed_transactions", { p_user_id: viewedUserId, p_role: "seller" }),
+        supabase.rpc("count_completed_transactions", { p_user_id: viewedUserId, p_role: "buyer" }),
       ]);
 
       const primaryProfile: any = profileRes.data || {};
@@ -176,8 +168,8 @@ export default function PublicProfilePage() {
 
       setProducts(visibleProducts);
 
-      setSoldCount(soldRes.count || 0);
-      setBoughtCount(boughtRes.count || 0);
+      setSoldCount(Number(soldRes.data) || 0);
+      setBoughtCount(Number(boughtRes.data) || 0);
 
       let finalReviews = reviewsRes.data || [];
       if (finalReviews.length === 0) {
