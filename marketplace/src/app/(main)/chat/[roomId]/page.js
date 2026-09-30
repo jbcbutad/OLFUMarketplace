@@ -369,6 +369,7 @@ export default function ChatRoom() {
         { p_room: activeRoomId }
       );
       if (error) throw error;
+      window.dispatchEvent(new Event("unread-refresh"));
 
       setIsArchived(willArchive);
       if (willArchive) {

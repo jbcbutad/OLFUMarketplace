@@ -8,6 +8,8 @@ import {
   MessageSquare,
   Loader2,
   Archive,
+  ArchiveRestore,
+  MoreVertical,
   User as UserIcon,
 } from "lucide-react";
 
@@ -20,6 +22,7 @@ export default function ChatHub() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("active"); // "active" | "archived"
+  const [menuRoomId, setMenuRoomId] = useState(null);
   const router = useRouter();
 
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
@@ -222,6 +225,37 @@ export default function ChatHub() {
     setLoading(false);
   }
 
+  async function toggleArchive(room) {
+    const willArchive = !room.archivedAt;
+    const previous = room.archivedAt;
+    setMenuRoomId(null);
+
+    // Update the screen immediately, undo if the server says no
+    setExistingRooms((prev) =>
+      prev.map((r) =>
+        r.id === room.id
+          ? { ...r, archivedAt: willArchive ? new Date().toISOString() : null }
+          : r
+      )
+    );
+
+    const { error } = await supabase.rpc(
+      willArchive ? "archive_direct_room" : "unarchive_direct_room",
+      { p_room: room.id }
+    );
+
+    if (error) {
+      console.error("Archive error:", error);
+      setExistingRooms((prev) =>
+        prev.map((r) => (r.id === room.id ? { ...r, archivedAt: previous } : r))
+      );
+      return;
+    }
+
+    // Tell Sidebar and Navbar to recount their unread badges
+    window.dispatchEvent(new Event("unread-refresh"));
+  }
+
   async function handleSearch(query) {
     setSearchQuery(query);
 
@@ -407,59 +441,92 @@ export default function ChatHub() {
                   : "User";
 
                 return (
-                  <button
+                  <div
                     key={room.id}
-                    onClick={() => router.push(`/chat/${room.id}`)}
-                    className={`w-full p-4 flex items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 transition-colors group text-left ${hasUnread
+                    className={`relative border-b border-neutral-200 dark:border-neutral-800 transition-colors ${hasUnread
                       ? "bg-neutral-100/80 dark:bg-neutral-800/40 font-semibold"
                       : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
                       }`}
                   >
-                    <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-                      <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold overflow-hidden border-2 border-neutral-300 dark:border-neutral-700">
-                        {other?.avatar_url ? (
-                          <img
-                            src={other.avatar_url}
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          other?.First_Name?.[0] || "?"
-                        )}
+                    <button
+                      onClick={() => router.push(`/chat/${room.id}`)}
+                      className="w-full p-4 pr-16 flex items-center gap-4 text-left cursor-pointer"
+                    >
+                      <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
+                        <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold overflow-hidden border-2 border-neutral-300 dark:border-neutral-700">
+                          {other?.avatar_url ? (
+                            <img
+                              src={other.avatar_url}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            other?.First_Name?.[0] || "?"
+                          )}
+                        </div>
+
+                        <div
+                          className={`absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full border-2 border-background ${otherUserOnline ? "bg-green-500" : "bg-neutral-400"
+                            }`}
+                        />
                       </div>
 
-                      <div
-                        className={`absolute -right-0.5 -bottom-0.5 w-3.5 h-3.5 rounded-full border-2 border-background ${otherUserOnline ? "bg-green-500" : "bg-neutral-400"
-                          }`}
-                      />
-                    </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <p className={`truncate ${hasUnread ? "text-foreground font-bold" : "text-foreground font-semibold"}`}>
+                            {otherName}
+                          </p>
+                          {hasUnread && (
+                            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shrink-0"></span>
+                          )}
+                        </div>
 
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <p className={`truncate ${hasUnread ? "text-foreground font-bold" : "text-foreground font-semibold"}`}>
-                          {otherName}
-                        </p>
-                        {hasUnread && (
-                          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shrink-0"></span>
+                        {room.product_id && (
+                          <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                            Re: {room.productTitle || "Listing"}
+                          </p>
                         )}
-                      </div>
 
-                      {room.product_id && (
-                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
-                          Re: {room.productTitle || "Listing"}
+                        <p className={`text-xs truncate mt-0.5 ${hasUnread ? "text-foreground font-medium" : "text-neutral-500 dark:text-neutral-400"}`}>
+                          {otherUserOnline ? "Online • " : "Offline • "}
+                          {last
+                            ? (last.sender_id === currentUser?.id
+                              ? "You: "
+                              : "") + (last.body || "")
+                            : "Click to open conversation"}
                         </p>
-                      )}
+                      </div>
+                    </button>
 
-                      <p className={`text-xs truncate mt-0.5 ${hasUnread ? "text-foreground font-medium" : "text-neutral-500 dark:text-neutral-400"}`}>
-                        {otherUserOnline ? "Online • " : "Offline • "}
-                        {last
-                          ? (last.sender_id === currentUser?.id
-                            ? "You: "
-                            : "") + (last.body || "")
-                          : "Click to open conversation"}
-                      </p>
-                    </div>
-                  </button>
+                    {/* Row menu */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuRoomId(menuRoomId === room.id ? null : room.id);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-neutral-500 hover:text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                      title="More options"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+
+                    {menuRoomId === room.id && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setMenuRoomId(null)} />
+                        <div className="absolute right-14 top-1/2 -translate-y-1/2 w-40 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl overflow-hidden z-20 py-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleArchive(room)}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                          >
+                            {room.archivedAt ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                            {room.archivedAt ? "Unarchive" : "Archive"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 );
               })
             )}

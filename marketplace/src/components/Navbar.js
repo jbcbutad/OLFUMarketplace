@@ -57,6 +57,11 @@ export default function Navbar() {
       setUnreadCount(0);
     };
     window.addEventListener("messages-read", handleMessagesRead);
+    const handleUnreadRefresh = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) fetchUnreadCount(currentUser.id);
+    };
+    window.addEventListener("unread-refresh", handleUnreadRefresh);
 
     // Realtime listener for incoming messages
     const channel = supabase
@@ -104,6 +109,7 @@ export default function Navbar() {
       subscription.unsubscribe();
       supabase.removeChannel(channel);
       window.removeEventListener("messages-read", handleMessagesRead);
+      window.removeEventListener("unread-refresh", handleUnreadRefresh);
     };
   }, [router]);
 

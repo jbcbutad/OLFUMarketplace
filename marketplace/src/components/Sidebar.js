@@ -103,6 +103,12 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
     };
     window.addEventListener("messages-read", handleMessagesRead);
 
+    const handleUnreadRefresh = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) fetchUnreadCount(session.user.id);
+    };
+    window.addEventListener("unread-refresh", handleUnreadRefresh);
+
     // Realtime listener for sidebar badge updates
     const channel = supabase
       .channel("sidebar-unread-count")
@@ -137,6 +143,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
     return () => {
       window.removeEventListener("user-role-changed", handleRoleUpdate);
       window.removeEventListener("messages-read", handleMessagesRead);
+      window.removeEventListener("unread-refresh", handleUnreadRefresh);
       supabase.removeChannel(channel);
     };
   }, []);
