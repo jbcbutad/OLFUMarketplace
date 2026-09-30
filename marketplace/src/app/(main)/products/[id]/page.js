@@ -300,7 +300,7 @@ export default function ProductDetailPage({ params }) {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
 
-          <div className="lg:col-span-5 flex flex-col gap-4 sticky top-6">
+          <div className="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-6">
             <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted border border-border shadow-xs">
               <Image
                 src={images[0]}
