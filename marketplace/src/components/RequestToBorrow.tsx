@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
-export default function RequestToBorrow({ 
-  sellerId, 
-  productTitle 
-}: { 
-  sellerId: string; 
-  productTitle: string; 
+export default function RequestToBorrow({
+  sellerId,
+  productTitle,
+  productId
+}: {
+  sellerId: string;
+  productTitle: string;
+  productId: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [checkingOwner, setCheckingOwner] = useState(true);
@@ -40,8 +42,8 @@ export default function RequestToBorrow({
 
     try {
       // 1. Get or create the chat room via Supabase RPC
-      const { data: roomId, error: roomError } = await supabase.rpc("get_or_create_direct_room", {
-        p_other_user: sellerId,
+      const { data: roomId, error: roomError } = await supabase.rpc("get_or_create_product_room", {
+        p_product_id: productId,
       });
 
       if (roomError || !roomId) {
@@ -54,10 +56,10 @@ export default function RequestToBorrow({
       const msgRes = await fetch("/api/direct-messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          roomId, 
+        body: JSON.stringify({
+          roomId,
           body: borrowMessage,
-          image_url: null 
+          image_url: null
         }),
       });
 
@@ -65,7 +67,7 @@ export default function RequestToBorrow({
       if (!msgRes.ok) throw new Error(msgData.error || "Failed to send request message.");
 
       // 3. Redirect to room
-      router.push(`/chat/${roomId}?sellerId=${sellerId}`);
+      router.push(`/chat/${roomId}?sellerId=${sellerId}&productId=${productId}`);
       router.refresh();
     } catch (err: any) {
       alert("Error sending request: " + err.message);
@@ -85,7 +87,7 @@ export default function RequestToBorrow({
   if (isOwner) return null; // Hide button entirely for own listing
 
   return (
-    <button 
+    <button
       onClick={handleRequest}
       disabled={loading}
       className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md text-sm"

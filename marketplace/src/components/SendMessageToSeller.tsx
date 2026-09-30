@@ -4,18 +4,21 @@ import { useState, useEffect } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import Link from "next/link";
 
 interface SendMessageToSellerProps {
   sellerId: string;
+  productId?: string;
+  existingRoomId?: string | null;
   placeholder?: string;
 }
 
-export default function SendMessageToSeller({ sellerId, placeholder }: SendMessageToSellerProps) {
+export default function SendMessageToSeller({ sellerId, productId, existingRoomId, placeholder }: SendMessageToSellerProps) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingOwner, setCheckingOwner] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
-  
+
   const router = useRouter();
 
   // Quick reply templates
@@ -50,9 +53,9 @@ export default function SendMessageToSeller({ sellerId, placeholder }: SendMessa
 
     try {
       // 1. Get or create direct room using Supabase RPC
-      const { data: roomId, error: roomError } = await supabase.rpc("get_or_create_direct_room", {
-        p_other_user: sellerId,
-      });
+      const { data: roomId, error: roomError } = productId
+        ? await supabase.rpc("get_or_create_product_room", { p_product_id: productId })
+        : await supabase.rpc("get_or_create_direct_room", { p_other_user: sellerId });
 
       if (roomError || !roomId) {
         throw new Error(roomError?.message || "Failed to create direct message room.");
@@ -71,7 +74,7 @@ export default function SendMessageToSeller({ sellerId, placeholder }: SendMessa
       if (msgError) throw new Error(msgError.message);
 
       // 3. Redirect to the direct chat room
-      router.push(`/chat/${roomId}?sellerId=${sellerId}`);
+      router.push(`/chat/${roomId}?sellerId=${sellerId}${productId ? `&productId=${productId}` : ""}`);
     } catch (err: any) {
       alert("Error: " + err.message);
     } finally {
@@ -97,9 +100,25 @@ export default function SendMessageToSeller({ sellerId, placeholder }: SendMessa
     );
   }
 
+  if (existingRoomId) {
+    return (
+      <div className="pt-5 border-t border-border space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground">
+          You already have a conversation about this item.
+        </p>
+        <Link
+          href={`/chat/${existingRoomId}?sellerId=${sellerId}&productId=${productId}`}
+          className="flex w-full items-center justify-center py-3 bg-foreground text-background font-bold rounded-xl text-sm hover:opacity-90 transition-opacity"
+        >
+          View conversation
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 pt-5 border-t border-border">
-      
+
       {/* Quick Replies */}
       <div className="flex flex-wrap gap-2 mb-2">
         {quickReplies.map((reply, index) => (
@@ -124,7 +143,7 @@ export default function SendMessageToSeller({ sellerId, placeholder }: SendMessa
           disabled={loading}
           className="w-full bg-muted border border-border rounded-xl pt-4 px-4 pb-14 text-foreground placeholder:text-muted-foreground/60 outline-none resize-none focus:ring-2 focus:ring-foreground/20 transition-all text-sm disabled:opacity-50 font-medium"
         />
-        
+
         {/* Floating Send Button */}
         <button
           onClick={onSend}

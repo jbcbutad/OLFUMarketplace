@@ -22,6 +22,7 @@ export default function ProductActions({
   const [loading, setLoading] = useState(true);
   const [orderQty, setOrderQty] = useState(1);
   const [inquiring, setInquiring] = useState(false);
+  const [existingRoomId, setExistingRoomId] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,6 +30,10 @@ export default function ProductActions({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
+        if (user.id !== product.seller_id) {
+          const { data: roomId } = await supabase.rpc("find_product_room", { p_product_id: product.id });
+          setExistingRoomId(roomId ?? null);
+        }
       }
       setLoading(false);
     };
@@ -70,11 +75,23 @@ export default function ProductActions({
     setInquiring(true);
 
     try {
-      const messageText = encodeURIComponent(
-        `Hi! I would like to order ${orderQty} unit(s) of "${product.title}" (Total: ₱${(product.price * orderQty).toLocaleString()}). Here is my GCash payment screenshot reference.`
-      );
+      const { data: roomId, error } = await supabase.rpc("get_or_create_product_room", {
+        p_product_id: product.id,
+      });
+      if (error || !roomId) throw new Error(error?.message || "Failed to open chat.");
 
-      router.push(`/chat?seller=${product.seller_id}&product=${product.id}&qty=${orderQty}&message=${messageText}`);
+      const body = `Hi! I would like to order ${orderQty} unit(s) of "${product.title}" (Total: ₱${(product.price * orderQty).toLocaleString()}). I'll send my GCash payment screenshot here.`;
+      const res = await fetch("/api/direct-messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId, body, image_url: null }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Failed to send order message.");
+      }
+
+      router.push(`/chat/${roomId}?sellerId=${product.seller_id}&productId=${product.id}`);
     } catch (err) {
       alert("Failed to open chat: " + err.message);
       setInquiring(false);
@@ -208,7 +225,7 @@ export default function ProductActions({
       {currentUserId && (
         <div className="pt-6 border-t border-border">
 
-          <SendMessageToSeller sellerId={product.seller_id} productId={product.id} />
+          <SendMessageToSeller sellerId={product.seller_id} productId={product.id} existingRoomId={existingRoomId} />
         </div>
       )}
     </div>

@@ -30,6 +30,7 @@ export default function ChatRoom() {
   const [currentUser, setCurrentUser] = useState(null);
   const [otherUser, setOtherUser] = useState(null);
   const [productContext, setProductContext] = useState(null);
+  const [roomHasProduct, setRoomHasProduct] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
@@ -68,6 +69,7 @@ export default function ChatRoom() {
   // Load product metadata dynamically
   useEffect(() => {
     async function fetchProductContext() {
+      if (loading || roomHasProduct) return;
       if (productId) {
         const { data } = await supabase
           .from("products")
@@ -116,7 +118,7 @@ export default function ChatRoom() {
     }
 
     fetchProductContext();
-  }, [productId, sellerId, searchParams, messages]);
+  }, [productId, sellerId, searchParams, messages, loading, roomHasProduct]);
 
   // Load user session, room information, and block status
   useEffect(() => {
@@ -154,6 +156,16 @@ export default function ChatRoom() {
         .order("created_at", { ascending: true });
 
       setMessages(msgs || []);
+
+      const { data: roomRow } = await supabase
+        .from("direct_rooms")
+        .select("product_id, products(id, title, price, image_urls)")
+        .eq("id", resolvedRoomId)
+        .maybeSingle();
+      if (roomRow?.products) {
+        setProductContext(roomRow.products);
+        setRoomHasProduct(true);
+      }
 
       // 👉 MARK INCOMING MESSAGES AS READ WHEN OPENING ROOM
       const { error } = await supabase

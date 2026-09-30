@@ -5,12 +5,14 @@ import { Handshake, PhilippinePeso, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
-export default function MakeOffer({ 
-  sellerId, 
-  productTitle 
-}: { 
-  sellerId: string; 
-  productTitle: string; 
+export default function MakeOffer({
+  sellerId,
+  productTitle,
+  productId
+}: {
+  sellerId: string;
+  productTitle: string;
+  productId: string;
 }) {
   const [offerAmount, setOfferAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,8 +42,8 @@ export default function MakeOffer({
 
     try {
       // 1. Get or create the chat room via Supabase RPC
-      const { data: roomId, error: roomError } = await supabase.rpc("get_or_create_direct_room", {
-        p_other_user: sellerId,
+      const { data: roomId, error: roomError } = await supabase.rpc("get_or_create_product_room", {
+        p_product_id: productId,
       });
 
       if (roomError || !roomId) {
@@ -55,10 +57,10 @@ export default function MakeOffer({
       const msgRes = await fetch("/api/direct-messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          roomId, 
-          body: offerMessage, 
-          image_url: null 
+        body: JSON.stringify({
+          roomId,
+          body: offerMessage,
+          image_url: null
         }),
       });
 
@@ -66,7 +68,7 @@ export default function MakeOffer({
       if (!msgRes.ok) throw new Error(msgData.error || "Failed to transmit message.");
 
       // 4. Redirect to room
-      router.push(`/chat/${roomId}?sellerId=${sellerId}`);
+      router.push(`/chat/${roomId}?sellerId=${sellerId}&productId=${productId}`);
       router.refresh();
     } catch (err: any) {
       alert("Error sending offer: " + err.message);
@@ -93,17 +95,17 @@ export default function MakeOffer({
       <div className="flex items-center gap-3">
         <div className="relative grow">
           <PhilippinePeso className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <input 
-            type="number" 
+          <input
+            type="number"
             min="1"
             value={offerAmount}
             onChange={(e) => setOfferAmount(e.target.value)}
-            placeholder="0.00" 
+            placeholder="0.00"
             disabled={loading}
             className="w-full bg-muted border border-border text-foreground rounded-xl py-2.5 pl-9 pr-4 text-sm font-semibold focus:ring-2 focus:ring-foreground/20 outline-none transition-all placeholder:text-muted-foreground/60 disabled:opacity-50"
           />
         </div>
-        <button 
+        <button
           onClick={handleOffer}
           disabled={!offerAmount || Number(offerAmount) <= 0 || loading}
           className="flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm cursor-pointer"

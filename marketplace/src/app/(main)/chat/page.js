@@ -153,6 +153,13 @@ export default function ChatHub() {
       }
     }
 
+    const { data: roomRows } = await supabase
+      .from("direct_rooms")
+      .select("id, product_id, products(title)")
+      .in("id", roomIds);
+    const roomMeta = {};
+    for (const r of roomRows || []) roomMeta[r.id] = r;
+
     const normalized = roomIds.map((roomId) => {
       const members = membersByRoom[roomId] || [];
       const otherMember = members.find((m) => m.user_id !== user.id) || null;
@@ -165,6 +172,8 @@ export default function ChatHub() {
         id: roomId,
         otherUser: otherProfile,
         otherUserId: otherMember ? otherMember.user_id : null,
+        product_id: roomMeta[roomId]?.product_id ?? null,
+        productTitle: roomMeta[roomId]?.products?.title ?? null,
       };
     });
 
@@ -239,7 +248,7 @@ export default function ChatHub() {
     if (!targetUserId) return;
 
     const existingRoom = existingRooms.find(
-      (room) => room.otherUserId === targetUserId
+      (room) => room.otherUserId === targetUserId && !room.product_id
     );
 
     setSearchQuery("");
@@ -380,6 +389,12 @@ export default function ChatHub() {
                           <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shrink-0"></span>
                         )}
                       </div>
+
+                      {room.product_id && (
+                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                          Re: {room.productTitle || "Listing"}
+                        </p>
+                      )}
 
                       <p className={`text-xs truncate mt-0.5 ${hasUnread ? "text-foreground font-medium" : "text-neutral-500 dark:text-neutral-400"}`}>
                         {otherUserOnline ? "Online • " : "Offline • "}
