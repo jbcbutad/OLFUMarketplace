@@ -9,6 +9,7 @@ import MakeOffer from "@/components/MakeOffer";
 import RequestToBorrow from "@/components/RequestToBorrow";
 import SendMessageToSeller from "@/components/SendMessageToSeller";
 import { Mail, Loader2, Building2, MessageSquare, ShieldCheck } from "lucide-react";
+import { getListingState } from "@/lib/listingStatus";
 
 export default function ProductActions({
   product,
@@ -51,6 +52,8 @@ export default function ProductActions({
 
   const isMerchandise = product.categories?.name === "Merchandise";
   const stockAvailable = product.stock_quantity ?? 1;
+  const listingState = getListingState(product);
+  const canBuy = listingState === "active";
 
   // 👉 Handle Merchandise Inquiry & Messaging Flow
   const handleInquireMerchandise = async () => {
@@ -86,52 +89,62 @@ export default function ProductActions({
   return (
     <div className="space-y-6">
       {/* Interactive Actions for Buyers */}
-      <div className="space-y-4 pt-4 border-t border-border">
+      {canBuy ? (
+        <div className="space-y-4 pt-4 border-t border-border">
 
-        {/* 👉 MERCHANDISE QUANTITY & MESSAGING / INQUIRY FLOW */}
-        {isMerchandise ? (
-          <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-4">
-            <div className="flex items-center justify-between text-xs font-bold text-foreground">
-              <span>Select Quantity:</span>
-              <span className="text-emerald-600 dark:text-emerald-400">{stockAvailable} Units Available</span>
-            </div>
+          {/* 👉 MERCHANDISE QUANTITY & MESSAGING / INQUIRY FLOW */}
+          {isMerchandise ? (
+            <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-4">
+              <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                <span>Select Quantity:</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{stockAvailable} Units Available</span>
+              </div>
 
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min="1"
-                max={stockAvailable}
-                value={orderQty}
-                onChange={(e) => setOrderQty(Math.min(parseInt(e.target.value) || 1, stockAvailable))}
-                className="w-24 bg-background border border-border rounded-xl px-3 py-2 text-xs font-bold text-foreground outline-none"
-              />
-              <button
-                onClick={handleInquireMerchandise}
-                disabled={inquiring || stockAvailable <= 0}
-                className="flex-1 py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                {inquiring ? (
-                  <><Loader2 className="animate-spin" size={16} /> Opening Chat...</>
-                ) : stockAvailable <= 0 ? (
-                  "Sold Out"
-                ) : (
-                  <><MessageSquare size={16} /> Order & Message Org (₱{(product.price * orderQty).toLocaleString()})</>
-                )}
-              </button>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  max={stockAvailable}
+                  value={orderQty}
+                  onChange={(e) => setOrderQty(Math.min(parseInt(e.target.value) || 1, stockAvailable))}
+                  className="w-24 bg-background border border-border rounded-xl px-3 py-2 text-xs font-bold text-foreground outline-none"
+                />
+                <button
+                  onClick={handleInquireMerchandise}
+                  disabled={inquiring || stockAvailable <= 0}
+                  className="flex-1 py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {inquiring ? (
+                    <><Loader2 className="animate-spin" size={16} /> Opening Chat...</>
+                  ) : stockAvailable <= 0 ? (
+                    "Sold Out"
+                  ) : (
+                    <><MessageSquare size={16} /> Order & Message Org (₱{(product.price * orderQty).toLocaleString()})</>
+                  )}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground text-center">
+                Clicking this opens a chat with the organization to send your GCash receipt.
+              </p>
             </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              Clicking this opens a chat with the organization to send your GCash receipt.
-            </p>
+          ) : (
+            <MakeOffer sellerId={product.seller_id} productTitle={product.title} productId={product.id} />
+          )}
+
+          {/* ONLY SHOWN FOR RENTAL/BORROW ITEMS */}
+          {isRentalOrBorrow && !isMerchandise && (
+            <RequestToBorrow sellerId={product.seller_id} productTitle={product.title} productId={product.id} />
+          )}
+        </div>
+      ) : (
+        <div className="pt-4 border-t border-border">
+          <div className="p-4 rounded-2xl bg-muted/40 border border-border text-xs font-bold text-muted-foreground">
+            {listingState === "expired"
+              ? "This listing has expired."
+              : "This listing is no longer available."}
           </div>
-        ) : (
-          <MakeOffer sellerId={product.seller_id} productTitle={product.title} productId={product.id} />
-        )}
-
-        {/* ONLY SHOWN FOR RENTAL/BORROW ITEMS */}
-        {isRentalOrBorrow && !isMerchandise && (
-          <RequestToBorrow sellerId={product.seller_id} productTitle={product.title} productId={product.id} />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Seller Info & Contact Form */}
       <div className="pt-6 border-t border-border">
@@ -143,8 +156,8 @@ export default function ProductActions({
           {/* 👉 AVATAR WITH CONDITIONAL VERIFIED ORG GLOW & CHECKMARK BADGE */}
           <div className="relative shrink-0">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold overflow-hidden shadow-md transition-all ${isVerifiedOrg
-                ? "border-2 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)] bg-emerald-600 text-white"
-                : "border-2 border-neutral-300 dark:border-neutral-700 bg-muted text-foreground"
+              ? "border-2 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)] bg-emerald-600 text-white"
+              : "border-2 border-neutral-300 dark:border-neutral-700 bg-muted text-foreground"
               }`}>
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="Seller Avatar" className="w-full h-full object-cover" />

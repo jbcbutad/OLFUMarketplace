@@ -8,6 +8,7 @@ import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Check, Heart, ShieldCheck
 import ProductReviews from "@/components/ProductReviews";
 import ProductActions from "@/components/ProductActions";
 import OwnerBanner from "@/components/OwnerBanner";
+import { getListingState } from "@/lib/listingStatus";
 
 export default function ProductDetailPage({ params }) {
   const [resolvedParams, setResolvedParams] = useState(null);
@@ -59,6 +60,7 @@ export default function ProductDetailPage({ params }) {
           stock_quantity,
           listing_duration,
           seller_id,
+          expires_at,
           profiles!products_seller_id_fkey (
             id,
             full_name,
@@ -278,12 +280,16 @@ export default function ProductDetailPage({ params }) {
           </div>
         </div>
 
-        <OwnerBanner
-          sellerId={product.seller_id}
-          productId={product.id}
-          status={product.status}
-          updatedAt={product.updated_at}
-        />
+        <OwnerBanner product={product} />
+
+        {currentUser?.id !== product.seller_id &&
+          ["expired", "unavailable", "rejected"].includes(getListingState(product)) && (
+            <div className="bg-muted border border-border p-4 rounded-2xl mb-6 text-xs font-bold text-muted-foreground">
+              {getListingState(product) === "expired"
+                ? "This listing has expired and is no longer available."
+                : "This listing is no longer available."}
+            </div>
+          )}
 
         {/* 👉 ADDED FLAG BANNER HERE */}
         {product.status === "flagged" && (
@@ -296,7 +302,6 @@ export default function ProductDetailPage({ params }) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12"></div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
 

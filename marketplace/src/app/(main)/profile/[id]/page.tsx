@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import ProductReviews from "@/components/ProductReviews";
 import { Loader2, Mail, User, Package, Edit, MessageSquare, ShieldCheck, Star, X, Trophy, Shield } from "lucide-react";
+import { getListingState } from "@/lib/listingStatus";
 
 interface UserProfile {
   id: string;
@@ -83,6 +84,7 @@ export default function PublicProfilePage() {
           stock_quantity,
           is_available,
           status,
+          expires_at,
           categories ( name )
         `)
         .eq("seller_id", viewedUserId);
@@ -91,8 +93,7 @@ export default function PublicProfilePage() {
       if (!isSelf) {
         productsQuery = productsQuery
           .eq("is_available", true)
-          .neq("status", "flagged")
-          .neq("status", "pending");
+          .eq("status", "active");
       }
 
       productsQuery = productsQuery.order("created_at", { ascending: false });
@@ -170,7 +171,7 @@ export default function PublicProfilePage() {
       // 🔒 SECONDARY CLIENT SAFEGUARD FILTER: Double check visibility rules
       const visibleProducts = rawProducts.filter((p: any) => {
         if (isSelf) return true;
-        return p.is_available && p.status !== "flagged" && p.status !== "pending";
+        return p.is_available && getListingState(p) === "active";
       });
 
       setProducts(visibleProducts);

@@ -37,31 +37,17 @@ export default function AdminMerchApprovals() {
 
     const approveMerchDrop = async (item) => {
         setProcessingId(item.id);
-        try {
-            // Safely filter out "Pending" from the item's existing tags array
-            const currentTags = Array.isArray(item.tags) ? item.tags : [];
-            const updatedTags = currentTags.filter(t => t !== "Pending");
+        const { error } = await supabase.rpc("approve_merch_drop", {
+            p_product_id: item.id,
+        });
 
-            const { error } = await supabase
-                .from("products")
-                .update({
-                    status: "active",
-                    is_available: true,
-                    tags: updatedTags // 👈 Uses the safe item variable instead of 'product'
-                })
-                .eq("id", item.id);
-
-            if (!error) {
-                setPendingItems(prev => prev.filter(p => p.id !== item.id));
-            } else {
-                throw error;
-            }
-        } catch (err) {
-            console.error("Approval error:", err);
-            alert("Failed to approve item: " + err.message);
-        } finally {
-            setProcessingId(null);
+        if (error) {
+            console.error("Approval error:", error);
+            alert("Failed to approve item: " + error.message);
+        } else {
+            setPendingItems((prev) => prev.filter((p) => p.id !== item.id));
         }
+        setProcessingId(null);
     };
 
     const rejectMerchDrop = async (productId) => {

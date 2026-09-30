@@ -21,6 +21,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
+import { getListingState } from "@/lib/listingStatus";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -84,7 +85,7 @@ export default function ProfilePage() {
           .maybeSingle(),
         supabase
           .from("products")
-          .select("id, title, price, image_urls, created_at, tags, is_available, status, stock_quantity, categories(name)")
+          .select("id, title, price, image_urls, created_at, tags, is_available, status, stock_quantity, expires_at, categories(name)")
           .eq("seller_id", userId)
           .order("created_at", { ascending: false }),
         supabase
@@ -446,9 +447,11 @@ export default function ProfilePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {myProducts.map((product) => {
-              const isPending = product.status === "pending" || (product.tags && product.tags.includes("Pending"));
-              const isFlagged = product.status === "flagged";
-              const isUnavailable = !product.is_available && !isPending && !isFlagged;
+              const listingState = getListingState(product);
+              const isPending = listingState === "pending_approval";
+              const isFlagged = listingState === "flagged";
+              const isExpired = listingState === "expired";
+              const isUnavailable = listingState === "unavailable" || listingState === "rejected";
 
               return (
                 <div key={product.id} className="relative group transition-all duration-300 hover:-translate-y-1">
@@ -469,10 +472,16 @@ export default function ProfilePage() {
                       </div>
 
                       {/* Veils */}
-                      {(isUnavailable || isPending || isFlagged) && (
+                      {(isUnavailable || isPending || isFlagged || isExpired) && (
                         <div className="absolute inset-0 bg-neutral-900/25 pointer-events-none transition-all" />
                       )}
-
+                      {isExpired && !isFlagged && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                          <span className="text-[10px] bg-red-600 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-red-700 shadow-xl">
+                            EXPIRED
+                          </span>
+                        </div>
+                      )}
                       {/* CENTERED STATUS OVERLAYS */}
                       {isFlagged && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -488,7 +497,7 @@ export default function ProfilePage() {
                           </span>
                         </div>
                       )}
-                      {isUnavailable && !isFlagged && !isPending && (
+                      {isUnavailable && !isFlagged && !isPending && !isExpired && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                           <span className="text-[10px] bg-neutral-900 text-neutral-100 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-white/20 shadow-xl">
                             UNAVAILABLE

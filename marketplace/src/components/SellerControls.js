@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Edit3, Trash2, ChevronDown, AlertTriangle, Loader2, X, Layers, CheckCircle, Tag, PhilippinePeso, FileText, PlusCircle, RefreshCcw } from "lucide-react";
 import MarkAsTransactedModal from "@/components/MarkAsTransactedModal";
+import RelistButton from "@/components/RelistButton";
+import { getListingState } from "@/lib/listingStatus";
 
 export default function SellerControls({ product, currentUserId }) {
     const router = useRouter();
@@ -24,33 +26,8 @@ export default function SellerControls({ product, currentUserId }) {
     const currentStock = product.stock_quantity ?? 0;
     const [deductQty, setDeductQty] = useState(1);
 
-    // 👉 Calculate expiration starting from approval/update time (active status only)
-    const startDate = new Date(product.updated_at || product.created_at);
-    const durationDays = parseInt(product.listing_duration) || 7;
-    const expiryDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
-    const isActuallyExpired = isMerchandise && product.status === "active" && new Date() > expiryDate;
-
-    // Automatically sync expired status to database on page load if not already marked
-    useEffect(() => {
-        if (isActuallyExpired && product.is_available) {
-            const markExpiredInDB = async () => {
-                let currentTags = Array.isArray(product.tags) ? [...product.tags] : [];
-                if (!currentTags.includes("Expired")) currentTags.push("Expired");
-
-                await supabase
-                    .from("products")
-                    .update({
-                        is_available: false,
-                        status: "unavailable",
-                        tags: currentTags
-                    })
-                    .eq("id", product.id);
-
-                router.refresh();
-            };
-            markExpiredInDB();
-        }
-    }, [isActuallyExpired, product.is_available, product.id, product.tags, router]);
+    const listingState = getListingState(product);
+    const isActuallyExpired = listingState === "expired";
 
     const [editForm, setEditForm] = useState({
         title: product.title,
@@ -62,8 +39,8 @@ export default function SellerControls({ product, currentUserId }) {
     });
 
     const isFlagged = product.status === "flagged";
-    const isPendingAdmin = product.status === "pending" || product.tags?.includes("Pending");
-    const isExpiredTag = product.tags?.includes("Expired") || isActuallyExpired;
+    const isPendingAdmin = product.status === "pending";
+    const isExpiredTag = isActuallyExpired;
     const isUnavailable = !product.is_available || isExpiredTag;
 
     let statusLabel = "Available";
@@ -83,18 +60,29 @@ export default function SellerControls({ product, currentUserId }) {
         setOpenDropdown(false);
 
         if (choice === "available") {
-            // 👉 BLOCK FLAGGED ITEMS FROM BEING MADE AVAILABLE
+            // BLOCK FLAGGED ITEMS FROM BEING MADE AVAILABLE
             if (isFlagged) {
                 alert("This listing cannot be made available because it is flagged under safety review by moderators.");
                 return;
             }
 
-            if (isMerchandise) {
-                if (isActuallyExpired) {
-                    alert("Your merchandise listing duration has expired! You must renew your drop to add stocks and make it available again.");
+            if (product.status === "rejected") {
+                alert("This listing was rejected by an admin and cannot be made available.");
+                return;
+            }
+
+            if (isActuallyExpired) {
+                if (isMerchandise) {
+                    alert("This drop has expired. Use Renew & Pay Listing.");
                     return;
                 }
+                const { error } = await supabase.rpc("relist_product", { p_product_id: product.id });
+                if (error) alert(error.message);
+                router.refresh();
+                return;
+            }
 
+            if (isMerchandise) {
                 if (currentStock > 0) {
                     setIsProcessing(true);
                     let cleanTags = Array.isArray(product.tags) ? product.tags.filter((t) => t !== "Expired") : [];
@@ -178,11 +166,13 @@ export default function SellerControls({ product, currentUserId }) {
         let updatedTags = Array.isArray(product.tags) ? [...product.tags] : [];
 
         const updatedStock = isMerchandise ? parseInt(editForm.stock_quantity) || 0 : currentStock;
-        const shouldBeAvailable = isMerchandise ? updatedStock > 0 && !isActuallyExpired : product.is_available;
-
-        if (isActuallyExpired && !updatedTags.includes("Expired")) {
-            updatedTags.push("Expired");
-        }
+        const canBeLive = !isActuallyExpired && ["active", "unavailable"].includes(product.status);
+        const shouldBeAvailable = isMerchandise ? updatedStock > 0 && canBeLive : product.is_available;
+        const nextStatus = shouldBeAvailable
+            ? "active"
+            : isActuallyExpired || product.status === "expired"
+                ? "expired"
+                : "unavailable";
 
         const { error } = await supabase
             .from("products")
@@ -194,7 +184,7 @@ export default function SellerControls({ product, currentUserId }) {
                 course_code: editForm.course_code,
                 stock_quantity: updatedStock,
                 is_available: shouldBeAvailable,
-                status: shouldBeAvailable ? "active" : "unavailable",
+                status: nextStatus,
                 tags: updatedTags,
             })
             .eq("id", product.id);
@@ -260,19 +250,27 @@ export default function SellerControls({ product, currentUserId }) {
                     </span>
                     {isExpiredTag && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white uppercase tracking-widest animate-pulse">
-                            EXPIRED DROP
+                            {isMerchandise ? "EXPIRED DROP" : "EXPIRED"}
                         </span>
                     )}
                 </div>
 
                 <div className="flex items-center gap-2">
                     {isExpiredTag ? (
-                        <button
-                            onClick={() => router.push(`/mylistings?renew=${product.id}`)}
-                            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                        >
-                            <RefreshCcw size={13} /> Renew & Pay Listing
-                        </button>
+                        isMerchandise ? (
+                            <button
+                                onClick={() => router.push(`/mylistings?renew=${product.id}`)}
+                                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                            >
+                                <RefreshCcw size={13} /> Renew & Pay Listing
+                            </button>
+                        ) : (
+                            <RelistButton
+                                productId={product.id}
+                                label="Relist (Free)"
+                                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer"
+                            />
+                        )
                     ) : (
                         <div className="relative">
                             <button

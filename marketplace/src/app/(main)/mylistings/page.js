@@ -9,6 +9,8 @@ import {
   PhilippinePeso, X, Tag, Layers, Hash, FileText, ChevronDown, Clock, RefreshCcw, CreditCard
 } from "lucide-react";
 import MarkAsTransactedModal from "@/components/MarkAsTransactedModal";
+import RelistButton from "@/components/RelistButton";
+import { getListingState } from "@/lib/listingStatus";
 
 function MyListingsContent() {
   const [listings, setListings] = useState([]);
@@ -115,26 +117,13 @@ function MyListingsContent() {
     setIsProcessing(true);
     try {
       const daysNum = parseInt(renewForm.listing_duration_days) || 7;
-      const calculatedFee = daysNum * 1.00;
       const stockNum = parseInt(renewForm.stock_quantity) || 10;
-      const durationStr = `${daysNum} Days`;
 
-      let cleanTags = Array.isArray(activeItem.tags) ? activeItem.tags.filter(t => t !== "Expired") : [];
-      if (!cleanTags.includes("Pending")) cleanTags.push("Pending");
-
-      const { error } = await supabase
-        .from("products")
-        .update({
-          created_at: new Date().toISOString(),
-          stock_quantity: stockNum,
-          listing_duration: durationStr,
-          listing_fee: calculatedFee,
-          status: "pending",
-          is_available: true,
-          tags: cleanTags
-        })
-        .eq("id", activeItem.id);
-
+      const { data: fee, error } = await supabase.rpc("request_merch_renewal", {
+        p_product_id: activeItem.id,
+        p_stock: stockNum,
+        p_days: daysNum,
+      });
       if (error) throw error;
 
       setIsProcessing(false);
@@ -142,8 +131,8 @@ function MyListingsContent() {
 
       setSubmittedMerch({
         title: activeItem.title,
-        fee: calculatedFee,
-        duration: durationStr
+        fee: Number(fee),
+        duration: `${daysNum} Days`,
       });
 
     } catch (err) {
@@ -162,13 +151,18 @@ function MyListingsContent() {
       }
 
       const isMerchandise = item.categories?.name === "Merchandise";
-      const createdAt = new Date(item.created_at);
-      const durationDays = parseInt(item.listing_duration) || 7;
-      const expiryDate = new Date(createdAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
-      const isExpired = isMerchandise && new Date() > expiryDate;
 
-      if (isExpired) {
-        alert("This merchandise drop has expired. Please use 'Renew Listing' to update stock, duration, and pay the renewal fee.");
+      if (item.status === "rejected") {
+        alert("This listing was rejected by an admin.");
+        return;
+      }
+
+      if (getListingState(item) === "expired") {
+        alert(
+          isMerchandise
+            ? "This merchandise drop has expired. Please use 'Renew Listing' to update stock, duration, and pay the renewal fee."
+            : "This listing has expired. Use 'Relist' to put it back up."
+        );
         return;
       }
 
@@ -184,7 +178,7 @@ function MyListingsContent() {
         .eq("id", item.id);
 
     } else {
-      // 👉 PREVENT REDUNDANT CLICKS: If already unavailable and not available, don't re-trigger
+      // PREVENT REDUNDANT CLICKS: If already unavailable and not available, don't re-trigger
       if (!item.is_available && item.status === "unavailable") {
         return;
       }
@@ -320,12 +314,7 @@ function MyListingsContent() {
   const filteredListings = listings.filter(item => {
     const isPendingAdminReview = item.status === "pending";
     const isFlagged = item.status === "flagged";
-    const isMerchandise = item.categories?.name === "Merchandise";
-    const createdAt = new Date(item.created_at);
-    const durationDays = parseInt(item.listing_duration) || 7;
-    const expiryDate = new Date(createdAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
-    const isActuallyExpired = isMerchandise && new Date() > expiryDate;
-    const isExpiredTag = item.tags?.includes("Expired") || isActuallyExpired;
+    const isExpiredTag = getListingState(item) === "expired";
 
     if (activeTab === "expired") return isExpiredTag;
     if (activeTab === "pending") return isPendingAdminReview;
@@ -382,7 +371,7 @@ function MyListingsContent() {
             onClick={() => setActiveTab("expired")}
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === "expired" ? "bg-red-600 text-white shadow-sm font-black" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
           >
-            <AlertTriangle size={14} /> Expired Drops
+            <AlertTriangle size={14} /> Expired
           </button>
         </div>
 
@@ -392,11 +381,7 @@ function MyListingsContent() {
               const isPendingAdmin = item.status === "pending";
               const isFlagged = item.status === "flagged";
               const isMerchandise = item.categories?.name === "Merchandise";
-              const createdAt = new Date(item.created_at);
-              const durationDays = parseInt(item.listing_duration) || 7;
-              const expiryDate = new Date(createdAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
-              const isActuallyExpired = isMerchandise && new Date() > expiryDate;
-              const isExpiredTag = item.tags?.includes("Expired") || isActuallyExpired;
+              const isExpiredTag = getListingState(item) === "expired";
 
               const isUnavailable = !item.is_available || isExpiredTag;
 
@@ -425,7 +410,7 @@ function MyListingsContent() {
               return (
                 <div key={item.id} className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all ${cardBgStyles}`}>
 
-                  {/* 👉 FLAGGED BANNER NOTICE ON LISTING ROW IF FLAGGED */}
+                  {/* FLAGGED BANNER NOTICE ON LISTING ROW IF FLAGGED */}
                   {isFlagged && (
                     <div className="bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-xl flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold">
                       <AlertTriangle size={15} className="shrink-0 text-rose-500" />
@@ -455,7 +440,7 @@ function MyListingsContent() {
                       <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5 flex-wrap">
                         <span className="text-[9px] bg-neutral-200 dark:bg-neutral-800 border text-foreground px-2 py-0.5 rounded font-bold uppercase tracking-widest">{item.categories?.name}</span>
                         {isFlagged && <span className="text-[9px] bg-rose-100 dark:bg-rose-950/60 border border-rose-300 text-rose-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Safety Flag</span>}
-                        {isExpiredTag && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Duration Expired</span>}
+                        {isExpiredTag && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">{isMerchandise ? "Duration Expired" : "Listing Expired"}</span>}
                       </div>
 
                       <Link href={`/products/${item.id}`}>
@@ -469,12 +454,21 @@ function MyListingsContent() {
 
                     <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto justify-center md:justify-end mt-4 md:mt-0 items-center">
                       {isExpiredTag ? (
-                        <button
-                          onClick={() => { setActiveItem(item); setIsRenewModalOpen(true); }}
-                          className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all"
-                        >
-                          <RefreshCcw size={14} /> Renew Listing
-                        </button>
+                        isMerchandise ? (
+                          <button
+                            onClick={() => { setActiveItem(item); setIsRenewModalOpen(true); }}
+                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all"
+                          >
+                            <RefreshCcw size={14} /> Renew Listing
+                          </button>
+                        ) : (
+                          <RelistButton
+                            productId={item.id}
+                            label="Relist (Free)"
+                            onDone={() => fetchListings(currentUserId)}
+                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all"
+                          />
+                        )
                       ) : (
                         <div className="relative" ref={openDropdownId === item.id ? dropdownRef : null}>
                           {isPendingAdmin ? (
