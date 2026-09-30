@@ -87,8 +87,22 @@ export default function ProductActions({
 
   return (
     <div className="space-y-6">
-      {/* Interactive Actions for Buyers */}
-      {canBuy ? (
+      {/* Logged-out visitors can browse but not contact the seller */}
+      {canBuy && !currentUserId ? (
+        <div className="pt-4 border-t border-border">
+          <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-3 text-center">
+            <p className="text-xs font-bold text-muted-foreground">
+              Log in to message the seller or make an offer.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition-opacity text-xs"
+            >
+              Log in
+            </Link>
+          </div>
+        </div>
+      ) : canBuy ? (
         <div className="space-y-4 pt-4 border-t border-border">
 
           {/* 👉 MERCHANDISE QUANTITY & MESSAGING / INQUIRY FLOW */}
@@ -189,7 +203,9 @@ export default function ProductActions({
           </div>
         </Link>
 
-        <SendMessageToSeller sellerId={product.seller_id} productId={product.id} />
+        {currentUserId && (
+          <SendMessageToSeller sellerId={product.seller_id} productId={product.id} />
+        )}
       </div>
     </div>
   );
