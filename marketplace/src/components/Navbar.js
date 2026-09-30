@@ -111,9 +111,13 @@ export default function Navbar() {
     const { data: userRooms } = await supabase
       .from("direct_room_members")
       .select("room_id")
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .is("archived_at", null);
 
-    if (!userRooms || userRooms.length === 0) return;
+    if (!userRooms || userRooms.length === 0) {
+      setUnreadCount(0);
+      return;
+    }
     const roomIds = userRooms.map((r) => r.room_id);
 
     const { count } = await supabase

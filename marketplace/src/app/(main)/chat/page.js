@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   Search,
   MessageSquare,
-  UserPlus,
   Loader2,
+  Archive,
   User as UserIcon,
 } from "lucide-react";
 
@@ -16,9 +16,10 @@ export default function ChatHub() {
   const [searchResults, setSearchResults] = useState([]);
   const [existingRooms, setExistingRooms] = useState([]);
   const [roomLastMessages, setRoomLastMessages] = useState({});
-  const [roomUnreadStatus, setRoomUnreadStatus] = useState({}); // 👉 Track unread per room
+  const [roomUnreadStatus, setRoomUnreadStatus] = useState({}); // Track unread per room
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("active"); // "active" | "archived"
   const router = useRouter();
 
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
@@ -90,16 +91,21 @@ export default function ChatHub() {
 
     setCurrentUser(user);
 
-    // 1) Get rooms the user is in
+    // 1) Get rooms the user is in (now also reads archived_at)
     const { data: myMemberships, error: memErr } = await supabase
       .from("direct_room_members")
-      .select("room_id")
+      .select("room_id, archived_at")
       .eq("user_id", user.id);
 
     if (memErr) {
       console.error("Membership error:", memErr);
       setLoading(false);
       return;
+    }
+
+    const archivedMap = {};
+    for (const m of myMemberships || []) {
+      archivedMap[m.room_id] = m.archived_at ?? null;
     }
 
     const roomIds = [...new Set((myMemberships || []).map((m) => m.room_id))];
@@ -174,6 +180,7 @@ export default function ChatHub() {
         otherUserId: otherMember ? otherMember.user_id : null,
         product_id: roomMeta[roomId]?.product_id ?? null,
         productTitle: roomMeta[roomId]?.products?.title ?? null,
+        archivedAt: archivedMap[roomId] ?? null,
       };
     });
 
@@ -196,7 +203,7 @@ export default function ChatHub() {
       setRoomLastMessages(map);
     }
 
-    // 4) 👉 Fetch unread status (check if there are messages where is_read = false and sender isn't me)
+    // 4) Fetch unread status (messages where is_read = false and sender isn't me)
     const { data: unreadMsgs, error: unreadErr } = await supabase
       .from("direct_messages")
       .select("room_id")
@@ -247,6 +254,7 @@ export default function ChatHub() {
     const targetUserId = targetUser?.id;
     if (!targetUserId) return;
 
+    // Includes archived rooms on purpose: sending a message there unarchives it
     const existingRoom = existingRooms.find(
       (room) => room.otherUserId === targetUserId && !room.product_id
     );
@@ -272,6 +280,12 @@ export default function ChatHub() {
       router.push(`/chat/${roomId}`);
     }
   }
+
+  // Split rooms into the two tabs
+  const activeRooms = existingRooms.filter((r) => !r.archivedAt);
+  const archivedRooms = existingRooms.filter((r) => r.archivedAt);
+  const visibleRooms = activeTab === "archived" ? archivedRooms : activeRooms;
+  const archivedHasUnread = archivedRooms.some((r) => roomUnreadStatus[r.id]);
 
   return (
     <div className="text-foreground w-full min-h-screen transition-colors">
@@ -328,24 +342,65 @@ export default function ChatHub() {
             </div>
           </div>
 
+          {/* Active / Archived tabs */}
+          <div className="flex border-b border-neutral-200 dark:border-neutral-800 shrink-0">
+            {[
+              { key: "active", label: "Active", count: activeRooms.length },
+              { key: "archived", label: "Archived", count: archivedRooms.length },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 py-3 text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 border-b-2 ${activeTab === tab.key
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-neutral-500 dark:text-neutral-400 hover:text-foreground"
+                  }`}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800">
+                    {tab.count}
+                  </span>
+                )}
+                {tab.key === "archived" && archivedHasUnread && (
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+                )}
+              </button>
+            ))}
+          </div>
+
           {/* List Area */}
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="flex justify-center p-10">
                 <Loader2 className="animate-spin text-foreground" />
               </div>
-            ) : existingRooms.length === 0 ? (
+            ) : visibleRooms.length === 0 ? (
               <div className="text-center p-10 text-neutral-400">
-                <UserIcon className="mx-auto mb-2 opacity-30" size={48} />
-                <p>No active chats yet. Search for someone above!</p>
+                {activeTab === "archived" ? (
+                  <>
+                    <Archive className="mx-auto mb-2 opacity-30" size={48} />
+                    <p>No archived chats.</p>
+                  </>
+                ) : (
+                  <>
+                    <UserIcon className="mx-auto mb-2 opacity-30" size={48} />
+                    <p>
+                      {archivedRooms.length > 0
+                        ? "No active chats. Check your Archived tab, or search for someone above!"
+                        : "No active chats yet. Search for someone above!"}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
-              existingRooms.map((room) => {
+              visibleRooms.map((room) => {
                 const other = room.otherUser;
                 const otherUserOnline =
                   room.otherUserId && onlineUserIds.has(String(room.otherUserId));
                 const last = roomLastMessages[room.id];
-                const hasUnread = roomUnreadStatus[room.id]; // 👉 Check unread status for this room
+                const hasUnread = roomUnreadStatus[room.id];
 
                 const otherName = other
                   ? `${other.First_Name || ""} ${other.Last_Name || ""}`.trim()
@@ -384,7 +439,6 @@ export default function ChatHub() {
                         <p className={`truncate ${hasUnread ? "text-foreground font-bold" : "text-foreground font-semibold"}`}>
                           {otherName}
                         </p>
-                        {/* 👉 Unread notification dot indicator */}
                         {hasUnread && (
                           <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full shrink-0"></span>
                         )}

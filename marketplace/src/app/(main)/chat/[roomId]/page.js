@@ -15,6 +15,8 @@ import {
   X,
   Trash2,
   AlertTriangle,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import ChatInput from "./ChatInput";
 
@@ -33,6 +35,7 @@ export default function ChatRoom() {
   const [roomHasProduct, setRoomHasProduct] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
+  const [isArchived, setIsArchived] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [activeOverlayImage, setActiveOverlayImage] = useState(null);
 
@@ -157,6 +160,14 @@ export default function ChatRoom() {
 
       setMessages(msgs || []);
 
+      const { data: myMembership } = await supabase
+        .from("direct_room_members")
+        .select("archived_at")
+        .eq("room_id", resolvedRoomId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setIsArchived(!!myMembership?.archived_at);
+
       const { data: roomRow } = await supabase
         .from("direct_rooms")
         .select("product_id, products(id, title, price, image_urls)")
@@ -233,6 +244,7 @@ export default function ChatRoom() {
         { event: "*", schema: "public", table: "direct_messages", filter: `room_id=eq.${activeRoomId}` },
         (payload) => {
           if (payload.eventType === "INSERT") {
+            setIsArchived(false); // any new message auto-unarchives the room (DB trigger)
             setMessages((current) => {
               if (current.some((msg) => msg.id === payload.new.id)) return current;
               return [...current, payload.new];
@@ -348,6 +360,28 @@ export default function ChatRoom() {
     }
   };
 
+  const executeToggleArchive = async () => {
+    if (!activeRoomId) return;
+    const willArchive = !isArchived;
+    try {
+      const { error } = await supabase.rpc(
+        willArchive ? "archive_direct_room" : "unarchive_direct_room",
+        { p_room: activeRoomId }
+      );
+      if (error) throw error;
+
+      setIsArchived(willArchive);
+      if (willArchive) {
+        router.push("/chat");
+      } else {
+        showToast("Chat moved back to your inbox", "success");
+      }
+    } catch (err) {
+      console.error("Archive error:", err);
+      showToast(willArchive ? "Failed to archive chat" : "Failed to unarchive chat", "error");
+    }
+  };
+
   const handleCopyText = async (text, id) => {
     if (!text) return;
     try {
@@ -449,6 +483,13 @@ export default function ChatRoom() {
               <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl overflow-hidden z-50 py-1">
                 <button
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                  onClick={() => { setShowMenu(false); executeToggleArchive(); }}
+                >
+                  {isArchived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                  {isArchived ? "Unarchive" : "Archive"}
+                </button>
+                <button
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
                   onClick={() => { setActiveModal("report"); setShowMenu(false); }}
                 >
                   <Flag size={15} className="text-rose-500" /> Report User
@@ -474,9 +515,13 @@ export default function ChatRoom() {
           </div>
         </div>
 
+
         {/* ITEM CONTEXT BANNER */}
         {productContext && (
-          <div className="p-3 border-b border-border bg-muted/40 flex items-center gap-3 shrink-0">
+          <Link
+            href={`/products/${productContext.id}`}
+            className="p-3 border-b border-border bg-muted/40 hover:bg-muted/70 transition-colors flex items-center gap-3 shrink-0"
+          >
             <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
               <img
                 src={productContext.image_urls?.[0] || "/placeholder.png"}
@@ -490,7 +535,8 @@ export default function ChatRoom() {
                 ₱{Number(productContext.price).toLocaleString()}
               </p>
             </div>
-          </div>
+            <span className="text-[10px] font-semibold text-muted-foreground shrink-0">View listing →</span>
+          </Link>
         )}
 
         {/* MESSAGE THREAD */}
