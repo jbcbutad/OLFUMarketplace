@@ -87,6 +87,51 @@ export default function ProductActions({
 
   return (
     <div className="space-y-6">
+      {/* Seller info first */}
+      <div className="pt-4 border-t border-border">
+        {/* Clickable Seller Profile Link */}
+        <Link
+          href={`/profile/${product.seller_id}`}
+          className="flex items-center gap-3 group hover:opacity-80 transition-opacity w-fit"
+        >
+          {/* 👉 AVATAR WITH CONDITIONAL VERIFIED ORG GLOW & CHECKMARK BADGE */}
+          <div className="relative shrink-0">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold overflow-hidden shadow-md transition-all ${isVerifiedOrg
+              ? "border-2 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)] bg-emerald-600 text-white"
+              : "border-2 border-neutral-300 dark:border-neutral-700 bg-muted text-foreground"
+              }`}>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Seller Avatar" className="w-full h-full object-cover" />
+              ) : (
+                sellerName?.charAt(0).toUpperCase()
+              )}
+            </div>
+
+            {/* Floating Checkmark Badge */}
+            {isVerifiedOrg && (
+              <div className="absolute -bottom-0.5 -right-0.5 bg-emerald-600 text-white p-0.5 rounded-full border-2 border-background shadow-sm flex items-center justify-center" title="Verified Official Organization">
+                <ShieldCheck size={11} />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="text-sm font-bold text-foreground group-hover:underline flex items-center gap-2 flex-wrap">
+              <span>{sellerName}</span>
+
+              {/* VERIFIED ORG BADGE */}
+              {isVerifiedOrg && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-md text-[11px] font-bold no-underline">
+                  <Building2 size={12} />
+                  <span>{orgName || "Verified Org"}</span>
+                </span>
+              )}
+            </div>
+
+          </div>
+        </Link>
+      </div>
+
       {/* Logged-out visitors can browse but not contact the seller */}
       {canBuy && !currentUserId ? (
         <div className="pt-4 border-t border-border">
@@ -159,54 +204,13 @@ export default function ProductActions({
         </div>
       )}
 
-      {/* Seller Info & Contact Form */}
-      <div className="pt-6 border-t border-border">
-        {/* Clickable Seller Profile Link */}
-        <Link
-          href={`/profile/${product.seller_id}`}
-          className="flex items-center gap-3 mb-6 group hover:opacity-80 transition-opacity w-fit"
-        >
-          {/* 👉 AVATAR WITH CONDITIONAL VERIFIED ORG GLOW & CHECKMARK BADGE */}
-          <div className="relative shrink-0">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold overflow-hidden shadow-md transition-all ${isVerifiedOrg
-              ? "border-2 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)] bg-emerald-600 text-white"
-              : "border-2 border-neutral-300 dark:border-neutral-700 bg-muted text-foreground"
-              }`}>
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Seller Avatar" className="w-full h-full object-cover" />
-              ) : (
-                sellerName?.charAt(0).toUpperCase()
-              )}
-            </div>
+      {/* Message box (logged-in buyers only) */}
+      {currentUserId && (
+        <div className="pt-6 border-t border-border">
 
-            {/* Floating Checkmark Badge */}
-            {isVerifiedOrg && (
-              <div className="absolute -bottom-0.5 -right-0.5 bg-emerald-600 text-white p-0.5 rounded-full border-2 border-background shadow-sm flex items-center justify-center" title="Verified Official Organization">
-                <ShieldCheck size={11} />
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="text-sm font-bold text-foreground group-hover:underline flex items-center gap-2 flex-wrap">
-              <span>{sellerName}</span>
-
-              {/* VERIFIED ORG BADGE */}
-              {isVerifiedOrg && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-md text-[11px] font-bold no-underline">
-                  <Building2 size={12} />
-                  <span>{orgName || "Verified Org"}</span>
-                </span>
-              )}
-            </div>
-
-          </div>
-        </Link>
-
-        {currentUserId && (
           <SendMessageToSeller sellerId={product.seller_id} productId={product.id} />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
