@@ -14,11 +14,12 @@ import {
   Copy,
   X,
   Trash2,
-  AlertTriangle,
   Archive,
   ArchiveRestore,
+  Mail,
 } from "lucide-react";
 import ChatInput from "./ChatInput";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function ChatRoom() {
   const router = useRouter();
@@ -32,25 +33,26 @@ export default function ChatRoom() {
   const [currentUser, setCurrentUser] = useState(null);
   const [otherUser, setOtherUser] = useState(null);
   const [productContext, setProductContext] = useState(null);
-  const [roomHasProduct, setRoomHasProduct] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [isArchived, setIsArchived] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [activeOverlayImage, setActiveOverlayImage] = useState(null);
 
-  // Block & Timestamp states
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [amIBlocker, setAmIBlocker] = useState(false);
+  // Block state: the database tells us about BOTH directions
+  const [iBlocked, setIBlocked] = useState(false);
+  const [blockedMe, setBlockedMe] = useState(false);
+  const isBlocked = iBlocked || blockedMe;
   const [showTimestampId, setShowTimestampId] = useState(null);
 
   // Modal & Notification states
-  const [activeModal, setActiveModal] = useState(null);
+  const [activeModal, setActiveModal] = useState(null); // unsend | block | unblock | delete | report
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const [reportReason, setReportReason] = useState("");
   const [toast, setToast] = useState({ show: false, message: "", type: "info" });
 
   const messagesEndRef = useRef(null);
+  const currentUserIdRef = useRef(null);
 
   const showToast = (message, type = "info") => {
     setToast({ show: true, message, type });
@@ -69,79 +71,34 @@ export default function ChatRoom() {
     }
   }, [messages]);
 
-  // Load product metadata dynamically
-  useEffect(() => {
-    async function fetchProductContext() {
-      if (loading || roomHasProduct) return;
-      if (productId) {
-        const { data } = await supabase
-          .from("products")
-          .select("id, title, price, image_urls")
-          .eq("id", productId)
-          .maybeSingle();
-
-        if (data) {
-          setProductContext(data);
-          return;
-        }
-      }
-
-      if (messages.length > 0) {
-        const lastProductMessage = [...messages].reverse().find((m) => m.body && m.body.includes('"'));
-
-        if (lastProductMessage) {
-          const match = lastProductMessage.body.match(/"([^"]+)"/);
-          if (match && match[1]) {
-            const productTitle = match[1];
-            const { data } = await supabase
-              .from("products")
-              .select("id, title, price, image_urls")
-              .ilike("title", productTitle)
-              .maybeSingle();
-
-            if (data) {
-              setProductContext(data);
-              return;
-            }
-          }
-        }
-      }
-
-      if (sellerId) {
-        const { data } = await supabase
-          .from("products")
-          .select("id, title, price, image_urls")
-          .eq("seller_id", sellerId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (data) setProductContext(data);
-      }
-    }
-
-    fetchProductContext();
-  }, [productId, sellerId, searchParams, messages, loading, roomHasProduct]);
-
   // Load user session, room information, and block status
   useEffect(() => {
     async function loadChat() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return router.push("/login");
       setCurrentUser(user);
+      currentUserIdRef.current = user.id;
 
       let resolvedRoomId = roomId;
 
       if (sellerId && (roomId === "new" || roomId === sellerId)) {
-        const { data: existingRoomId, error: rpcErr } = await supabase
-          .rpc("get_or_create_direct_room", { p_other_user: sellerId });
+        const { data: existingRoomId, error: rpcErr } = await supabase.rpc(
+          "get_or_create_direct_room",
+          { p_other_user: sellerId }
+        );
 
         if (rpcErr) {
           console.error("RPC Error:", rpcErr);
         } else if (existingRoomId) {
           resolvedRoomId = existingRoomId;
           setActiveRoomId(existingRoomId);
-          window.history.replaceState(null, "", `/chat/${existingRoomId}?sellerId=${sellerId}${productId ? `&productId=${productId}` : ""}`);
+          window.history.replaceState(
+            null,
+            "",
+            `/chat/${existingRoomId}?sellerId=${sellerId}${productId ? `&productId=${productId}` : ""}`
+          );
         }
       } else {
         setActiveRoomId(roomId);
@@ -152,54 +109,54 @@ export default function ChatRoom() {
         return;
       }
 
-      const { data: msgs } = await supabase
-        .from("direct_messages")
-        .select("id, room_id, sender_id, body, image_url, created_at, is_unsent, unsent_at")
-        .eq("room_id", resolvedRoomId)
-        .order("created_at", { ascending: true });
-
-      setMessages(msgs || []);
-
+      // My membership: archived state + "deleted conversation" cut-off
       const { data: myMembership } = await supabase
         .from("direct_room_members")
-        .select("archived_at")
+        .select("archived_at, history_cleared_at")
         .eq("room_id", resolvedRoomId)
         .eq("user_id", user.id)
         .maybeSingle();
       setIsArchived(!!myMembership?.archived_at);
 
+      // Messages (only those after I deleted the conversation, if I ever did)
+      let msgQuery = supabase
+        .from("direct_messages")
+        .select("id, room_id, sender_id, body, image_url, created_at, is_unsent, unsent_at")
+        .eq("room_id", resolvedRoomId)
+        .order("created_at", { ascending: true });
+
+      if (myMembership?.history_cleared_at) {
+        msgQuery = msgQuery.gt("created_at", myMembership.history_cleared_at);
+      }
+
+      const { data: msgs } = await msgQuery;
+      setMessages(msgs || []);
+
+      // The product banner ONLY comes from the room itself.
+      // Chats started from a profile have no product_id, so no banner.
       const { data: roomRow } = await supabase
         .from("direct_rooms")
         .select("product_id, products(id, title, price, image_urls)")
         .eq("id", resolvedRoomId)
         .maybeSingle();
-      if (roomRow?.products) {
-        setProductContext(roomRow.products);
-        setRoomHasProduct(true);
-      }
+      setProductContext(roomRow?.products || null);
 
-      // 👉 MARK INCOMING MESSAGES AS READ WHEN OPENING ROOM
-      const { error } = await supabase
-        .from("direct_messages")
-        .update({ is_read: true })
-        .eq("room_id", resolvedRoomId)
-        .neq("sender_id", user.id)
-        .eq("is_read", false);
-
-      if (!error) {
-        // Dispatch an event so Navbar & Sidebar update instantly without refreshing!
+      // Mark everything as read (also clears a manual "mark as unread")
+      const { error: readErr } = await supabase.rpc("mark_room_read", {
+        p_room: resolvedRoomId,
+      });
+      if (!readErr) {
         window.dispatchEvent(new Event("messages-read"));
       }
 
-      let targetUserId = sellerId;
-      if (!targetUserId) {
-        const { data: members } = await supabase
-          .from("direct_room_members")
-          .select("user_id")
-          .eq("room_id", resolvedRoomId);
+      // Who am I talking to? Always trust the room's members first.
+      const { data: members } = await supabase
+        .from("direct_room_members")
+        .select("user_id")
+        .eq("room_id", resolvedRoomId);
 
-        targetUserId = members?.find((m) => m.user_id !== user.id)?.user_id;
-      }
+      const targetUserId =
+        members?.find((m) => m.user_id !== user.id)?.user_id || sellerId;
 
       if (targetUserId) {
         const { data: profile } = await supabase
@@ -210,21 +167,10 @@ export default function ChatRoom() {
 
         setOtherUser(profile);
 
-        const { data: blocks } = await supabase
-          .from("blocked_users")
-          .select("id, blocker_id, blocked_id")
-          .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`);
-
-        if (blocks && blocks.length > 0) {
-          const activeBlock = blocks.find(
-            (b) => b.blocker_id === targetUserId || b.blocked_id === targetUserId
-          );
-
-          if (activeBlock) {
-            setIsBlocked(true);
-            setAmIBlocker(activeBlock.blocker_id === user.id);
-          }
-        }
+        const { data: rels } = await supabase.rpc("get_my_block_relations");
+        const rel = (rels || []).find((r) => r.other_id === targetUserId);
+        setIBlocked(!!rel?.i_blocked);
+        setBlockedMe(!!rel?.blocked_me);
       }
 
       setLoading(false);
@@ -241,7 +187,12 @@ export default function ChatRoom() {
       .channel(`room-${activeRoomId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "direct_messages", filter: `room_id=eq.${activeRoomId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "direct_messages",
+          filter: `room_id=eq.${activeRoomId}`,
+        },
         (payload) => {
           if (payload.eventType === "INSERT") {
             setIsArchived(false); // any new message auto-unarchives the room (DB trigger)
@@ -249,6 +200,16 @@ export default function ChatRoom() {
               if (current.some((msg) => msg.id === payload.new.id)) return current;
               return [...current, payload.new];
             });
+
+            // I'm looking at this chat right now, so a new incoming message counts as read
+            if (
+              payload.new.sender_id !== currentUserIdRef.current &&
+              document.visibilityState === "visible"
+            ) {
+              supabase.rpc("mark_room_read", { p_room: activeRoomId }).then(({ error }) => {
+                if (!error) window.dispatchEvent(new Event("messages-read"));
+              });
+            }
           } else if (payload.eventType === "UPDATE") {
             setMessages((current) =>
               current.map((msg) => (msg.id === payload.new.id ? payload.new : msg))
@@ -276,6 +237,11 @@ export default function ChatRoom() {
     });
   };
 
+  const closeModal = () => {
+    setActiveModal(null);
+    setSelectedMessageId(null);
+  };
+
   const executeUnsend = async () => {
     if (!selectedMessageId) return;
     try {
@@ -285,7 +251,7 @@ export default function ChatRoom() {
           body: "Message was unsent",
           image_url: null,
           is_unsent: true,
-          unsent_at: new Date().toISOString()
+          unsent_at: new Date().toISOString(),
         })
         .eq("id", selectedMessageId);
 
@@ -294,30 +260,27 @@ export default function ChatRoom() {
     } catch (err) {
       showToast("Failed to unsend message", "error");
     } finally {
-      setActiveModal(null);
-      setSelectedMessageId(null);
+      closeModal();
     }
   };
 
   const executeReportUser = async () => {
     if (!otherUser || !reportReason.trim()) return;
     try {
-      const { error } = await supabase
-        .from("reports")
-        .insert({
-          reporter_id: currentUser.id,
-          reported_id: otherUser.id,
-          reason: reportReason.trim(),
-          context_room_id: activeRoomId,
-          status: "pending"
-        });
+      const { error } = await supabase.from("reports").insert({
+        reporter_id: currentUser.id,
+        reported_id: otherUser.id,
+        reason: reportReason.trim(),
+        context_room_id: activeRoomId,
+        status: "pending",
+      });
 
       if (error) throw error;
       showToast("Report submitted successfully", "success");
     } catch (err) {
       showToast("Failed to submit report", "error");
     } finally {
-      setActiveModal(null);
+      closeModal();
       setReportReason("");
     }
   };
@@ -327,16 +290,19 @@ export default function ChatRoom() {
     try {
       const { error } = await supabase
         .from("blocked_users")
-        .insert({ blocker_id: currentUser.id, blocked_id: otherUser.id });
+        .upsert(
+          { blocker_id: currentUser.id, blocked_id: otherUser.id },
+          { onConflict: "blocker_id,blocked_id", ignoreDuplicates: true }
+        );
 
       if (error) throw error;
       showToast("User blocked", "success");
-      setIsBlocked(true);
-      setAmIBlocker(true);
+      setIBlocked(true);
+      window.dispatchEvent(new Event("unread-refresh"));
     } catch (err) {
       showToast("Failed to block user", "error");
     } finally {
-      setActiveModal(null);
+      closeModal();
     }
   };
 
@@ -351,12 +317,12 @@ export default function ChatRoom() {
 
       if (error) throw error;
       showToast("User unblocked", "success");
-      setIsBlocked(false);
-      setAmIBlocker(false);
+      setIBlocked(false);
+      window.dispatchEvent(new Event("unread-refresh"));
     } catch (err) {
       showToast("Failed to unblock user", "error");
     } finally {
-      setActiveModal(null);
+      closeModal();
     }
   };
 
@@ -380,6 +346,33 @@ export default function ChatRoom() {
     } catch (err) {
       console.error("Archive error:", err);
       showToast(willArchive ? "Failed to archive chat" : "Failed to unarchive chat", "error");
+    }
+  };
+
+  const executeMarkUnread = async () => {
+    if (!activeRoomId) return;
+    try {
+      const { error } = await supabase.rpc("mark_room_unread", { p_room: activeRoomId });
+      if (error) throw error;
+      window.dispatchEvent(new Event("unread-refresh"));
+      router.push("/chat");
+    } catch (err) {
+      console.error("Mark unread error:", err);
+      showToast("Failed to mark as unread", "error");
+    }
+  };
+
+  const executeDeleteConversation = async () => {
+    if (!activeRoomId) return;
+    try {
+      const { error } = await supabase.rpc("delete_direct_room", { p_room: activeRoomId });
+      if (error) throw error;
+      window.dispatchEvent(new Event("unread-refresh"));
+      router.push("/chat");
+    } catch (err) {
+      console.error("Delete conversation error:", err);
+      showToast("Failed to delete conversation", "error");
+      closeModal();
     }
   };
 
@@ -407,20 +400,31 @@ export default function ChatRoom() {
   }
 
   const derivedName = `${otherUser?.First_Name || ""} ${otherUser?.Last_Name || ""}`.trim();
-  const otherName = otherUser?.full_name || (derivedName.length > 0 ? derivedName : null) || otherUser?.email || "Unknown User";
+  const otherName =
+    otherUser?.full_name ||
+    (derivedName.length > 0 ? derivedName : null) ||
+    otherUser?.email ||
+    "Unknown User";
+
+  const menuItemClass =
+    "w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer";
 
   return (
-    <div className="text-foreground w-full h-[calc(100vh-4rem)] max-h-screen overflow-hidden flex flex-col transition-colors" onClick={() => showMenu && setShowMenu(false)}>
-
+    <div
+      className="text-foreground w-full h-[calc(100vh-4rem)] max-h-screen overflow-hidden flex flex-col transition-colors"
+      onClick={() => showMenu && setShowMenu(false)}
+    >
       {/* TOAST NOTIFICATION */}
       {toast.show && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-200">
-          <div className={`px-4 py-2.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-2 ${toast.type === "success"
-            ? "bg-foreground text-background border-transparent"
-            : toast.type === "error"
-              ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
-              : "bg-muted border-border text-foreground"
-            }`}>
+          <div
+            className={`px-4 py-2.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-2 ${toast.type === "success"
+                ? "bg-foreground text-background border-transparent"
+                : toast.type === "error"
+                  ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+                  : "bg-muted border-border text-foreground"
+              }`}
+          >
             {toast.type === "success" && <Check size={16} className="text-emerald-500" />}
             {toast.message}
           </div>
@@ -428,7 +432,6 @@ export default function ChatRoom() {
       )}
 
       <div className="max-w-3xl w-full mx-auto h-full flex flex-col border-x border-border overflow-hidden">
-
         {/* HEADER BAR */}
         <div className="p-4 border-b border-border bg-card flex items-center gap-4 relative z-40 shrink-0">
           <button
@@ -447,7 +450,11 @@ export default function ChatRoom() {
             >
               <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-foreground font-bold overflow-hidden shrink-0 border border-border">
                 {otherUser?.avatar_url ? (
-                  <img src={otherUser.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  <img
+                    src={otherUser.avatar_url}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   otherName.charAt(0).toUpperCase()
                 )}
@@ -456,7 +463,9 @@ export default function ChatRoom() {
                 <h2 className="text-base font-bold text-foreground truncate group-hover:underline">
                   {otherName}
                 </h2>
-                <p className="text-[10px] text-muted-foreground font-semibold">View Profile →</p>
+                <p className="text-[11px] text-muted-foreground font-semibold truncate">
+                  {productContext ? `Re: ${productContext.title}` : "View Profile →"}
+                </p>
               </div>
             </Link>
           ) : (
@@ -481,43 +490,73 @@ export default function ChatRoom() {
 
             {/* SOLID OPAQUE DROPDOWN */}
             {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl overflow-hidden z-50 py-1">
+              <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl overflow-hidden z-50 py-1">
                 <button
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-                  onClick={() => { setShowMenu(false); executeToggleArchive(); }}
+                  className={`${menuItemClass} text-neutral-800 dark:text-neutral-200`}
+                  onClick={() => {
+                    setShowMenu(false);
+                    executeMarkUnread();
+                  }}
+                >
+                  <Mail size={15} /> Mark as unread
+                </button>
+                <button
+                  className={`${menuItemClass} text-neutral-800 dark:text-neutral-200`}
+                  onClick={() => {
+                    setShowMenu(false);
+                    executeToggleArchive();
+                  }}
                 >
                   {isArchived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
                   {isArchived ? "Unarchive" : "Archive"}
                 </button>
                 <button
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-                  onClick={() => { setActiveModal("report"); setShowMenu(false); }}
+                  className={`${menuItemClass} text-neutral-800 dark:text-neutral-200`}
+                  onClick={() => {
+                    setActiveModal("report");
+                    setShowMenu(false);
+                  }}
                 >
-                  <Flag size={15} className="text-rose-500" /> Report User
+                  <Flag size={15} className="text-rose-500" /> Report user
                 </button>
 
-                {amIBlocker ? (
+                {iBlocked ? (
                   <button
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
-                    onClick={() => { setActiveModal("unblock"); setShowMenu(false); }}
+                    className={`${menuItemClass} text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10`}
+                    onClick={() => {
+                      setActiveModal("unblock");
+                      setShowMenu(false);
+                    }}
                   >
-                    <Check size={15} /> Unblock User
+                    <Check size={15} /> Unblock user
                   </button>
                 ) : (
                   <button
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                    onClick={() => { setActiveModal("block"); setShowMenu(false); }}
+                    className={`${menuItemClass} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`}
+                    onClick={() => {
+                      setActiveModal("block");
+                      setShowMenu(false);
+                    }}
                   >
-                    <Ban size={15} /> Block User
+                    <Ban size={15} /> Block user
                   </button>
                 )}
+
+                <button
+                  className={`${menuItemClass} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`}
+                  onClick={() => {
+                    setActiveModal("delete");
+                    setShowMenu(false);
+                  }}
+                >
+                  <Trash2 size={15} /> Delete conversation
+                </button>
               </div>
             )}
           </div>
         </div>
 
-
-        {/* ITEM CONTEXT BANNER */}
+        {/* ITEM CONTEXT BANNER: only for chats that were started from a listing */}
         {productContext && (
           <Link
             href={`/products/${productContext.id}`}
@@ -536,7 +575,9 @@ export default function ChatRoom() {
                 ₱{Number(productContext.price).toLocaleString()}
               </p>
             </div>
-            <span className="text-[10px] font-semibold text-muted-foreground shrink-0">View listing →</span>
+            <span className="text-[10px] font-semibold text-muted-foreground shrink-0">
+              View listing →
+            </span>
           </Link>
         )}
 
@@ -567,8 +608,10 @@ export default function ChatRoom() {
             }
 
             return (
-              <div key={m.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"} space-y-1 group relative`}>
-
+              <div
+                key={m.id}
+                className={`flex flex-col ${isMine ? "items-end" : "items-start"} space-y-1 group relative`}
+              >
                 {/* ATTACHMENT IMAGE */}
                 {m.image_url && (
                   <div
@@ -596,11 +639,13 @@ export default function ChatRoom() {
                       handleCopyText(m.body, m.id);
                     }}
                     className={`p-3 rounded-2xl max-w-[80%] shadow-xs relative cursor-pointer select-text transition-all duration-150 active:scale-[0.99] ${isMine
-                      ? "bg-foreground text-background font-medium rounded-br-xs"
-                      : "bg-muted text-foreground font-medium rounded-bl-xs border border-border"
+                        ? "bg-foreground text-background font-medium rounded-br-xs"
+                        : "bg-muted text-foreground font-medium rounded-bl-xs border border-border"
                       }`}
                   >
-                    <p className="text-sm break-words whitespace-pre-wrap px-0.5 pointer-events-none">{m.body}</p>
+                    <p className="text-sm break-words whitespace-pre-wrap px-0.5 pointer-events-none">
+                      {m.body}
+                    </p>
 
                     <div
                       className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 transition-all opacity-0 group-hover:opacity-100 focus-within:opacity-100 hidden sm:flex ${isMine ? "-left-16" : "-right-16"
@@ -612,12 +657,19 @@ export default function ChatRoom() {
                         className="p-1.5 rounded-md bg-card shadow-xs border border-border text-muted-foreground hover:text-foreground cursor-pointer"
                         title="Copy text"
                       >
-                        {copiedId === m.id ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                        {copiedId === m.id ? (
+                          <Check size={13} className="text-emerald-500" />
+                        ) : (
+                          <Copy size={13} />
+                        )}
                       </button>
 
                       {isMine && (
                         <button
-                          onClick={() => { setSelectedMessageId(m.id); setActiveModal("unsend"); }}
+                          onClick={() => {
+                            setSelectedMessageId(m.id);
+                            setActiveModal("unsend");
+                          }}
                           className="p-1.5 rounded-md bg-card shadow-xs border border-border text-muted-foreground hover:text-rose-500 cursor-pointer"
                           title="Unsend message"
                         >
@@ -629,7 +681,10 @@ export default function ChatRoom() {
                 )}
 
                 {isTimestampOpen && (
-                  <span className={`text-[10px] text-muted-foreground px-1 pt-1 animate-in fade-in slide-in-from-top-1 duration-150 ${isMine ? "text-right" : "text-left"}`}>
+                  <span
+                    className={`text-[10px] text-muted-foreground px-1 pt-1 animate-in fade-in slide-in-from-top-1 duration-150 ${isMine ? "text-right" : "text-left"
+                      }`}
+                  >
                     Sent {formatDateTime(m.created_at)}
                   </span>
                 )}
@@ -643,16 +698,14 @@ export default function ChatRoom() {
         <div className="shrink-0 bg-card border-t border-border">
           {isBlocked ? (
             <div className="p-4 bg-muted/60 text-center text-xs font-semibold text-muted-foreground italic select-none">
-              {amIBlocker
+              {iBlocked
                 ? "You have blocked this user. Unblock them to resume conversation."
-                : "You cannot send or reply to messages in this conversation."
-              }
+                : "You cannot send or reply to messages in this conversation."}
             </div>
           ) : (
             <ChatInput roomId={activeRoomId} sellerId={sellerId} />
           )}
         </div>
-
       </div>
 
       {/* OVERLAY IMAGE VIEWPORT */}
@@ -667,147 +720,121 @@ export default function ChatRoom() {
           >
             <X size={20} />
           </button>
-          <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <img src={activeOverlayImage} alt="Expanded preview" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
+          <div
+            className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={activeOverlayImage}
+              alt="Expanded preview"
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+            />
           </div>
         </div>
       )}
 
-      {/* FULLY OPAQUE MODAL DIALOGS */}
-      {activeModal && (
+      {/* CONFIRM DIALOGS */}
+      {activeModal === "unsend" && (
+        <ConfirmModal
+          title="Unsend message?"
+          description="This will remove the message content for everyone in the chat room. This action cannot be undone."
+          confirmLabel="Unsend message"
+          onConfirm={executeUnsend}
+          onCancel={closeModal}
+        />
+      )}
+      {activeModal === "block" && (
+        <ConfirmModal
+          title={`Block ${otherName}?`}
+          description="Neither of you will be able to send messages in this conversation. You can unblock them anytime."
+          confirmLabel="Block user"
+          showIcon
+          onConfirm={executeBlockUser}
+          onCancel={closeModal}
+        />
+      )}
+      {activeModal === "unblock" && (
+        <ConfirmModal
+          title={`Unblock ${otherName}?`}
+          description="Messaging will work again between both accounts."
+          confirmLabel="Unblock"
+          tone="safe"
+          onConfirm={executeUnblockUser}
+          onCancel={closeModal}
+        />
+      )}
+      {activeModal === "delete" && (
+        <ConfirmModal
+          title="Delete conversation?"
+          description="This removes the conversation from your list. The other person will still have their copy. If they message you again, a new conversation will appear."
+          confirmLabel="Delete conversation"
+          onConfirm={executeDeleteConversation}
+          onCancel={closeModal}
+        />
+      )}
+
+      {/* REPORT MODAL */}
+      {activeModal === "report" && (
         <div
           className="fixed inset-0 bg-black/75 z-[9999] backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={() => setActiveModal(null)}
+          onClick={() => {
+            closeModal();
+            setReportReason("");
+          }}
         >
           <div
             className="relative z-10 w-full max-w-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
+            <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">
+              Report profile
+            </h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
+              Detail the issues regarding <strong>{otherName}</strong> for moderator review.
+            </p>
 
-            {/* Unsend Message Modal */}
-            {activeModal === "unsend" && (
-              <div>
-                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Unsend Message?</h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6">
-                  This will remove the message content for everyone in the chat room. This action cannot be undone.
-                </p>
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setActiveModal(null)}
-                    className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={executeUnsend}
-                    className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors cursor-pointer shadow-xs"
-                  >
-                    Unsend Message
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {["Spam/Scam", "Harassment", "Inappropriate", "Suspicious Listing"].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() =>
+                    setReportReason((prev) => (prev ? `${prev} - ${preset}` : preset))
+                  }
+                  className="px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[11px] font-semibold text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                >
+                  + {preset}
+                </button>
+              ))}
+            </div>
 
-            {/* Block User Modal */}
-            {activeModal === "block" && (
-              <div>
-                <div className="w-10 h-10 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mb-3 border border-rose-500/20">
-                  <AlertTriangle size={20} />
-                </div>
-                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Block {otherName}?</h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6">
-                  You will no longer be able to send or receive messages from this user in this room.
-                </p>
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setActiveModal(null)}
-                    className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={executeBlockUser}
-                    className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors cursor-pointer shadow-xs"
-                  >
-                    Block Profile
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Unblock User Modal */}
-            {activeModal === "unblock" && (
-              <div>
-                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Unblock {otherName}?</h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-6">
-                  Lifting this block will restore messaging abilities between both accounts.
-                </p>
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setActiveModal(null)}
-                    className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={executeUnblockUser}
-                    className="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors cursor-pointer shadow-xs"
-                  >
-                    Confirm Unblock
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Report User Modal */}
-            {activeModal === "report" && (
-              <div>
-                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-1">Report Profile</h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
-                  Detail the issues regarding <strong>{otherName}</strong> for moderator review.
-                </p>
-
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {["Spam/Scam", "Harassment", "Inappropriate", "Suspicious Listing"].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => setReportReason((prev) => (prev ? `${prev} - ${preset}` : preset))}
-                      className="px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-[11px] font-semibold text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
-                    >
-                      + {preset}
-                    </button>
-                  ))}
-                </div>
-
-                <textarea
-                  className="w-full min-h-[90px] bg-neutral-50 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-500 resize-none mb-4 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
-                  placeholder="Type your reason here..."
-                  value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
-                />
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => { setActiveModal(null); setReportReason(""); }}
-                    className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={executeReportUser}
-                    disabled={!reportReason.trim()}
-                    className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
-                  >
-                    Submit Report
-                  </button>
-                </div>
-              </div>
-            )}
-
+            <textarea
+              className="w-full min-h-[90px] bg-neutral-50 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-500 resize-none mb-4 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+              placeholder="Type your reason here..."
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  closeModal();
+                  setReportReason("");
+                }}
+                className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeReportUser}
+                disabled={!reportReason.trim()}
+                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+              >
+                Submit report
+              </button>
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

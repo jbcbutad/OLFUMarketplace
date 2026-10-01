@@ -17,13 +17,14 @@ import {
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import SearchBar from "@/components/SearchBar";
+import useUnreadCount from "@/lib/useUnreadCount";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = useUnreadCount();
 
   const router = useRouter();
 
@@ -42,53 +43,12 @@ export default function Navbar() {
         if (data?.avatar_url) {
           setAvatarUrl(data.avatar_url);
         }
-
-        // Fetch initial unread count
-        fetchUnreadCount(currentUser.id);
       }
 
       setLoading(false);
     };
 
     initAuth();
-
-    // 👉 Auto-clear badge instantly when messages are read in ChatRoom
-    const handleMessagesRead = () => {
-      setUnreadCount(0);
-    };
-    window.addEventListener("messages-read", handleMessagesRead);
-    const handleUnreadRefresh = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) fetchUnreadCount(currentUser.id);
-    };
-    window.addEventListener("unread-refresh", handleUnreadRefresh);
-
-    // Realtime listener for incoming messages
-    const channel = supabase
-      .channel("navbar-unread-count")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "direct_messages" },
-        async (payload) => {
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          if (!currentUser) return;
-
-          if (payload.new.sender_id !== currentUser.id) {
-            // Verify if user is part of the room
-            const { data: memberCheck } = await supabase
-              .from("direct_room_members")
-              .select("room_id")
-              .eq("room_id", payload.new.room_id)
-              .eq("user_id", currentUser.id)
-              .maybeSingle();
-
-            if (memberCheck) {
-              setUnreadCount((prev) => prev + 1);
-            }
-          }
-        }
-      )
-      .subscribe();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
@@ -99,7 +59,6 @@ export default function Navbar() {
       if (event === "SIGNED_OUT") {
         setUser(null);
         setAvatarUrl(null);
-        setUnreadCount(0);
         router.push("/login");
         router.refresh();
       }
@@ -107,34 +66,9 @@ export default function Navbar() {
 
     return () => {
       subscription.unsubscribe();
-      supabase.removeChannel(channel);
-      window.removeEventListener("messages-read", handleMessagesRead);
-      window.removeEventListener("unread-refresh", handleUnreadRefresh);
     };
   }, [router]);
 
-  async function fetchUnreadCount(userId) {
-    const { data: userRooms } = await supabase
-      .from("direct_room_members")
-      .select("room_id")
-      .eq("user_id", userId)
-      .is("archived_at", null);
-
-    if (!userRooms || userRooms.length === 0) {
-      setUnreadCount(0);
-      return;
-    }
-    const roomIds = userRooms.map((r) => r.room_id);
-
-    const { count } = await supabase
-      .from("direct_messages")
-      .select("*", { count: "exact", head: true })
-      .in("room_id", roomIds)
-      .neq("sender_id", userId)
-      .eq("is_read", false);
-
-    setUnreadCount(count || 0);
-  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

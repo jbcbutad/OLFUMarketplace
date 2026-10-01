@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import useUnreadCount from "@/lib/useUnreadCount";
 import {
   Home,
   Tag,
@@ -38,7 +39,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
   );
   const [role, setRole] = useState(null);
   const [theme, setTheme] = useState("dark");
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = useUnreadCount();
 
   const [internalIsOpen, setInternalIsOpen] = useState(true);
   const isOpen = propIsOpen !== undefined ? propIsOpen : internalIsOpen;
@@ -70,11 +71,9 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
   };
 
   useEffect(() => {
-    async function checkRoleAndMessages() {
+    async function loadRole() {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
           const { data: profile } = await supabase
@@ -83,93 +82,20 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
             .eq("id", session.user.id)
             .maybeSingle();
 
-          const userRole =
-            profile?.role || session.user.app_metadata?.role || "user";
-          setRole(userRole);
-
-          // Fetch unread count for sidebar
-          fetchUnreadCount(session.user.id);
+          setRole(profile?.role || session.user.app_metadata?.role || "user");
         }
       } catch (err) {
         console.error("Error loading user info:", err);
       }
     }
 
-    checkRoleAndMessages();
+    loadRole();
 
-    // 👉 Auto-clear badge instantly when messages are read in ChatRoom
-    const handleMessagesRead = () => {
-      setUnreadCount(0);
-    };
-    window.addEventListener("messages-read", handleMessagesRead);
-
-    const handleUnreadRefresh = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) fetchUnreadCount(session.user.id);
-    };
-    window.addEventListener("unread-refresh", handleUnreadRefresh);
-
-    // Realtime listener for sidebar badge updates
-    const channel = supabase
-      .channel("sidebar-unread-count")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "direct_messages" },
-        async (payload) => {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) return;
-
-          if (payload.new.sender_id !== session.user.id) {
-            const { data: memberCheck } = await supabase
-              .from("direct_room_members")
-              .select("room_id")
-              .eq("room_id", payload.new.room_id)
-              .eq("user_id", session.user.id)
-              .maybeSingle();
-
-            if (memberCheck) {
-              setUnreadCount((prev) => prev + 1);
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    const handleRoleUpdate = () => {
-      checkRoleAndMessages();
-    };
-
-    window.addEventListener("user-role-changed", handleRoleUpdate);
-    return () => {
-      window.removeEventListener("user-role-changed", handleRoleUpdate);
-      window.removeEventListener("messages-read", handleMessagesRead);
-      window.removeEventListener("unread-refresh", handleUnreadRefresh);
-      supabase.removeChannel(channel);
-    };
+    window.addEventListener("user-role-changed", loadRole);
+    return () => window.removeEventListener("user-role-changed", loadRole);
   }, []);
 
-  async function fetchUnreadCount(userId) {
-    const { data: userRooms } = await supabase
-      .from("direct_room_members")
-      .select("room_id")
-      .eq("user_id", userId)
-      .is("archived_at", null);
 
-    if (!userRooms || userRooms.length === 0) {
-      setUnreadCount(0);
-      return;
-    }
-    const roomIds = userRooms.map((r) => r.room_id);
-
-    const { count } = await supabase
-      .from("direct_messages")
-      .select("*", { count: "exact", head: true })
-      .in("room_id", roomIds)
-      .neq("sender_id", userId)
-      .eq("is_read", false);
-
-    setUnreadCount(count || 0);
-  }
 
   const allowedAdminRoles = ["super_admin", "superadmin", "admin", "moderator"];
   const isAdminUser = role && allowedAdminRoles.includes(role);
