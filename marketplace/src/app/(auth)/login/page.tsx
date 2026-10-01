@@ -23,6 +23,10 @@ function AuthPortalContent() {
       );
     } else if (errorParam === "AuthFailed") {
       setError("Authentication failed. Please try again.");
+    } else if (errorParam === "Banned") {
+      setError(
+        "This account has been suspended. If you think this is a mistake, please contact the OLFU Marketplace administrators."
+      );
     }
   }, [searchParams]);
 

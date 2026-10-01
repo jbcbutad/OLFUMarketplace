@@ -279,7 +279,6 @@ export default function Navbar() {
         ) : (
           <div className="flex items-center gap-3">
             <Link href="/login" className="px-4 py-2 font-medium border border-black/30 dark:border-white/30 hover:opacity-80 text-sm font-semibold rounded-lg">Log in</Link>
-            <Link href="/register" className="px-4 py-2 bg-foreground text-background hover:opacity-90 text-sm font-semibold rounded-lg">Register</Link>
           </div>
         )}
       </div>
