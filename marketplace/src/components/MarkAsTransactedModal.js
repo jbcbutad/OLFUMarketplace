@@ -12,15 +12,17 @@ export default function MarkAsTransactedModal({
     maxStock = 1,
     deductAmount = 1,
     targetStatus = "pending",
+    initialBuyerId = null,        // NEW: pre-select this student (e.g. the chat partner)
+    allowExternalClose = true,    // NEW: set false to hide "Mark as Unavailable (sold elsewhere)"
     onClose,
-    onSuccess,
+    onSuccess,                    // now called with { transactionId, buyerId } on the atomic path
 }) {
     const [buyers, setBuyers] = useState([]);
-    const [selectedBuyerId, setSelectedBuyerId] = useState("");
+    const [selectedBuyerId, setSelectedBuyerId] = useState(initialBuyerId || "");
     const [transactionType, setTransactionType] = useState(isRental ? "rental" : "sale");
     const [deductQty, setDeductQty] = useState(deductAmount);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isExternalClose, setIsExternalClose] = useState(false); // 👉 New state for "Sold Elsewhere"
+    const [isExternalClose, setIsExternalClose] = useState(false); // 👉 "Sold Elsewhere"
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
 
@@ -79,6 +81,27 @@ export default function MarkAsTransactedModal({
         setLoading(true);
 
         try {
+            // NEW: plain sale/rental to a chosen student -> one atomic database call.
+            // Merchandise, "Set as Pending" and "sold elsewhere" keep the original steps below.
+            const useAtomicSale =
+                !isMerchandise && !isExternalClose && targetStatus === "completed";
+
+            if (useAtomicSale) {
+                const { data: transactionId, error: rpcError } = await supabase.rpc(
+                    "mark_product_sold",
+                    {
+                        p_product: productId,
+                        p_buyer: selectedBuyerId,
+                        p_type: transactionType,
+                    }
+                );
+                if (rpcError) throw rpcError;
+
+                onSuccess?.({ transactionId, buyerId: selectedBuyerId });
+                onClose();
+                return;
+            }
+
             const isPendingTarget = targetStatus === "pending";
             const nextStatus = isPendingTarget ? "pending" : "completed";
 
@@ -128,7 +151,7 @@ export default function MarkAsTransactedModal({
                 shouldBeAvailable = false;
             }
 
-            // 4. Update product state atomically
+            // 4. Update product state
             const { error: prodError } = await supabase
                 .from("products")
                 .update({
@@ -150,10 +173,13 @@ export default function MarkAsTransactedModal({
         }
     };
 
-    const filteredBuyers = buyers.filter((b) => {
-        const name = `${b.full_name || ""} ${b.First_Name || ""} ${b.Last_Name || ""} ${b.email || ""}`.toLowerCase();
-        return name.includes(searchQuery.toLowerCase());
-    });
+    // Pre-selected buyer floats to the top so it's visible without scrolling.
+    const filteredBuyers = buyers
+        .filter((b) => {
+            const name = `${b.full_name || ""} ${b.First_Name || ""} ${b.Last_Name || ""} ${b.email || ""}`.toLowerCase();
+            return name.includes(searchQuery.toLowerCase());
+        })
+        .sort((a, b) => (b.id === initialBuyerId) - (a.id === initialBuyerId));
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -169,30 +195,34 @@ export default function MarkAsTransactedModal({
                     </h3>
                 </div>
                 <p className="text-xs text-neutral-400 mb-4">
-                    Select a student or mark this listing as closed.
+                    {allowExternalClose
+                        ? "Select a student or mark this listing as closed."
+                        : "Confirm who bought this item, or pick someone else."}
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* 👉 Sold Elsewhere / External Close Checkbox Option */}
-                    <div
-                        onClick={() => setIsExternalClose(!isExternalClose)}
-                        className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${isExternalClose
+                    {allowExternalClose && (
+                        <div
+                            onClick={() => setIsExternalClose(!isExternalClose)}
+                            className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${isExternalClose
                                 ? "bg-amber-500/10 border-amber-500/50 text-foreground"
                                 : "bg-neutral-800/50 border-neutral-800 text-neutral-400 hover:bg-neutral-800"
-                            }`}
-                    >
-                        <EyeOff size={18} className={isExternalClose ? "text-amber-500" : "text-neutral-500"} />
-                        <div className="flex-1">
-                            <p className="text-xs font-bold uppercase tracking-wide">Mark as Unavailable</p>
-                            <p className="text-[10px] text-neutral-400">Sold elsewhere / Close without tracking a buyer</p>
+                                }`}
+                        >
+                            <EyeOff size={18} className={isExternalClose ? "text-amber-500" : "text-neutral-500"} />
+                            <div className="flex-1">
+                                <p className="text-xs font-bold uppercase tracking-wide">Mark as Unavailable</p>
+                                <p className="text-[10px] text-neutral-400">Sold elsewhere / Close without tracking a buyer</p>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={isExternalClose}
+                                onChange={() => { }}
+                                className="accent-amber-500"
+                            />
                         </div>
-                        <input
-                            type="checkbox"
-                            checked={isExternalClose}
-                            onChange={() => { }}
-                            className="accent-amber-500"
-                        />
-                    </div>
+                    )}
 
                     {isMerchandise && (
                         <div>
@@ -243,8 +273,8 @@ export default function MarkAsTransactedModal({
                                                 key={b.id}
                                                 onClick={() => setSelectedBuyerId(b.id)}
                                                 className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-colors ${isSelected
-                                                        ? "bg-yellow-500/10 border-yellow-500/40 text-foreground"
-                                                        : "bg-neutral-800/50 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                                                    ? "bg-yellow-500/10 border-yellow-500/40 text-foreground"
+                                                    : "bg-neutral-800/50 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
                                                     }`}
                                             >
                                                 <span className="text-xs font-medium">{name}</span>

@@ -20,6 +20,11 @@ import {
 } from "lucide-react";
 import ChatInput from "./ChatInput";
 import ConfirmModal from "@/components/ConfirmModal";
+import ChatProductBanner from "./ChatProductBanner";
+
+
+const ROOM_PRODUCT_SELECT =
+  "product_id, products(id, title, price, image_urls, seller_id, status, is_available, expires_at, tags, stock_quantity, categories(name))";
 
 export default function ChatRoom() {
   const router = useRouter();
@@ -136,7 +141,7 @@ export default function ChatRoom() {
       // Chats started from a profile have no product_id, so no banner.
       const { data: roomRow } = await supabase
         .from("direct_rooms")
-        .select("product_id, products(id, title, price, image_urls)")
+        .select(ROOM_PRODUCT_SELECT)
         .eq("id", resolvedRoomId)
         .maybeSingle();
       setProductContext(roomRow?.products || null);
@@ -240,6 +245,16 @@ export default function ChatRoom() {
   const closeModal = () => {
     setActiveModal(null);
     setSelectedMessageId(null);
+  };
+
+  const refreshProductContext = async () => {
+    if (!activeRoomId) return;
+    const { data } = await supabase
+      .from("direct_rooms")
+      .select(ROOM_PRODUCT_SELECT)
+      .eq("id", activeRoomId)
+      .maybeSingle();
+    setProductContext(data?.products || null);
   };
 
   const executeUnsend = async () => {
@@ -419,10 +434,10 @@ export default function ChatRoom() {
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-200">
           <div
             className={`px-4 py-2.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-2 ${toast.type === "success"
-                ? "bg-foreground text-background border-transparent"
-                : toast.type === "error"
-                  ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
-                  : "bg-muted border-border text-foreground"
+              ? "bg-foreground text-background border-transparent"
+              : toast.type === "error"
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+                : "bg-muted border-border text-foreground"
               }`}
           >
             {toast.type === "success" && <Check size={16} className="text-emerald-500" />}
@@ -558,27 +573,14 @@ export default function ChatRoom() {
 
         {/* ITEM CONTEXT BANNER: only for chats that were started from a listing */}
         {productContext && (
-          <Link
-            href={`/products/${productContext.id}`}
-            className="p-3 border-b border-border bg-muted/40 hover:bg-muted/70 transition-colors flex items-center gap-3 shrink-0"
-          >
-            <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
-              <img
-                src={productContext.image_urls?.[0] || "/placeholder.png"}
-                alt={productContext.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-bold text-foreground truncate">{productContext.title}</h4>
-              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                ₱{Number(productContext.price).toLocaleString()}
-              </p>
-            </div>
-            <span className="text-[10px] font-semibold text-muted-foreground shrink-0">
-              View listing →
-            </span>
-          </Link>
+          <ChatProductBanner
+            product={productContext}
+            currentUserId={currentUser?.id}
+            otherUser={otherUser}
+            otherName={otherName}
+            onChanged={refreshProductContext}
+            showToast={showToast}
+          />
         )}
 
         {/* MESSAGE THREAD */}
@@ -639,8 +641,8 @@ export default function ChatRoom() {
                       handleCopyText(m.body, m.id);
                     }}
                     className={`p-3 rounded-2xl max-w-[80%] shadow-xs relative cursor-pointer select-text transition-all duration-150 active:scale-[0.99] ${isMine
-                        ? "bg-foreground text-background font-medium rounded-br-xs"
-                        : "bg-muted text-foreground font-medium rounded-bl-xs border border-border"
+                      ? "bg-foreground text-background font-medium rounded-br-xs"
+                      : "bg-muted text-foreground font-medium rounded-bl-xs border border-border"
                       }`}
                   >
                     <p className="text-sm break-words whitespace-pre-wrap px-0.5 pointer-events-none">
