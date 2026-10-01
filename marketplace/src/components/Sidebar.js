@@ -521,30 +521,32 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 {isOpen && <span className="truncate">Flagged Content</span>}
               </Link>
 
-              <Link
-                href="/admin/analytics"
-                title="Analytics"
-                className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/analytics")
-                  ? themeConfig.activeLink
-                  : themeConfig.inactiveLink
-                  } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-              >
-                <TrendingUp size={18} className={`${pathname.startsWith("/admin/analytics") ? "text-white" : themeConfig.icon} shrink-0`} />
-                {isOpen && <span className="truncate">Analytics</span>}
-              </Link>
-
               {!isMod && (
-                <Link
-                  href="/admin/users"
-                  title="Users Management"
-                  className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/users")
-                    ? themeConfig.activeLink
-                    : themeConfig.inactiveLink
-                    } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-                >
-                  <Users size={18} className={`${pathname.startsWith("/admin/users") ? "text-white" : themeConfig.icon} shrink-0`} />
-                  {isOpen && <span className="truncate">Users Management</span>}
-                </Link>
+                <>
+                  <Link
+                    href="/admin/analytics"
+                    title="Analytics"
+                    className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/analytics")
+                      ? themeConfig.activeLink
+                      : themeConfig.inactiveLink
+                      } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
+                  >
+                    <TrendingUp size={18} className={`${pathname.startsWith("/admin/analytics") ? "text-white" : themeConfig.icon} shrink-0`} />
+                    {isOpen && <span className="truncate">Analytics</span>}
+                  </Link>
+
+                  <Link
+                    href="/admin/users"
+                    title="Users Management"
+                    className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/users")
+                      ? themeConfig.activeLink
+                      : themeConfig.inactiveLink
+                      } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
+                  >
+                    <Users size={18} className={`${pathname.startsWith("/admin/users") ? "text-white" : themeConfig.icon} shrink-0`} />
+                    {isOpen && <span className="truncate">Users Management</span>}
+                  </Link>
+                </>
               )}
             </div>
           );

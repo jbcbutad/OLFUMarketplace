@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Check, Heart, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Check, Heart, ShieldCheck, Trash2 } from "lucide-react";
 import ProductReviews from "@/components/ProductReviews";
 import ProductActions from "@/components/ProductActions";
 import OwnerBanner from "@/components/OwnerBanner";
@@ -19,6 +19,11 @@ export default function ProductDetailPage({ params }) {
   // Favorite State
   const [isFavorited, setIsFavorited] = useState(false);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
+
+  const [viewerRole, setViewerRole] = useState(null);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [removeReason, setRemoveReason] = useState("");
+  const [removing, setRemoving] = useState(false);
 
   // Report Modal States
   const [showReportModal, setShowReportModal] = useState(false);
@@ -43,6 +48,11 @@ export default function ProductDetailPage({ params }) {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
 
+      if (user) {
+        const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+        setViewerRole(me?.role || null);
+      }
+
       // Fetch Product Details
       const { data: prodData, error } = await supabase
         .from("products")
@@ -56,6 +66,8 @@ export default function ProductDetailPage({ params }) {
           tags,
           is_available,
           status,
+          is_published,
+          removal_reason,
           updated_at,
           stock_quantity,
           listing_duration,
@@ -121,6 +133,23 @@ export default function ProductDetailPage({ params }) {
 
     resolveParamsAndFetch();
   }, [params]);
+
+  const isStaffViewer = ["super_admin", "superadmin", "admin", "moderator"].includes(viewerRole);
+
+  const handleRemoveListing = async () => {
+    const reason = removeReason.trim();
+    if (!reason) return;
+    setRemoving(true);
+    const { error } = await supabase.rpc("moderate_remove_listing", {
+      p_product_id: product.id, p_reason: reason, p_report_id: null,
+    });
+    setRemoving(false);
+    if (error) { showToast("Failed to remove listing: " + error.message, "error"); return; }
+    setProduct((prev) => ({ ...prev, status: "rejected", is_available: false, is_published: false, removal_reason: reason }));
+    setShowRemoveModal(false);
+    setRemoveReason("");
+    showToast("Listing removed and marked unavailable.", "success");
+  };
 
   const handleToggleFavorite = async () => {
     if (!currentUser) {
@@ -275,10 +304,26 @@ export default function ProductDetailPage({ params }) {
                 <Flag size={13} /> Report Listing
               </button>
             )}
+            {isStaffViewer && product.status !== "rejected" && (
+              <button
+                onClick={() => setShowRemoveModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-colors cursor-pointer"
+              >
+                <Trash2 size={13} /> Remove Listing
+              </button>
+            )}
+
           </div>
         </div>
 
         <OwnerBanner product={product} />
+
+        {product.removal_reason && (currentUser?.id === product.seller_id || isStaffViewer) && (
+          <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl mb-6 text-xs font-bold text-rose-600 dark:text-rose-400">
+            <span className="uppercase tracking-wider block font-black">Removed by moderation</span>
+            {product.removal_reason}
+          </div>
+        )}
 
         {currentUser?.id !== product.seller_id &&
           ["expired", "unavailable", "rejected"].includes(getListingState(product)) && (
@@ -437,6 +482,7 @@ export default function ProductDetailPage({ params }) {
               <AlertTriangle size={20} />
             </div>
             <h3 className="text-lg font-bold mb-1">Report Listing</h3>
+
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
               Let our moderation team know why this listing or item violates platform rules.
             </p>
@@ -480,6 +526,48 @@ export default function ProductDetailPage({ params }) {
           </div>
         </div>
       )}
+      {showRemoveModal && (
+        <div
+          className="fixed inset-0 bg-black/75 z-[9999] backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => { setShowRemoveModal(false); setRemoveReason(""); }}
+        >
+          <div
+            className="relative z-10 w-full max-w-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-10 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mb-3 border border-amber-500/20">
+              <Trash2 size={20} />
+            </div>
+            <h3 className="text-lg font-bold mb-1">Remove Listing</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
+              The listing is hidden and marked unavailable. The owner cannot restore it.
+            </p>
+            <textarea
+              className="w-full min-h-[90px] bg-neutral-50 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium focus:outline-none resize-none mb-4"
+              placeholder="Reason (required, shown to the owner)"
+              value={removeReason}
+              onChange={(e) => setRemoveReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowRemoveModal(false); setRemoveReason(""); }}
+                className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveListing}
+                disabled={!removeReason.trim() || removing}
+                className="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+              >
+                {removing && <Loader2 size={13} className="animate-spin" />}
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

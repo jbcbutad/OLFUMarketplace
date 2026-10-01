@@ -3,19 +3,22 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
-import { 
-  ShieldAlert, 
-  CheckCircle2, 
-  UserCheck, 
-  MessageSquare, 
-  XCircle, 
-  ExternalLink, 
-  Clock, 
+import { banUserAction } from './actions';
+import {
+  ShieldAlert,
+  CheckCircle2,
+  UserCheck,
+  MessageSquare,
+  XCircle,
+  ExternalLink,
+  Clock,
   AlertCircle,
   Loader2,
   RotateCcw,
   Package,
-  MessageCircle
+  MessageCircle,
+  Ban,
+  Trash2,
 } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -23,7 +26,7 @@ export default function ReportsPage() {
   const [productLinks, setProductLinks] = useState({});
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
-  
+
   const [reportCategory, setReportCategory] = useState('chat');
   const [filterStatus, setFilterStatus] = useState('pending');
 
@@ -42,6 +45,8 @@ export default function ReportsPage() {
           context_room_id,
           product_id,
           status,
+          action_taken,
+          resolution_note,
           created_at,
           reporter:reporter_id ( id, full_name, email, avatar_url, "First_Name", "Last_Name" ),
           reported:reported_id ( id, full_name, email, avatar_url, "First_Name", "Last_Name" ),
@@ -118,23 +123,45 @@ export default function ReportsPage() {
     };
   }, []);
 
-  const handleUpdateStatus = async (reportId, newStatus) => {
+  const [modal, setModal] = useState(null); // { type: 'ban' | 'remove', report }
+  const [modalReason, setModalReason] = useState('');
+
+  const runAction = async (reportId, fn, failLabel) => {
     setUpdatingId(reportId);
     try {
-      const { error } = await supabase
-        .from('reports')
-        .update({ status: newStatus })
-        .eq('id', reportId);
-
+      const { error } = await fn();
       if (error) throw error;
-
-      setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r))
-      );
+      await fetchReports();
     } catch (err) {
-      alert(`Failed to mark report as ${newStatus}: ` + (err.message || err));
+      alert(`${failLabel}: ` + (err.message || err));
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleResolve = (id) => runAction(id, () => supabase.rpc('moderate_resolve_report', { p_report_id: id }), 'Failed to resolve');
+  const handleDismiss = (id) => runAction(id, () => supabase.rpc('moderate_dismiss_report', { p_report_id: id }), 'Failed to dismiss');
+  const handleReopen = (id) => runAction(id, () => supabase.rpc('moderate_reopen_report', { p_report_id: id }), 'Failed to re-open');
+
+  const submitModal = async () => {
+    const reason = modalReason.trim();
+    if (!modal || !reason) return;
+    const { type, report } = modal;
+    setModal(null);
+    setModalReason('');
+
+    if (type === 'ban') {
+      await runAction(report.id, () => banUserAction(report.reported?.id, reason, report.id), 'Failed to ban user');
+    } else {
+      await runAction(
+        report.id,
+        () => supabase.rpc('moderate_remove_listing', {
+          p_product_id: report.product_id || report.product?.id,
+          p_reason: reason,
+          p_report_id: report.id,
+        }),
+        'Failed to remove listing'
+      );
     }
   };
 
@@ -193,11 +220,10 @@ export default function ReportsPage() {
       <div className="grid grid-cols-2 gap-3 p-1.5 bg-muted rounded-2xl border border-border">
         <button
           onClick={() => setReportCategory('chat')}
-          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            reportCategory === 'chat'
-              ? 'bg-card text-foreground shadow-sm border border-border'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${reportCategory === 'chat'
+            ? 'bg-card text-foreground shadow-sm border border-border'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
           <MessageCircle size={16} className="text-indigo-500" />
           Chat Reports
@@ -205,11 +231,10 @@ export default function ReportsPage() {
 
         <button
           onClick={() => setReportCategory('product')}
-          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            reportCategory === 'product'
-              ? 'bg-card text-foreground shadow-sm border border-border'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${reportCategory === 'product'
+            ? 'bg-card text-foreground shadow-sm border border-border'
+            : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
           <Package size={16} className="text-amber-500" />
           Product Listing Reports
@@ -220,31 +245,28 @@ export default function ReportsPage() {
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
         <button
           onClick={() => setFilterStatus('pending')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-            filterStatus === 'pending'
-              ? 'bg-foreground text-background border-foreground shadow-sm'
-              : 'bg-muted text-muted-foreground border-border hover:text-foreground'
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${filterStatus === 'pending'
+            ? 'bg-foreground text-background border-foreground shadow-sm'
+            : 'bg-muted text-muted-foreground border-border hover:text-foreground'
+            }`}
         >
           Pending ({reports.filter((r) => (r.status || 'pending') === 'pending' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
         </button>
         <button
           onClick={() => setFilterStatus('resolved')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-            filterStatus === 'resolved'
-              ? 'bg-foreground text-background border-foreground shadow-sm'
-              : 'bg-muted text-muted-foreground border-border hover:text-foreground'
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${filterStatus === 'resolved'
+            ? 'bg-foreground text-background border-foreground shadow-sm'
+            : 'bg-muted text-muted-foreground border-border hover:text-foreground'
+            }`}
         >
           Resolved Archive ({reports.filter((r) => r.status === 'resolved' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
         </button>
         <button
           onClick={() => setFilterStatus('dismissed')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-            filterStatus === 'dismissed'
-              ? 'bg-foreground text-background border-foreground shadow-sm'
-              : 'bg-muted text-muted-foreground border-border hover:text-foreground'
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${filterStatus === 'dismissed'
+            ? 'bg-foreground text-background border-foreground shadow-sm'
+            : 'bg-muted text-muted-foreground border-border hover:text-foreground'
+            }`}
         >
           Dismissed Archive ({reports.filter((r) => r.status === 'dismissed' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
         </button>
@@ -276,19 +298,17 @@ export default function ReportsPage() {
             return (
               <div
                 key={report.id}
-                className={`bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4 transition-all ${
-                  isUpdating ? 'opacity-50 pointer-events-none' : ''
-                }`}
+                className={`bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4 transition-all ${isUpdating ? 'opacity-50 pointer-events-none' : ''
+                  }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
                   <div className="flex items-center gap-3">
-                    <span className={`p-2 rounded-xl border ${
-                      status === 'resolved' 
-                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
-                        : status === 'dismissed'
-                          ? 'bg-neutral-500/10 text-neutral-500 border-neutral-500/20'
-                          : 'bg-rose-500/10 text-rose-600 border-rose-500/20'
-                    }`}>
+                    <span className={`p-2 rounded-xl border ${status === 'resolved'
+                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                      : status === 'dismissed'
+                        ? 'bg-neutral-500/10 text-neutral-500 border-neutral-500/20'
+                        : 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                      }`}>
                       <AlertCircle size={18} />
                     </span>
                     <div>
@@ -306,13 +326,12 @@ export default function ReportsPage() {
                   </div>
 
                   <span
-                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border w-fit ${
-                      status === 'resolved'
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                        : status === 'dismissed'
-                          ? 'bg-neutral-500/15 text-neutral-500 border-neutral-500/30'
-                          : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                    }`}
+                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border w-fit ${status === 'resolved'
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                      : status === 'dismissed'
+                        ? 'bg-neutral-500/15 text-neutral-500 border-neutral-500/30'
+                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                      }`}
                   >
                     {status}
                   </span>
@@ -327,6 +346,13 @@ export default function ReportsPage() {
                     "{report.reason}"
                   </p>
                 </div>
+
+                {status !== 'pending' && report.action_taken && (
+                  <p className="text-xs text-muted-foreground">
+                    Action: <strong>{report.action_taken.replaceAll('_', ' ')}</strong>
+                    {report.resolution_note ? ` — ${report.resolution_note}` : ''}
+                  </p>
+                )}
 
                 {/* ACTION BUTTONS & LINKS */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
@@ -350,32 +376,49 @@ export default function ReportsPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 ml-auto">
-                    {status !== 'resolved' && (
-                      <button
-                        onClick={() => handleUpdateStatus(report.id, 'resolved')}
-                        disabled={isUpdating}
-                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                      >
-                        <CheckCircle2 size={14} /> Mark Resolved
-                      </button>
-                    )}
-
-                    {status !== 'dismissed' && (
-                      <button
-                        onClick={() => handleUpdateStatus(report.id, 'dismissed')}
-                        disabled={isUpdating}
-                        className="px-3.5 py-2 rounded-xl bg-muted hover:bg-accent text-muted-foreground text-foreground text-xs font-bold transition-all border border-border cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                      >
-                        {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Dismiss
-                      </button>
+                  <div className="flex flex-wrap items-center gap-2 ml-auto">
+                    {status === 'pending' && (
+                      <>
+                        {report.reported?.id && (
+                          <button
+                            onClick={() => setModal({ type: 'ban', report })}
+                            disabled={isUpdating}
+                            className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <Ban size={14} /> Ban User
+                          </button>
+                        )}
+                        {(report.product_id || report.product?.id) && (
+                          <button
+                            onClick={() => setModal({ type: 'remove', report })}
+                            disabled={isUpdating}
+                            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <Trash2 size={14} /> Remove Listing
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleResolve(report.id)}
+                          disabled={isUpdating}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <CheckCircle2 size={14} /> Mark Resolved
+                        </button>
+                        <button
+                          onClick={() => handleDismiss(report.id)}
+                          disabled={isUpdating}
+                          className="px-3.5 py-2 rounded-xl bg-muted hover:bg-accent text-foreground text-xs font-bold transition-all border border-border cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <XCircle size={14} /> Dismiss
+                        </button>
+                      </>
                     )}
 
                     {status !== 'pending' && (
                       <button
-                        onClick={() => handleUpdateStatus(report.id, 'pending')}
+                        onClick={() => handleReopen(report.id)}
                         disabled={isUpdating}
-                        className="px-3.5 py-2 rounded-xl bg-muted hover:bg-accent text-muted-foreground text-foreground text-xs font-bold transition-all border border-border cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        className="px-3.5 py-2 rounded-xl bg-muted hover:bg-accent text-foreground text-xs font-bold transition-all border border-border cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                         title="Re-open into pending queue"
                       >
                         <RotateCcw size={14} /> Re-open
@@ -386,6 +429,40 @@ export default function ReportsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+      {modal && (
+        <div className="fixed inset-0 bg-black/75 z-[9999] backdrop-blur-md flex items-center justify-center p-4"
+          onClick={() => { setModal(null); setModalReason(''); }}>
+          <div className="w-full max-w-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-1">
+              {modal.type === 'ban'
+                ? `Ban ${resolveName(modal.report.reported)}?`
+                : `Remove "${modal.report.product?.title || 'this listing'}"?`}
+            </h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
+              {modal.type === 'ban'
+                ? 'They are signed out, cannot post or message, and their listings are hidden. An admin can reverse this.'
+                : 'The listing is hidden and marked unavailable. The owner cannot restore it.'}
+            </p>
+            <textarea
+              className="w-full min-h-[90px] bg-neutral-50 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium focus:outline-none resize-none mb-4"
+              placeholder="Reason (required, saved with the report)"
+              value={modalReason}
+              onChange={(e) => setModalReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setModal(null); setModalReason(''); }}
+                className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl cursor-pointer">
+                Cancel
+              </button>
+              <button onClick={submitModal} disabled={!modalReason.trim()}
+                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl disabled:opacity-40 cursor-pointer">
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
