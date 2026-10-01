@@ -1,22 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/auth/requireRole";
 import RoleSelect from "../RoleSelect";
+import UnbanButton from "./UnbanButton";
 import { Users, ShieldAlert, UserCheck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersAdminPage() {
+  // Admins and super admins only; everyone else is redirected
+  const { user, role: viewerRole } = await requireRole(["admin", "super_admin", "superadmin"]);
+  const canChangeRoles = viewerRole === "super_admin" || viewerRole === "superadmin";
+
   const supabase = await createClient();
+  const currentUserId = user.id;
 
-  // Fetch current session / logged-in user
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const currentUserId = session?.user?.id;
-
-  // Fetch all user profiles sorted by email, including avatar_url
   const { data: users, error } = await supabase
     .from("profiles")
-    .select('id, full_name, email, role, avatar_url, "First_Name", "Last_Name"')
+    .select('id, full_name, email, role, avatar_url, "First_Name", "Last_Name", is_banned, ban_reason')
     .order("email", { ascending: true });
 
   if (error) {
@@ -28,7 +28,7 @@ export default async function UsersAdminPage() {
     return u.full_name || (derived.length > 0 ? derived : null) || u.email || "Unnamed Account";
   };
 
-  // Sort users so the logged-in user appears first if they exist in the list
+  // Logged-in user first
   const sortedUsers = users ? [...users].sort((a, b) => {
     if (a.id === currentUserId) return -1;
     if (b.id === currentUserId) return 1;
@@ -36,7 +36,7 @@ export default async function UsersAdminPage() {
   }) : [];
 
   const loggedInProfile = sortedUsers.find((u: any) => u.id === currentUserId);
-  const loggedInDisplayName = loggedInProfile ? resolveDisplayName(loggedInProfile) : session?.user?.email || "Unknown User";
+  const loggedInDisplayName = loggedInProfile ? resolveDisplayName(loggedInProfile) : user.email || "Unknown User";
   const loggedInAvatarUrl = loggedInProfile?.avatar_url;
 
   return (
@@ -52,23 +52,21 @@ export default async function UsersAdminPage() {
           </p>
         </div>
 
-        {session?.user && (
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-card border border-border shadow-sm">
-            <div className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
-              {loggedInAvatarUrl ? (
-                <img src={loggedInAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                loggedInDisplayName.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div className="text-left overflow-hidden">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <UserCheck size={12} className="text-emerald-500" /> Logged In As
-              </p>
-              <p className="text-xs font-bold text-foreground truncate max-w-[200px]">{loggedInDisplayName}</p>
-            </div>
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-card border border-border shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
+            {loggedInAvatarUrl ? (
+              <img src={loggedInAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              loggedInDisplayName.charAt(0).toUpperCase()
+            )}
           </div>
-        )}
+          <div className="text-left overflow-hidden">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <UserCheck size={12} className="text-emerald-500" /> Logged In As
+            </p>
+            <p className="text-xs font-bold text-foreground truncate max-w-[200px]">{loggedInDisplayName}</p>
+          </div>
+        </div>
       </div>
 
       <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
@@ -88,9 +86,8 @@ export default async function UsersAdminPage() {
               return (
                 <div
                   key={u.id}
-                  className={`grid grid-cols-12 gap-4 px-6 py-4 items-center text-sm transition-colors ${
-                    isMe ? "bg-accent/40 hover:bg-accent/60 font-medium" : "hover:bg-muted/30"
-                  }`}
+                  className={`grid grid-cols-12 gap-4 px-6 py-4 items-center text-sm transition-colors ${isMe ? "bg-accent/40 hover:bg-accent/60 font-medium" : "hover:bg-muted/30"
+                    }`}
                 >
                   <div className="col-span-4 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
@@ -108,7 +105,15 @@ export default async function UsersAdminPage() {
                             You
                           </span>
                         )}
+                        {u.is_banned && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-rose-600 text-white rounded-md">
+                            Banned
+                          </span>
+                        )}
                       </span>
+                      {u.is_banned && u.ban_reason && (
+                        <p className="text-[11px] text-rose-500 truncate">Reason: {u.ban_reason}</p>
+                      )}
                     </div>
                   </div>
 
@@ -118,22 +123,26 @@ export default async function UsersAdminPage() {
 
                   <div className="col-span-2">
                     <span
-                      className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider ${
-                        u.role === "super_admin" || u.role === "superadmin"
-                          ? "bg-purple-950 text-purple-300 border border-purple-800"
-                          : u.role === "admin"
+                      className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider ${u.role === "super_admin" || u.role === "superadmin"
+                        ? "bg-purple-950 text-purple-300 border border-purple-800"
+                        : u.role === "admin"
                           ? "bg-blue-950 text-blue-300 border border-blue-800"
                           : u.role === "moderator"
-                          ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
-                          : "bg-muted text-muted-foreground border border-border"
-                      }`}
+                            ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
+                            : "bg-muted text-muted-foreground border border-border"
+                        }`}
                     >
                       {u.role || "user"}
                     </span>
                   </div>
 
-                  <div className="col-span-2 flex justify-end">
-                    <RoleSelect userId={u.id} currentRole={u.role || "user"} />
+                  <div className="col-span-2 flex flex-col items-end gap-1.5">
+                    {canChangeRoles ? (
+                      <RoleSelect userId={u.id} currentRole={u.role || "user"} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Super admin only</span>
+                    )}
+                    {u.is_banned && <UnbanButton userId={u.id} name={displayName} />}
                   </div>
                 </div>
               );

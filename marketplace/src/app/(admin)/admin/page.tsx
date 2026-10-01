@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { Users, ShoppingBag, Flag, ShieldAlert } from "lucide-react";
+import { requireRole } from "@/lib/auth/requireRole";
 
 export default async function AdminDashboardPage() {
+  await requireRole(["admin", "super_admin", "superadmin"]);
   const supabase = await createClient();
 
   // Aggregate Metrics in Parallel
