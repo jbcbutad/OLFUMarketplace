@@ -249,11 +249,10 @@ export default function ChatHub() {
     setExistingRooms(normalized);
 
     // 3) Latest message per room
-    const { data: lastMsgs, error: lastErr } = await supabase
-      .from("direct_messages")
-      .select("id, room_id, sender_id, body, created_at, is_unsent")
-      .in("room_id", roomIds)
-      .order("created_at", { ascending: false });
+    const { data: lastMsgs, error: lastErr } = await supabase.rpc(
+      "get_my_room_last_messages",
+      { p_room_ids: roomIds }
+    );
 
     if (lastErr) {
       console.error("Last messages error:", lastErr);
