@@ -1,41 +1,91 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { Archivo } from "next/font/google";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { Loader2, GraduationCap, ShieldCheck } from "lucide-react";
 import TermsModal from "@/components/TermsModal";
+import styles from "./login.module.css";
+
+const archivo = Archivo({
+  subsets: ["latin"],
+  weight: ["400", "600", "800", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-archivo",
+});
+
+const URL_ERRORS: Record<string, string> = {
+  UnauthorizedDomain:
+    "Access restricted. Only official @student.fatima.edu.ph and @fatima.edu.ph accounts are allowed.",
+  AuthFailed: "Authentication failed. Please try again.",
+  Banned:
+    "This account has been suspended. If you think this is a mistake, please contact the OLFU Marketplace administrators.",
+};
+
+const GREETINGS = [
+  "Hello po! Ollie here.",
+  "Ready to buy, sell, or rent?",
+  "Log in to see what your batchmates posted!",
+  "Shhh, I was hiding from the midterms.",
+];
+
+type Role = "stu" | "fac";
 
 function AuthPortalContent() {
+  const searchParams = useSearchParams();
+  const urlError = URL_ERRORS[searchParams.get("error") ?? ""] ?? "";
+
+  const [role, setRole] = useState<Role>("stu");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
 
-  const searchParams = useSearchParams();
+  // Ollie the mascot
+  const [say, setSay] = useState("");
+  const [bubbleOpen, setBubbleOpen] = useState(false);
+  const [up, setUp] = useState(false);
+  const [idle, setIdle] = useState(false);
+  const timerA = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const timerB = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  useEffect(() => {
-    const errorParam = searchParams.get("error");
+  const talk = useCallback((text: string, ms = 3500) => {
+    clearTimeout(timerA.current);
+    clearTimeout(timerB.current);
+    setSay(text);
+    setUp(true);
+    setBubbleOpen(true);
+    timerA.current = setTimeout(() => {
+      setBubbleOpen(false);
+      timerB.current = setTimeout(() => setUp(false), 250);
+    }, ms);
+  }, []);
 
-    if (errorParam === "UnauthorizedDomain") {
-      setError(
-        "Access restricted. Only official @student.fatima.edu.ph and @fatima.edu.ph accounts are allowed."
-      );
-    } else if (errorParam === "AuthFailed") {
-      setError("Authentication failed. Please try again.");
-    } else if (errorParam === "Banned") {
-      setError(
-        "This account has been suspended. If you think this is a mistake, please contact the OLFU Marketplace administrators."
-      );
-    }
-  }, [searchParams]);
+  useEffect(
+    () => () => {
+      clearTimeout(timerA.current);
+      clearTimeout(timerB.current);
+    },
+    []
+  );
 
-  const handleGoogleSignIn = async (e) => {
+  const pickRole = (r: Role) => {
+    setRole(r);
+    talk(
+      r === "stu"
+        ? "Student mode! Sign in with your student Google account."
+        : "Faculty mode! Sign in with your @fatima.edu.ph account."
+    );
+  };
+
+  const handleGoogleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     if (!acceptedTerms) {
       setError("You must agree to the Terms and Conditions.");
+      talk("Please tick the Terms and Conditions first!");
       return;
     }
 
@@ -45,9 +95,7 @@ function AuthPortalContent() {
       provider: "google",
       options: {
         redirectTo: window.location.origin + "/auth/callback",
-        queryParams: {
-          prompt: "select_account",
-        },
+        queryParams: { prompt: "select_account" },
       },
     });
 
@@ -57,69 +105,63 @@ function AuthPortalContent() {
     }
   };
 
+  const shownError = error || urlError;
+
   return (
-    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-white font-sans text-black">
-      <div className="flex flex-col items-center justify-center p-6 sm:p-12 md:p-16 w-full h-full bg-white">
-        <div className="w-full max-w-md space-y-6">
-          <div>
-            <h2 className="text-3xl font-black tracking-tight uppercase italic mb-2">
-              User Login
-            </h2>
+    <div className={`${styles.page} ${archivo.variable}`}>
+      <main className={styles.left}>
+        <div className={styles.box}>
+          <h1 className={styles.title}>User Login</h1>
+          <p className={styles.sub}>
+            Sign in securely using your official OLFU Google account.
+          </p>
 
-            <p className="text-neutral-500 text-xs">
-              Sign in securely using your official OLFU Google account.
-            </p>
+          <div className={styles.role}>
+            <button
+              type="button"
+              className={role === "stu" ? styles.on : ""}
+              aria-pressed={role === "stu"}
+              onClick={() => pickRole("stu")}
+            >
+              <span>🎓</span>
+              <div>
+                <b>Student</b>
+                <small>@student.fatima.edu.ph</small>
+              </div>
+            </button>
+            <button
+              type="button"
+              className={role === "fac" ? styles.on : ""}
+              aria-pressed={role === "fac"}
+              onClick={() => pickRole("fac")}
+            >
+              <span>🏛️</span>
+              <div>
+                <b>Faculty &amp; staff</b>
+                <small>@fatima.edu.ph</small>
+              </div>
+            </button>
           </div>
 
-          <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-3 text-xs">
-            <div className="flex items-start gap-3">
-              <span className="text-black font-bold text-base">🎓</span>
-
-              <div>
-                <p className="text-black font-semibold tracking-wide">
-                  STUDENTS SIGN IN WITH
-                </p>
-
-                <p className="text-neutral-500 font-mono text-[11px]">
-                  @student.fatima.edu.ph
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-neutral-200 pt-3 flex items-start gap-3">
-              <span className="text-black font-bold text-base">🏛️</span>
-
-              <div>
-                <p className="text-black font-semibold tracking-wide">
-                  FACULTY & STAFF USE
-                </p>
-
-                <p className="text-neutral-500 font-mono text-[11px]">
-                  @fatima.edu.ph
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <form onSubmit={handleGoogleSignIn} className="space-y-4">
-            <label className="flex items-start gap-3 text-xs text-neutral-600 cursor-pointer pt-2">
+          <form onSubmit={handleGoogleSignIn} noValidate>
+            <label className={styles.chk}>
               <input
                 type="checkbox"
                 checked={acceptedTerms}
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                required
-                className="mt-0.5 h-4 w-4 shrink-0 accent-black rounded"
+                onChange={(e) => {
+                  setAcceptedTerms(e.target.checked);
+                  if (e.target.checked) talk("Great! Now hit Sign in with Google.");
+                }}
               />
-
-              <span className="leading-5">
+              <span>
                 I agree to the OLFU Marketplace{" "}
                 <button
                   type="button"
+                  className={styles.link}
                   onClick={(event) => {
                     event.preventDefault();
                     setShowTerms(true);
                   }}
-                  className="font-bold text-black underline underline-offset-2 hover:text-neutral-600"
                 >
                   Terms and Conditions
                 </button>
@@ -127,85 +169,62 @@ function AuthPortalContent() {
               </span>
             </label>
 
-            {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-[11px] text-center font-bold uppercase tracking-wider">
-                {error}
+            {shownError && (
+              <div className={styles.err} role="alert">
+                {shownError}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-black hover:bg-neutral-900 text-white font-black uppercase tracking-widest text-[11px] py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer shadow-md"
-            >
+            <button type="submit" disabled={loading} className={styles.go}>
               {loading ? (
-                <Loader2
-                  className="animate-spin text-white"
-                  size={16}
-                />
+                <Loader2 className="animate-spin" size={18} />
               ) : (
                 <>
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
+                  <svg className={styles.g} viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.7 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6C12.3 13.5 17.7 9.5 24 9.5z" />
+                    <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z" />
+                    <path fill="#FBBC05" d="M10.4 28.8A14.5 14.5 0 0 1 9.5 24c0-1.7.3-3.3.9-4.8l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.8-6z" />
+                    <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.7-4-13.6-9.8l-7.8 6C6.5 42.6 14.6 48 24 48z" />
                   </svg>
-
                   Mag-sign in sa Google
                 </>
               )}
             </button>
           </form>
 
-          <TermsModal
-            isOpen={showTerms}
-            onClose={() => setShowTerms(false)}
-          />
+          <TermsModal isOpen={showTerms} onClose={() => setShowTerms(false)} />
 
-          <div className="flex items-center justify-center gap-1.5 text-neutral-400 text-[10px] font-bold uppercase tracking-wider pt-4">
-            <ShieldCheck size={12} />
-
-            <span>
-              Enforced campus Single Sign-On (OAuth 2.0)
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="hidden lg:flex flex-col justify-center items-center p-16 bg-[#09090b] text-white relative overflow-hidden border-l border-neutral-900 text-center">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-neutral-900 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2 opacity-20"></div>
-
-        <div className="max-w-sm flex flex-col items-center justify-center">
-          <GraduationCap
-            className="text-neutral-700 mb-4"
-            size={40}
-          />
-
-          <h1 className="text-4xl font-black uppercase tracking-tight italic leading-none mb-3">
-            OLFU Marketplace
-          </h1>
-
-          <p className="text-neutral-400 text-xs leading-relaxed">
-            Buy, sell, and rent items safely within the OLFU Campus.
+          <p className={styles.note}>
+            Enforced campus single sign-on (OAuth 2.0).
           </p>
         </div>
-      </div>
+      </main>
+
+      <aside
+        className={styles.right}
+        style={{ backgroundImage: "url(/campus.jpg)" }}
+        aria-label="OLFU campus with mascot Ollie"
+      >
+        <div className={styles.brand}>
+          <h2>OLFU Marketplace</h2>
+          <p>Buy, sell, and rent items safely within the OLFU Campus.</p>
+        </div>
+        <div className={styles.ground} />
+        <div
+          className={`${styles.walker} ${up ? styles.up : ""} ${idle ? styles.idle : ""}`}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget) setIdle(true);
+          }}
+          onClick={() => talk(GREETINGS[Math.floor(Math.random() * GREETINGS.length)])}
+        >
+          <div className={styles.pop}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className={styles.ollie} alt="Ollie, the OLFU mascot" src="/ollie.png" />
+            <div className={`${styles.say} ${bubbleOpen ? styles.show : ""}`}>{say}</div>
+          </div>
+        </div>
+        <div className={styles.hint}>Someone is peeking from the edge. Tap to say hi</div>
+      </aside>
     </div>
   );
 }
