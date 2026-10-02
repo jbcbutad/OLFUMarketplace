@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import { createClient as createSessionClient } from "@/lib/supabase/server";
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
@@ -8,6 +9,14 @@ const groq = new Groq({
 export async function POST(req) {
     try {
         const { comment } = await req.json();
+        const session = await createSessionClient();
+        const { data: { user } } = await session.auth.getUser();
+        if (!user) {
+            return NextResponse.json(
+                { success: false, label: null, score: null },
+                { status: 401 }
+            );
+        }
 
         if (!comment || !comment.trim()) {
             return NextResponse.json({

@@ -6,7 +6,7 @@ const isBannedError = (code?: string | null, text?: string | null) =>
     code === "user_banned" || (text || "").toLowerCase().includes("banned");
 
 export async function GET(request: Request) {
-    console.log("🔥 AUTH CALLBACK HIT:", request.url);
+    console.log("🔥 AUTH CALLBACK HIT v2:", request.url);
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get("code");
     const bannedRedirect = () =>
