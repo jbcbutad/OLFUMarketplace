@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "sonner";
+import BanGuard from "@/components/BanGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,8 +21,15 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground flex flex-col h-screen overflow-hidden`}
       >
         <Providers>
+          <BanGuard />
+
           {children}
-          <Toaster position="top-right" theme="dark" richColors />
+
+          <Toaster
+            position="top-right"
+            theme="dark"
+            richColors
+          />
         </Providers>
       </body>
     </html>

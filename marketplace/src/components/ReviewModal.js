@@ -119,52 +119,74 @@ export default function ReviewModal({
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative text-foreground">
-                <button onClick={onClose} className="absolute top-4 right-4 text-neutral-400 hover:text-foreground">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="review-modal-title"
+                className="bg-card text-card-foreground border border-border rounded-3xl p-6 w-full max-w-md shadow-2xl relative"
+            >
+                <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Close"
+                    className="absolute top-4 right-4 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                >
                     <X size={20} />
                 </button>
 
-                <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
+                <h3
+                    id="review-modal-title"
+                    className="text-xl font-bold mb-1 flex items-center gap-2 text-foreground pr-8"
+                >
                     {isEditing && <Pencil size={18} className="text-yellow-500" />}
                     {isEditing ? "Edit Review for" : "Review"} {roleReviewed === "buyer" ? "Buyer" : "Seller"}
                 </h3>
-                <p className="text-xs text-neutral-400 mb-6">
-                    Share your experience transacting with <span className="text-yellow-500 font-semibold">{revieweeName}</span>.
+                <p className="text-xs text-muted-foreground mb-6">
+                    Share your experience transacting with{" "}
+                    <span className="text-yellow-600 dark:text-yellow-500 font-semibold">{revieweeName}</span>.
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="flex flex-col items-center justify-center gap-2 py-2 bg-neutral-800/50 rounded-2xl border border-neutral-800">
-                        <div className="flex gap-1">
+                    <div className="flex flex-col items-center justify-center gap-2 py-3 bg-muted/60 rounded-2xl border border-border">
+                        <div className="flex gap-1" role="radiogroup" aria-label="Rating">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
                                     key={star}
                                     type="button"
+                                    role="radio"
+                                    aria-checked={rating === star}
+                                    aria-label={`${star} star${star > 1 ? "s" : ""}`}
                                     onClick={() => setRating(star)}
                                     onMouseEnter={() => setHoverRating(star)}
                                     onMouseLeave={() => setHoverRating(0)}
-                                    className="p-1 transition-transform hover:scale-110"
+                                    className="p-1 rounded-md transition-transform hover:scale-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-yellow-500"
                                 >
                                     <Star
                                         size={28}
-                                        className={`${(hoverRating || rating) >= star
-                                            ? "fill-yellow-500 text-yellow-500"
-                                            : "text-neutral-600"
-                                            }`}
+                                        className={
+                                            (hoverRating || rating) >= star
+                                                ? "fill-yellow-500 text-yellow-500"
+                                                : "text-muted-foreground/40"
+                                        }
                                     />
                                 </button>
                             ))}
                         </div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                             {rating} Out of 5 Stars
                         </span>
                     </div>
 
                     <div>
-                        <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-2">
+                        <label
+                            htmlFor="review-comment"
+                            className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2"
+                        >
                             Comment
                         </label>
                         <textarea
-                            rows="3"
+                            id="review-comment"
+                            rows={3}
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             placeholder={
@@ -172,14 +194,14 @@ export default function ReviewModal({
                                     ? "Was the buyer punctual, responsive, and easy to deal with?"
                                     : "How was the item quality and communication from the seller?"
                             }
-                            className="w-full bg-neutral-800 border border-neutral-700 rounded-xl p-3 text-xs text-foreground outline-none focus:border-yellow-500 resize-none"
+                            className="w-full bg-background border border-border rounded-xl p-3 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-yellow-500 resize-none transition-colors"
                         />
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                        className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
                     >
                         {loading ? <Loader2 className="animate-spin" size={18} /> : isEditing ? "Update Review" : "Submit Review"}
                     </button>

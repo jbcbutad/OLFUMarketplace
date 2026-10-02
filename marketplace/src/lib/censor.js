@@ -4,7 +4,7 @@ const filipinoBadWords = [
     "tangina", "taena", "gago", "gaga", "bobo", "tarantado",
     "kupal", "ulol", "punyeta", "bwisit", "leche", "pucha",
     "puchangina", "potangina", "putangina", "pokpok", "kantot",
-    "bayag", "pepe", "titi", "Putaena"
+    "bayag", "pepe", "titi", "Putaena", "burat", "tite",
 ];
 
 let filter;

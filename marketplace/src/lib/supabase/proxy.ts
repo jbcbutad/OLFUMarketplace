@@ -85,15 +85,24 @@ export async function proxy(request: NextRequest) {
   // GET USER ROLE
   // ---------------------------------------------------------
   let role = "buyer";
+  let isBanned = false;
 
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, is_banned")
       .eq("id", user.id)
       .maybeSingle();
 
     role = profile?.role || "buyer";
+    isBanned = !!profile?.is_banned;
+  }
+
+  if (isBanned) {
+    await supabase.auth.signOut(); // clears the session cookies via setAll
+    const redirect = NextResponse.redirect(new URL("/login?error=Banned", request.url));
+    supabaseResponse.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+    return redirect;
   }
 
   const ADMIN_ROLES = [
