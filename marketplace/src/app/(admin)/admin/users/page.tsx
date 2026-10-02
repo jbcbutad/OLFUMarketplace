@@ -30,7 +30,7 @@ export default async function UsersAdminPage({
 
   let query = supabase
     .from("profiles")
-    .select('id, full_name, email, role, avatar_url, "First_Name", "Last_Name", is_banned, ban_reason', { count: "exact" })
+    .select('id, full_name, email, role, avatar_url, "First_Name", "Last_Name", is_banned', { count: "exact" })
     .order("email", { ascending: true })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
@@ -44,6 +44,18 @@ export default async function UsersAdminPage({
 
   const { data: users, count, error } = await query;
   if (error) console.error("Error fetching users list:", error);
+  // Ban reasons come from a staff-only function, not a direct column read
+  const bannedIds = (users ?? []).filter((u: any) => u.is_banned).map((u: any) => u.id);
+  const banReasons: Record<string, string> = {};
+  if (bannedIds.length > 0) {
+    const { data: reasonRows, error: reasonErr } = await supabase.rpc("admin_get_ban_reasons", {
+      p_ids: bannedIds,
+    });
+    if (reasonErr) console.error("Error fetching ban reasons:", reasonErr);
+    for (const r of (reasonRows ?? []) as { id: string; ban_reason: string | null }[]) {
+      if (r.ban_reason) banReasons[r.id] = r.ban_reason;
+    }
+  }
 
   const totalPages = Math.max(1, Math.ceil((count || 0) / PAGE_SIZE));
 
@@ -180,8 +192,8 @@ export default async function UsersAdminPage({
                           </span>
                         )}
                       </span>
-                      {u.is_banned && u.ban_reason && (
-                        <p className="text-[11px] text-rose-500 truncate">Reason: {u.ban_reason}</p>
+                      {u.is_banned && banReasons[u.id] && (
+                        <p className="text-[11px] text-rose-500 truncate">Reason: {banReasons[u.id]}</p>
                       )}
                     </div>
                   </div>

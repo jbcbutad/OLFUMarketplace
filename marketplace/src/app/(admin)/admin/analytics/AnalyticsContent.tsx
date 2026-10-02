@@ -39,7 +39,7 @@ export default function AdminAnalyticsDashboard() {
                 // 1. Total users
                 const { count: userCount } = await supabase
                     .from('profiles')
-                    .select('*', { count: 'exact', head: true });
+                    .select('id', { count: 'exact', head: true })
 
                 // 2. Active products
                 const { count: activeCount } = await supabase

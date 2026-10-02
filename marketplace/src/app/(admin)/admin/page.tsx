@@ -8,7 +8,7 @@ export default async function AdminDashboardPage() {
 
   // Aggregate Metrics in Parallel
   const [usersCount, productsCount, reportsCount] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("products").select("*", { count: "exact", head: true }),
     supabase.from("reports").select("*", { count: "exact", head: true }),
   ]);
