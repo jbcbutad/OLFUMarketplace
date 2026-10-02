@@ -130,8 +130,11 @@ export default function ChatHub() {
   }, [currentUser, presenceChannelName]);
 
   async function loadRooms({ silent = false } = {}) {
-    const { data: authData, error: authErr } = await supabase.auth.getUser();
-    const user = authData?.user;
+    const {
+      data: { session },
+      error: authErr,
+    } = await supabase.auth.getSession();
+    const user = session?.user;
 
     // A logged-out visitor makes getUser() return an "Auth session missing" error,
     // so check for "no user" first and send them to login instead of spinning forever.
@@ -528,10 +531,10 @@ export default function ChatHub() {
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-200">
           <div
             className={`px-4 py-2.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-2 ${toast.type === "success"
-                ? "bg-foreground text-background border-transparent"
-                : toast.type === "error"
-                  ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
-                  : "bg-muted border-border text-foreground"
+              ? "bg-foreground text-background border-transparent"
+              : toast.type === "error"
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
+                : "bg-muted border-border text-foreground"
               }`}
           >
             {toast.type === "success" && <Check size={16} className="text-emerald-500" />}
@@ -602,8 +605,8 @@ export default function ChatHub() {
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 py-3 text-sm font-semibold transition-colors cursor-pointer flex items-center justify-center gap-2 border-b-2 ${activeTab === tab.key
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-neutral-500 dark:text-neutral-400 hover:text-foreground"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-neutral-500 dark:text-neutral-400 hover:text-foreground"
                   }`}
               >
                 {tab.label}
@@ -666,8 +669,8 @@ export default function ChatHub() {
                   <div
                     key={room.id}
                     className={`relative border-b border-neutral-200 dark:border-neutral-800 transition-colors ${hasUnread
-                        ? "bg-neutral-100/80 dark:bg-neutral-800/40 font-semibold"
-                        : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+                      ? "bg-neutral-100/80 dark:bg-neutral-800/40 font-semibold"
+                      : "hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
                       }`}
                   >
                     <button
@@ -715,8 +718,8 @@ export default function ChatHub() {
 
                         <p
                           className={`text-xs truncate mt-0.5 ${hasUnread
-                              ? "text-foreground font-medium"
-                              : "text-neutral-500 dark:text-neutral-400"
+                            ? "text-foreground font-medium"
+                            : "text-neutral-500 dark:text-neutral-400"
                             }`}
                         >
                           {rel?.iBlocked ? (
