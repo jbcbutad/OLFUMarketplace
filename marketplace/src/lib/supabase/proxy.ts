@@ -87,7 +87,7 @@ export async function proxy(request: NextRequest) {
   let role = "buyer";
   let isBanned = false;
 
-  if (user) {
+  if (user && (isProtectedAdmin || isProtectedDashboard)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, is_banned")

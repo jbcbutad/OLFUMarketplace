@@ -3,14 +3,16 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 
-// Fallback check interval. Realtime (below) is instant when it's enabled for `profiles`;
-// this covers the case where it isn't, or the websocket dropped.
-const POLL_MS = 30_000;
+const POLL_MS = 60_000; // background check while the tab is visible
+const MIN_GAP_MS = 10_000; // never check more often than this (tab/focus flapping)
 
 /**
  * Mount once in the root layout. If the signed-in user's profile becomes banned,
  * it clears their session and hard-redirects to /login?error=Banned, so they
  * don't need to refresh or log out themselves.
+ *
+ * Deliberately NO Realtime subscription: postgres_changes adds a constant load on
+ * the database. One tiny profile lookup per minute (visible tabs only) is cheaper.
  *
  * This is a UX layer. The real enforcement (RLS / triggers / middleware) must
  * still block a banned user's requests on the server.
@@ -23,8 +25,8 @@ export default function BanGuard() {
         let cancelled = false;
         let kicked = false;
         let userId: string | null = null;
+        let lastCheck = 0;
         let timer: ReturnType<typeof setInterval> | null = null;
-        let channel: ReturnType<typeof supabase.channel> | null = null;
 
         const kick = async () => {
             if (kicked) return;
@@ -41,12 +43,20 @@ export default function BanGuard() {
 
         const check = async () => {
             if (cancelled || kicked || !userId) return;
-            const { data } = await supabase
-                .from("profiles")
-                .select("is_banned")
-                .eq("id", userId)
-                .maybeSingle();
-            if (data?.is_banned) kick();
+            const now = Date.now();
+            if (now - lastCheck < MIN_GAP_MS) return;
+            lastCheck = now;
+
+            try {
+                const { data } = await supabase
+                    .from("profiles")
+                    .select("is_banned")
+                    .eq("id", userId)
+                    .maybeSingle();
+                if (data?.is_banned) kick();
+            } catch (err) {
+                console.error("[BanGuard] check failed:", err);
+            }
         };
 
         const onVisible = () => {
@@ -62,26 +72,11 @@ export default function BanGuard() {
             userId = session.user.id;
 
             check(); // catches a ban that happened while the tab was closed
-            timer = setInterval(check, POLL_MS);
+            timer = setInterval(() => {
+                if (document.visibilityState === "visible") check();
+            }, POLL_MS);
             document.addEventListener("visibilitychange", onVisible);
             window.addEventListener("focus", check);
-
-            // Instant path: needs `profiles` in the supabase_realtime publication.
-            channel = supabase
-                .channel(`ban-watch-${userId}`)
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "UPDATE",
-                        schema: "public",
-                        table: "profiles",
-                        filter: `id=eq.${userId}`,
-                    },
-                    (payload) => {
-                        if ((payload.new as { is_banned?: boolean } | null)?.is_banned) kick();
-                    }
-                )
-                .subscribe();
         })();
 
         return () => {
@@ -89,7 +84,6 @@ export default function BanGuard() {
             if (timer) clearInterval(timer);
             document.removeEventListener("visibilitychange", onVisible);
             window.removeEventListener("focus", check);
-            if (channel) supabase.removeChannel(channel);
         };
     }, []);
 
