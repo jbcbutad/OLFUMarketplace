@@ -12,17 +12,17 @@ export default function MarkAsTransactedModal({
     maxStock = 1,
     deductAmount = 1,
     targetStatus = "pending",
-    initialBuyerId = null,        // NEW: pre-select this student (e.g. the chat partner)
-    allowExternalClose = true,    // NEW: set false to hide "Mark as Unavailable (sold elsewhere)"
+    initialBuyerId = null,        // pre-select this student (e.g. the chat partner)
+    allowExternalClose = true,    // set false to hide "Mark as Unavailable (sold elsewhere)"
     onClose,
-    onSuccess,                    // now called with { transactionId, buyerId } on the atomic path
+    onSuccess,                    // called with { transactionId, buyerId } on the atomic path
 }) {
     const [buyers, setBuyers] = useState([]);
     const [selectedBuyerId, setSelectedBuyerId] = useState(initialBuyerId || "");
     const [transactionType, setTransactionType] = useState(isRental ? "rental" : "sale");
     const [deductQty, setDeductQty] = useState(deductAmount);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isExternalClose, setIsExternalClose] = useState(false); // 👉 "Sold Elsewhere"
+    const [isExternalClose, setIsExternalClose] = useState(false); // "Sold Elsewhere"
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
 
@@ -81,7 +81,7 @@ export default function MarkAsTransactedModal({
         setLoading(true);
 
         try {
-            // NEW: plain sale/rental to a chosen student -> one atomic database call.
+            // Plain sale/rental to a chosen student -> one atomic database call.
             // Merchandise, "Set as Pending" and "sold elsewhere" keep the original steps below.
             const useAtomicSale =
                 !isMerchandise && !isExternalClose && targetStatus === "completed";
@@ -181,39 +181,52 @@ export default function MarkAsTransactedModal({
         })
         .sort((a, b) => (b.id === initialBuyerId) - (a.id === initialBuyerId));
 
+    const inputCls =
+        "w-full bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-yellow-500 transition-colors";
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative text-foreground">
-                <button onClick={onClose} className="absolute top-4 right-4 text-neutral-400 hover:text-foreground">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="mark-transacted-title"
+                className="bg-card text-card-foreground border border-border rounded-3xl p-6 w-full max-w-md shadow-2xl relative"
+            >
+                <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Close"
+                    className="absolute top-4 right-4 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                >
                     <X size={20} />
                 </button>
 
-                <div className="flex items-center gap-2 mb-2 text-yellow-500">
+                <div className="flex items-center gap-2 mb-2 text-yellow-500 pr-8">
                     <UserCheck size={22} />
-                    <h3 className="text-xl font-bold text-foreground">
+                    <h3 id="mark-transacted-title" className="text-xl font-bold text-foreground">
                         {targetStatus === "pending" ? "Set as Pending" : "Record Sale & Close"}
                     </h3>
                 </div>
-                <p className="text-xs text-neutral-400 mb-4">
+                <p className="text-xs text-muted-foreground mb-4">
                     {allowExternalClose
                         ? "Select a student or mark this listing as closed."
                         : "Confirm who bought this item, or pick someone else."}
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* 👉 Sold Elsewhere / External Close Checkbox Option */}
+                    {/* Sold Elsewhere / External Close Checkbox Option */}
                     {allowExternalClose && (
                         <div
                             onClick={() => setIsExternalClose(!isExternalClose)}
                             className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center gap-3 ${isExternalClose
                                 ? "bg-amber-500/10 border-amber-500/50 text-foreground"
-                                : "bg-neutral-800/50 border-neutral-800 text-neutral-400 hover:bg-neutral-800"
+                                : "bg-muted/60 border-border text-muted-foreground hover:bg-muted"
                                 }`}
                         >
-                            <EyeOff size={18} className={isExternalClose ? "text-amber-500" : "text-neutral-500"} />
+                            <EyeOff size={18} className={isExternalClose ? "text-amber-500" : "text-muted-foreground"} />
                             <div className="flex-1">
-                                <p className="text-xs font-bold uppercase tracking-wide">Mark as Unavailable</p>
-                                <p className="text-[10px] text-neutral-400">Sold elsewhere / Close without tracking a buyer</p>
+                                <p className="text-xs font-bold uppercase tracking-wide text-foreground">Mark as Unavailable</p>
+                                <p className="text-[10px] text-muted-foreground">Sold elsewhere / Close without tracking a buyer</p>
                             </div>
                             <input
                                 type="checkbox"
@@ -226,42 +239,46 @@ export default function MarkAsTransactedModal({
 
                     {isMerchandise && (
                         <div>
-                            <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-2">
+                            <label
+                                htmlFor="deduct-qty"
+                                className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2"
+                            >
                                 Quantity to Deduct (Max: {maxStock})
                             </label>
                             <input
+                                id="deduct-qty"
                                 type="number"
                                 min="1"
                                 max={maxStock}
                                 value={deductQty}
                                 onChange={(e) => setDeductQty(e.target.value)}
-                                className="w-full bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-2 text-xs font-bold text-foreground outline-none focus:border-yellow-500"
+                                className={`${inputCls} font-bold`}
                             />
                         </div>
                     )}
 
                     {!isExternalClose && (
                         <div>
-                            <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block mb-2">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-2">
                                 Select Student
                             </label>
                             <div className="relative mb-2">
-                                <Search size={14} className="absolute left-3 top-3 text-neutral-500" />
+                                <Search size={14} className="absolute left-3 top-3 text-muted-foreground" />
                                 <input
                                     type="text"
                                     placeholder="Search by name or email..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-xl pl-9 pr-3 py-2 text-xs text-foreground outline-none focus:border-yellow-500"
+                                    className={`${inputCls} pl-9 pr-3`}
                                 />
                             </div>
 
                             {fetching ? (
-                                <div className="py-4 flex justify-center text-neutral-500">
+                                <div className="py-4 flex justify-center text-muted-foreground">
                                     <Loader2 className="animate-spin" size={20} />
                                 </div>
                             ) : filteredBuyers.length === 0 ? (
-                                <p className="text-xs text-neutral-500 text-center py-2">No recent contacts found.</p>
+                                <p className="text-xs text-muted-foreground text-center py-2">No recent contacts found.</p>
                             ) : (
                                 <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
                                     {filteredBuyers.map((b) => {
@@ -273,8 +290,8 @@ export default function MarkAsTransactedModal({
                                                 key={b.id}
                                                 onClick={() => setSelectedBuyerId(b.id)}
                                                 className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-colors ${isSelected
-                                                    ? "bg-yellow-500/10 border-yellow-500/40 text-foreground"
-                                                    : "bg-neutral-800/50 border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                                                    ? "bg-yellow-500/10 border-yellow-500/50 text-foreground"
+                                                    : "bg-muted/60 border-border text-foreground hover:bg-muted"
                                                     }`}
                                             >
                                                 <span className="text-xs font-medium">{name}</span>
@@ -296,7 +313,7 @@ export default function MarkAsTransactedModal({
                     <button
                         type="submit"
                         disabled={loading || (!isExternalClose && !selectedBuyerId)}
-                        className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-2"
+                        className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-2 cursor-pointer"
                     >
                         {loading ? <Loader2 className="animate-spin" size={18} /> : "Confirm"}
                     </button>
