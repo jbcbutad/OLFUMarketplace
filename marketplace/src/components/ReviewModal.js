@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Star, Loader2, X, Pencil } from "lucide-react";
-import { sanitizeText } from "@/lib/censor";
+import { sanitizeText, maskTerms } from "@/lib/censor";
 
 export default function ReviewModal({
     transactionId,
@@ -37,7 +37,7 @@ export default function ReviewModal({
         setLoading(true);
 
         // Sanitize profanity (English & Tagalog) before running sentiment or saving to database
-        const cleanComment = sanitizeText(comment);
+        let cleanComment = sanitizeText(comment);
 
         try {
             let sentiment_label = null;
@@ -55,6 +55,9 @@ export default function ReviewModal({
                     if (aiData.label) {
                         sentiment_label = aiData.label;
                         sentiment_score = aiData.score;
+                    }
+                    if (Array.isArray(aiData.profane_terms) && aiData.profane_terms.length > 0) {
+                        cleanComment = maskTerms(cleanComment, aiData.profane_terms);
                     }
                 } catch (err) {
                     console.error("AI analysis skipped:", err);

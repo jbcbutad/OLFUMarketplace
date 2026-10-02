@@ -104,7 +104,7 @@ export default function MerchandisePage() {
             {/* 👉 CREATION BUTTON VISIBLE ONLY TO VERIFIED ORG SELLERS */}
             {isVerifiedOrg && (
               <Link
-                href="/listings/create?merch=true"
+                href="/create-listing?merch=true"
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95"
               >
                 <Plus size={16} /> Create Merch Listing
