@@ -48,6 +48,15 @@ For weapons/firearms:
 - A toy, game image, educational illustration, or clearly non-functional replica may be considered based on context.
 - If you cannot confidently determine whether something is prohibited, use "flagged" rather than guessing.
 
+ITEM CHECK (applies to the whole listing):
+"approved" requires positive evidence that the images show a real item (or a legitimate service/rental) that a student could hand over, and that it matches the title and description. Do not approve just because nothing harmful is visible.
+Use "flagged" with category "not_an_item" when:
+- the image is mainly a person, scenery, or a screenshot rather than the item for sale
+- the image is a drawing, illustration, digital art, or generic picture rather than a photo of the actual item
+- the title or description describes something different from what the images show
+Use "flagged" with category "live_animal" when the image shows a live animal or pet, or the text offers one.
+Never use "rejected" for these; they need a human decision.
+
 Return ONLY valid JSON in this exact structure:
 
 {
