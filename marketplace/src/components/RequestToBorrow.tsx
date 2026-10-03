@@ -17,6 +17,7 @@ export default function RequestToBorrow({
   const [loading, setLoading] = useState(false);
   const [checkingOwner, setCheckingOwner] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,11 +35,12 @@ export default function RequestToBorrow({
     if (loading || isOwner) return;
 
     if (!sellerId) {
-      alert("Seller information is missing.");
+      setError("Seller information is missing.");
       return;
     }
 
     setLoading(true);
+    setError(null);
 
     try {
       // 1. Get or create the chat room via Supabase RPC
@@ -66,40 +68,58 @@ export default function RequestToBorrow({
       const msgData = await msgRes.json().catch(() => ({}));
       if (!msgRes.ok) throw new Error(msgData.error || "Failed to send request message.");
 
-      // 3. Redirect to room
+      // 3. Redirect to room. The button stays in its loading state until the
+      // navigation finishes, so it can't be clicked twice.
       router.push(`/chat/${roomId}?sellerId=${sellerId}&productId=${productId}`);
       router.refresh();
     } catch (err: any) {
-      alert("Error sending request: " + err.message);
-    } finally {
+      setError(err.message || "Something went wrong. Please try again.");
       setLoading(false);
     }
   }
 
+  // Placeholder with the same height as the button, so the layout doesn't jump
   if (checkingOwner) {
     return (
-      <div className="w-full flex justify-center py-3">
-        <Loader2 size={20} className="animate-spin text-neutral-400" />
-      </div>
+      <div
+        className="w-full h-[50px] rounded-xl bg-stone-200 dark:bg-neutral-800 animate-pulse"
+        aria-hidden="true"
+      />
     );
   }
 
   if (isOwner) return null; // Hide button entirely for own listing
 
   return (
-    <button
-      onClick={handleRequest}
-      disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md text-sm"
-    >
-      {loading ? (
-        <>
-          <Loader2 size={18} className="animate-spin" />
-          Sending Request...
-        </>
-      ) : (
-        "🤝 Request to Borrow"
+    <div className="w-full">
+      <button
+        type="button"
+        onClick={handleRequest}
+        disabled={loading}
+        aria-busy={loading}
+        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sm font-bold text-black bg-emerald-500 border border-emerald-600 shadow-md transition-colors hover:bg-emerald-600 hover:border-emerald-700 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-emerald-400/60 dark:hover:bg-emerald-400 dark:hover:border-emerald-300"
+      >
+        {loading ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            Sending Request...
+          </>
+        ) : (
+          <>
+            <span aria-hidden="true">🤝</span>
+            Request to Borrow
+          </>
+        )}
+      </button>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400"
+        >
+          {error}
+        </p>
       )}
-    </button>
+    </div>
   );
 }

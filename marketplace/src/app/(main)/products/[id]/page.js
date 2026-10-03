@@ -10,11 +10,20 @@ import ProductActions from "@/components/ProductActions";
 import OwnerBanner from "@/components/OwnerBanner";
 import { getListingState } from "@/lib/listingStatus";
 
+// `border-border` is too light to see against stone-200, so every outline uses
+// these instead. Change them here to restyle all lines at once.
+const LINE = "border-stone-400 dark:border-neutral-700"; // soft dividers, image frames
+const OUTLINE = "border-stone-800 dark:border-neutral-700"; // chips, tags, badges
+const PANEL = `bg-stone-200 border ${OUTLINE} dark:bg-neutral-900 rounded-xl p-4`;
+const CHIP_OFF =
+  "bg-stone-200 text-black border-stone-800 hover:bg-emerald-50 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:hover:bg-emerald-950 dark:hover:border-emerald-700";
+
 export default function ProductDetailPage({ params }) {
   const [resolvedParams, setResolvedParams] = useState(null);
   const [product, setProduct] = useState(null);
   const [allReviews, setAllReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(0);
 
   // Favorite State
   const [isFavorited, setIsFavorited] = useState(false);
@@ -233,7 +242,7 @@ export default function ProductDetailPage({ params }) {
         </p>
         <Link
           href="/marketplace"
-          className="px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition-opacity text-sm"
+          className={`px-5 py-2.5 rounded-xl border text-sm font-bold transition-colors ${CHIP_OFF}`}
         >
           Back to Marketplace
         </Link>
@@ -252,18 +261,22 @@ export default function ProductDetailPage({ params }) {
   // Check if product is categorized as Merchandise
   const isMerchandiseCategory = product.categories?.name === "Merchandise";
   const images = product.image_urls?.length > 0 ? product.image_urls : ["/placeholder.png"];
+  const mainImage = images[activeImage] ?? images[0];
 
   return (
     <div className="text-foreground w-full min-h-screen flex flex-col justify-between transition-colors relative">
 
       {toast.show && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-200">
-          <div className={`px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold flex items-center gap-2.5 ${toast.type === "success"
-            ? "bg-foreground text-background border-transparent"
-            : toast.type === "error"
-              ? "bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400"
-              : "bg-muted border-border text-foreground"
-            }`}>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] max-w-[90vw] animate-in fade-in slide-in-from-top-4 duration-200">
+          <div
+            role="status"
+            className={`px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold flex items-center gap-2.5 ${toast.type === "success"
+              ? "bg-stone-200 text-black border-emerald-600 dark:bg-neutral-800 dark:text-white"
+              : toast.type === "error"
+                ? "bg-rose-50 border-rose-500/30 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+                : `bg-stone-200 text-black ${LINE} dark:bg-neutral-800 dark:text-white`
+              }`}
+          >
             {toast.type === "success" && <Check size={15} className="text-emerald-500 shrink-0" />}
             {toast.message}
           </div>
@@ -272,7 +285,7 @@ export default function ProductDetailPage({ params }) {
 
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <Link
             href="/marketplace"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-semibold transition-colors"
@@ -280,13 +293,14 @@ export default function ProductDetailPage({ params }) {
             <ArrowLeft size={16} /> Back to Marketplace
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={handleToggleFavorite}
               disabled={togglingFavorite}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${isFavorited
+              aria-pressed={isFavorited}
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${isFavorited
                 ? "bg-rose-500/10 border-rose-500/40 text-rose-500 hover:bg-rose-500/20"
-                : "bg-muted border-border text-muted-foreground hover:text-foreground"
+                : CHIP_OFF
                 }`}
             >
               <Heart
@@ -299,7 +313,7 @@ export default function ProductDetailPage({ params }) {
             {currentUser?.id !== product.seller_id && (
               <button
                 onClick={() => setShowReportModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 border border-rose-500/30 transition-colors cursor-pointer"
               >
                 <Flag size={13} /> Report Listing
               </button>
@@ -307,7 +321,7 @@ export default function ProductDetailPage({ params }) {
             {isStaffViewer && product.status !== "rejected" && (
               <button
                 onClick={() => setShowRemoveModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer"
               >
                 <Trash2 size={13} /> Remove Listing
               </button>
@@ -327,7 +341,7 @@ export default function ProductDetailPage({ params }) {
 
         {currentUser?.id !== product.seller_id &&
           ["expired", "unavailable", "rejected"].includes(getListingState(product)) && (
-            <div className="bg-muted border border-border p-4 rounded-2xl mb-6 text-xs font-bold text-muted-foreground">
+            <div className={`bg-stone-200 dark:bg-neutral-800 border ${LINE} p-4 rounded-2xl mb-6 text-xs font-bold text-neutral-700 dark:text-neutral-300`}>
               {getListingState(product) === "expired"
                 ? "This listing has expired and is no longer available."
                 : "This listing is no longer available."}
@@ -349,9 +363,9 @@ export default function ProductDetailPage({ params }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start mb-12">
 
           <div className="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-6">
-            <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-muted border border-border shadow-xs">
+            <div className={`relative w-full aspect-square rounded-2xl overflow-hidden bg-stone-200 dark:bg-neutral-800 border ${LINE} shadow-sm`}>
               <Image
-                src={images[0]}
+                src={mainImage}
                 alt={product.title}
                 fill
                 sizes="(max-width: 1024px) 100vw, 45vw"
@@ -361,11 +375,18 @@ export default function ProductDetailPage({ params }) {
             </div>
 
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="flex gap-3 overflow-x-auto p-1">
                 {images.map((img, idx) => (
-                  <div
+                  <button
                     key={idx}
-                    className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-muted border border-border hover:border-foreground transition-colors cursor-pointer"
+                    type="button"
+                    onClick={() => setActiveImage(idx)}
+                    aria-label={`Show image ${idx + 1} of ${images.length}`}
+                    aria-current={activeImage === idx}
+                    className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-stone-200 dark:bg-neutral-800 border-2 transition-colors cursor-pointer ${activeImage === idx
+                      ? "border-emerald-600 dark:border-emerald-500"
+                      : `${LINE} hover:border-emerald-700 dark:hover:border-emerald-600`
+                      }`}
                   >
                     <Image
                       src={img}
@@ -374,7 +395,7 @@ export default function ProductDetailPage({ params }) {
                       sizes="80px"
                       className="object-cover"
                     />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -385,7 +406,7 @@ export default function ProductDetailPage({ params }) {
               {/* CATEGORY & MERCH BADGES */}
               <div className="flex items-center gap-2 flex-wrap">
                 {product.categories?.name && (
-                  <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <span className="inline-block px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-200 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     {product.categories.name}
                   </span>
                 )}
@@ -414,14 +435,14 @@ export default function ProductDetailPage({ params }) {
 
               {product.stock_quantity !== null && product.stock_quantity !== undefined && (
                 <div className="flex items-center gap-2 mt-3">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-xs font-bold text-foreground">
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-200 dark:bg-neutral-800 border ${OUTLINE} text-xs font-bold text-neutral-900 dark:text-white`}>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>{product.stock_quantity} left in stock</span>
                   </div>
                 </div>
               )}
 
-              <div className="pt-3 border-t border-border/60">
+              <div className={PANEL}>
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                   Description
                 </h3>
@@ -432,14 +453,14 @@ export default function ProductDetailPage({ params }) {
 
               {product.tags?.length > 0 && (
                 <div className="pt-2">
-                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2.5 flex items-center gap-1.5 ">
                     <Tag size={13} /> Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {product.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="px-3 py-1 rounded-xl bg-muted text-muted-foreground text-xs font-semibold border border-border"
+                        className={`px-3 py-1 rounded-xl bg-stone-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 text-xs font-semibold border ${OUTLINE}`}
                       >
                         #{tag}
                       </span>
@@ -449,7 +470,7 @@ export default function ProductDetailPage({ params }) {
               )}
             </div>
 
-            <div className="pt-6 border-t border-border">
+            <div className={PANEL}>
               <ProductActions
                 product={product}
                 profile={profile}
@@ -517,7 +538,7 @@ export default function ProductDetailPage({ params }) {
               <button
                 onClick={handleReportListing}
                 disabled={!reportReason.trim() || submittingReport}
-                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm flex items-center gap-1.5"
               >
                 {submittingReport && <Loader2 size={13} className="animate-spin" />}
                 Submit Report
@@ -543,7 +564,7 @@ export default function ProductDetailPage({ params }) {
               The listing is hidden and marked unavailable. The owner cannot restore it.
             </p>
             <textarea
-              className="w-full min-h-[90px] bg-neutral-50 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium focus:outline-none resize-none mb-4"
+              className="w-full min-h-[90px] bg-neutral-50 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:focus:ring-neutral-500 resize-none mb-4 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
               placeholder="Reason (required, shown to the owner)"
               value={removeReason}
               onChange={(e) => setRemoveReason(e.target.value)}
@@ -551,14 +572,14 @@ export default function ProductDetailPage({ params }) {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => { setShowRemoveModal(false); setRemoveReason(""); }}
-                className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl cursor-pointer"
+                className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-700 dark:text-neutral-300 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRemoveListing}
                 disabled={!removeReason.trim() || removing}
-                className="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
               >
                 {removing && <Loader2 size={13} className="animate-spin" />}
                 Remove

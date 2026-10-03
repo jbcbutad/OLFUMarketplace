@@ -22,6 +22,23 @@ import ChatInput from "./ChatInput";
 import ConfirmModal from "@/components/ConfirmModal";
 import ChatProductBanner from "./ChatProductBanner";
 
+// Explicit light/dark colors instead of theme tokens (border-border, bg-muted,
+// bg-card, text-muted-foreground...). Those tokens are too light to see against
+// stone-200 and can flip to the wrong color. Change the values here to restyle
+// the whole chat at once.
+const LINE = "border-stone-400 dark:border-neutral-700";
+const TEXT = "text-neutral-900 dark:text-white";
+const MUTED = "text-neutral-600 dark:text-neutral-400";
+const BAR = "bg-stone-200 dark:bg-neutral-900"; // header, banner, footer
+const SURFACE = "bg-stone-100 dark:bg-neutral-800"; // avatars, thumbnails, pills
+const ICON_BTN = `${TEXT} hover:bg-stone-300 dark:hover:bg-neutral-800 transition-colors p-2 rounded-full cursor-pointer`;
+const SMALL_BTN = `inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border bg-white dark:bg-neutral-800 ${LINE} cursor-pointer`;
+
+const MENU_BASE =
+  "w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs transition-colors cursor-pointer";
+const MENU_NEUTRAL = `${MENU_BASE} text-neutral-800 dark:text-neutral-200 hover:bg-stone-200 dark:hover:bg-neutral-800`;
+const MENU_SAFE = `${MENU_BASE} text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10`;
+const MENU_DANGER = `${MENU_BASE} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`;
 
 const ROOM_PRODUCT_SELECT =
   "product_id, products(id, title, price, image_urls, seller_id, status, is_available, expires_at, tags, stock_quantity, categories(name))";
@@ -421,40 +438,40 @@ export default function ChatRoom() {
     otherUser?.email ||
     "Unknown User";
 
-  const menuItemClass =
-    "w-full flex items-center gap-3 px-4 py-2.5 text-left font-semibold text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer";
-
   return (
     <div
-      className="text-foreground w-full h-[calc(100vh-4rem)] max-h-screen overflow-hidden flex flex-col transition-colors"
+      className="text-foreground w-full h-[calc(100dvh-4rem)] max-h-screen overflow-hidden flex flex-col transition-colors"
       onClick={() => showMenu && setShowMenu(false)}
     >
       {/* TOAST NOTIFICATION */}
       {toast.show && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-200">
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] max-w-[90vw] animate-in fade-in slide-in-from-top-4 duration-200">
           <div
+            role="status"
             className={`px-4 py-2.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-2 ${toast.type === "success"
-              ? "bg-foreground text-background border-transparent"
+              ? "bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-neutral-900 dark:border-white"
               : toast.type === "error"
-                ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
-                : "bg-muted border-border text-foreground"
+                ? "bg-rose-50 border-rose-500/30 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
+                : `bg-stone-200 dark:bg-neutral-800 ${TEXT} ${LINE}`
               }`}
           >
-            {toast.type === "success" && <Check size={16} className="text-emerald-500" />}
+            {toast.type === "success" && <Check size={16} className="text-emerald-500 shrink-0" />}
             {toast.message}
           </div>
         </div>
       )}
 
-      <div className="max-w-3xl w-full mx-auto h-full flex flex-col border-x border-border overflow-hidden">
+      <div className={`max-w-3xl w-full mx-auto h-full flex flex-col border-x ${LINE} overflow-hidden`}>
         {/* HEADER BAR */}
-        <div className="p-4 border-b border-border bg-white dark:bg-neutral-900 flex items-center gap-4 relative z-40 shrink-0">          <button
-          onClick={() => router.push("/chat")}
-          className="text-foreground hover:bg-accent hover:text-foreground transition-colors p-2 rounded-full cursor-pointer"
-          title="Back to messages"
-        >
-          <ArrowLeft size={20} />
-        </button>
+        <div className={`p-4 border-b ${LINE} ${BAR} flex items-center gap-4 relative z-40 shrink-0`}>
+          <button
+            onClick={() => router.push("/chat")}
+            className={ICON_BTN}
+            title="Back to messages"
+            aria-label="Back to messages"
+          >
+            <ArrowLeft size={20} />
+          </button>
 
           {/* Clickable Profile Link */}
           {otherUser?.id ? (
@@ -462,7 +479,7 @@ export default function ChatRoom() {
               href={`/profile/${otherUser.id}`}
               className="flex items-center gap-3 flex-1 min-w-0 group hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-white dark:bg-neutral-900 rounded-full flex items-center justify-center text-foreground font-bold overflow-hidden shrink-0 border border-border">
+              <div className={`w-10 h-10 ${SURFACE} rounded-full flex items-center justify-center ${TEXT} font-bold overflow-hidden shrink-0 border ${LINE}`}>
                 {otherUser?.avatar_url ? (
                   <img
                     src={otherUser.avatar_url}
@@ -474,20 +491,20 @@ export default function ChatRoom() {
                 )}
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-bold text-foreground truncate group-hover:underline">
+                <h2 className={`text-base font-bold ${TEXT} truncate group-hover:underline`}>
                   {otherName}
                 </h2>
-                <p className="text-[11px] text-muted-foreground font-semibold truncate">
+                <p className={`text-[11px] ${MUTED} font-semibold truncate`}>
                   {productContext ? `Re: ${productContext.title}` : "View Profile →"}
                 </p>
               </div>
             </Link>
           ) : (
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-foreground font-bold overflow-hidden shrink-0 border border-border">
+              <div className={`w-10 h-10 ${SURFACE} rounded-full flex items-center justify-center ${TEXT} font-bold overflow-hidden shrink-0 border ${LINE}`}>
                 {otherName.charAt(0).toUpperCase()}
               </div>
-              <h2 className="text-base font-bold text-foreground truncate">{otherName}</h2>
+              <h2 className={`text-base font-bold ${TEXT} truncate`}>{otherName}</h2>
             </div>
           )}
 
@@ -497,16 +514,23 @@ export default function ChatRoom() {
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
-              className="text-foreground hover:bg-accent transition-colors p-2 rounded-full cursor-pointer"
+              className={ICON_BTN}
+              aria-label="Chat options"
+              aria-haspopup="menu"
+              aria-expanded={showMenu}
             >
               <MoreVertical size={20} />
             </button>
 
             {/* SOLID OPAQUE DROPDOWN */}
             {showMenu && (
-              <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl overflow-hidden z-50 py-1">
+              <div
+                role="menu"
+                className={`absolute right-0 top-full mt-2 w-52 bg-stone-100 dark:bg-neutral-900 border ${LINE} rounded-xl shadow-2xl overflow-hidden z-50 py-1`}
+              >
                 <button
-                  className={`${menuItemClass} text-neutral-800 dark:text-neutral-200`}
+                  role="menuitem"
+                  className={MENU_NEUTRAL}
                   onClick={() => {
                     setShowMenu(false);
                     executeMarkUnread();
@@ -515,7 +539,8 @@ export default function ChatRoom() {
                   <Mail size={15} /> Mark as unread
                 </button>
                 <button
-                  className={`${menuItemClass} text-neutral-800 dark:text-neutral-200`}
+                  role="menuitem"
+                  className={MENU_NEUTRAL}
                   onClick={() => {
                     setShowMenu(false);
                     executeToggleArchive();
@@ -525,7 +550,8 @@ export default function ChatRoom() {
                   {isArchived ? "Unarchive" : "Archive"}
                 </button>
                 <button
-                  className={`${menuItemClass} text-neutral-800 dark:text-neutral-200`}
+                  role="menuitem"
+                  className={MENU_NEUTRAL}
                   onClick={() => {
                     setActiveModal("report");
                     setShowMenu(false);
@@ -536,7 +562,8 @@ export default function ChatRoom() {
 
                 {iBlocked ? (
                   <button
-                    className={`${menuItemClass} text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10`}
+                    role="menuitem"
+                    className={MENU_SAFE}
                     onClick={() => {
                       setActiveModal("unblock");
                       setShowMenu(false);
@@ -546,7 +573,8 @@ export default function ChatRoom() {
                   </button>
                 ) : (
                   <button
-                    className={`${menuItemClass} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`}
+                    role="menuitem"
+                    className={MENU_DANGER}
                     onClick={() => {
                       setActiveModal("block");
                       setShowMenu(false);
@@ -557,7 +585,8 @@ export default function ChatRoom() {
                 )}
 
                 <button
-                  className={`${menuItemClass} text-rose-600 dark:text-rose-400 hover:bg-rose-500/10`}
+                  role="menuitem"
+                  className={MENU_DANGER}
                   onClick={() => {
                     setActiveModal("delete");
                     setShowMenu(false);
@@ -583,10 +612,11 @@ export default function ChatRoom() {
         )}
 
         {/* MESSAGE THREAD */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 bg-background scrollbar-thin">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 bg-stone-100 dark:bg-neutral-950 scrollbar-thin">
           {messages.map((m) => {
             const isMine = m.sender_id === currentUser?.id;
             const isTimestampOpen = showTimestampId === m.id;
+            const hasText = m.body && m.body !== "Sent an image";
 
             if (m.is_unsent || m.body === "Message was unsent") {
               const unsentTime = m.unsent_at || m.created_at;
@@ -596,11 +626,11 @@ export default function ChatRoom() {
                   className="flex flex-col items-center justify-center my-4 space-y-1 cursor-pointer select-none"
                   onClick={() => toggleTimestamp(m.id)}
                 >
-                  <span className="text-xs text-muted-foreground italic bg-muted px-4 py-1.5 rounded-full border border-border hover:opacity-80 transition-opacity">
+                  <span className={`text-xs ${MUTED} italic bg-stone-200 dark:bg-neutral-800 px-4 py-1.5 rounded-full border ${LINE} hover:opacity-80 transition-opacity`}>
                     {isMine ? "You unsent a message" : `${otherName} unsent a message`}
                   </span>
                   {isTimestampOpen && (
-                    <span className="text-[10px] text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-150">
+                    <span className={`text-[10px] ${MUTED} animate-in fade-in slide-in-from-top-1 duration-150`}>
                       Unsent on {formatDateTime(unsentTime)}
                     </span>
                   )}
@@ -616,7 +646,7 @@ export default function ChatRoom() {
                 {/* ATTACHMENT IMAGE */}
                 {m.image_url && (
                   <div
-                    className="relative my-1 max-w-[240px] sm:max-w-xs rounded-2xl overflow-hidden border border-border bg-muted shadow-xs cursor-pointer hover:opacity-95 transition-opacity"
+                    className={`relative my-1 max-w-[240px] sm:max-w-xs rounded-2xl overflow-hidden border ${LINE} bg-stone-200 dark:bg-neutral-800 shadow-sm cursor-pointer hover:opacity-95 transition-opacity`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveOverlayImage(m.image_url);
@@ -632,31 +662,33 @@ export default function ChatRoom() {
                 )}
 
                 {/* TEXT BUBBLE */}
-                {m.body && m.body !== "Sent an image" && (
+                {hasText && (
                   <div
                     onClick={() => toggleTimestamp(m.id)}
                     onDoubleClick={(e) => {
                       e.stopPropagation();
                       handleCopyText(m.body, m.id);
                     }}
-                    className={`p-3 rounded-2xl max-w-[80%] shadow-xs relative cursor-pointer select-text transition-all duration-150 active:scale-[0.99] ${isMine
-                      ? "bg-foreground text-background font-medium rounded-br-xs"
-                      : "bg-muted text-foreground font-medium rounded-bl-xs border border-border"
+                    className={`p-3 rounded-2xl max-w-[80%] shadow-sm relative cursor-pointer select-text transition-all duration-150 active:scale-[0.99] ${isMine
+                      ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-medium rounded-br-xs"
+                      : "bg-white text-neutral-900 border border-stone-300 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 font-medium rounded-bl-xs"
                       }`}
                   >
                     <p className="text-sm break-words whitespace-pre-wrap px-0.5 pointer-events-none">
                       {m.body}
                     </p>
 
+                    {/* Desktop hover actions (mobile uses the buttons under the tapped message) */}
                     <div
-                      className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 transition-all opacity-0 group-hover:opacity-100 focus-within:opacity-100 hidden sm:flex ${isMine ? "-left-16" : "-right-16"
+                      className={`absolute top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 transition-all opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${isMine ? "-left-16" : "-right-16"
                         }`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
                         onClick={() => handleCopyText(m.body, m.id)}
-                        className="p-1.5 rounded-md bg-card shadow-xs border border-border text-muted-foreground hover:text-foreground cursor-pointer"
+                        className={`p-1.5 rounded-md bg-white dark:bg-neutral-800 shadow-sm border ${LINE} text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white cursor-pointer`}
                         title="Copy text"
+                        aria-label="Copy text"
                       >
                         {copiedId === m.id ? (
                           <Check size={13} className="text-emerald-500" />
@@ -671,8 +703,9 @@ export default function ChatRoom() {
                             setSelectedMessageId(m.id);
                             setActiveModal("unsend");
                           }}
-                          className="p-1.5 rounded-md bg-card shadow-xs border border-border text-muted-foreground hover:text-rose-500 cursor-pointer"
+                          className={`p-1.5 rounded-md bg-white dark:bg-neutral-800 shadow-sm border ${LINE} text-neutral-600 dark:text-neutral-300 hover:text-rose-500 dark:hover:text-rose-400 cursor-pointer`}
                           title="Unsend message"
+                          aria-label="Unsend message"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -682,12 +715,42 @@ export default function ChatRoom() {
                 )}
 
                 {isTimestampOpen && (
-                  <span
-                    className={`text-[10px] text-muted-foreground px-1 pt-1 animate-in fade-in slide-in-from-top-1 duration-150 ${isMine ? "text-right" : "text-left"
+                  <div
+                    className={`flex flex-col gap-1.5 px-1 pt-1 animate-in fade-in slide-in-from-top-1 duration-150 ${isMine ? "items-end text-right" : "items-start text-left"
                       }`}
                   >
-                    Sent {formatDateTime(m.created_at)}
-                  </span>
+                    <span className={`text-[10px] ${MUTED}`}>
+                      Sent {formatDateTime(m.created_at)}
+                    </span>
+
+                    {/* Mobile actions: the hover buttons above don't exist on touch screens */}
+                    {hasText && (
+                      <div className="flex items-center gap-2 sm:hidden">
+                        <button
+                          onClick={() => handleCopyText(m.body, m.id)}
+                          className={`${SMALL_BTN} text-neutral-700 dark:text-neutral-200`}
+                        >
+                          {copiedId === m.id ? (
+                            <Check size={12} className="text-emerald-500" />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                          {copiedId === m.id ? "Copied" : "Copy"}
+                        </button>
+                        {isMine && (
+                          <button
+                            onClick={() => {
+                              setSelectedMessageId(m.id);
+                              setActiveModal("unsend");
+                            }}
+                            className={`${SMALL_BTN} text-rose-600 dark:text-rose-400`}
+                          >
+                            <Trash2 size={12} /> Unsend
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             );
@@ -696,9 +759,9 @@ export default function ChatRoom() {
         </div>
 
         {/* FOOTER CONTROL BAR */}
-        <div className="shrink-0 bg-card border-t border-border">
+        <div className={`shrink-0 ${BAR} border-t ${LINE}`}>
           {isBlocked ? (
-            <div className="p-4 bg-muted/60 text-center text-xs font-semibold text-muted-foreground italic select-none">
+            <div className={`p-4 bg-stone-300/60 dark:bg-neutral-800/60 text-center text-xs font-semibold ${MUTED} italic select-none`}>
               {iBlocked
                 ? "You have blocked this user. Unblock them to resume conversation."
                 : "You cannot send or reply to messages in this conversation."}
@@ -717,7 +780,8 @@ export default function ChatRoom() {
         >
           <button
             onClick={() => setActiveOverlayImage(null)}
-            className="absolute top-4 right-4 bg-card text-foreground hover:bg-accent p-2.5 rounded-full z-[1000] border border-border cursor-pointer"
+            aria-label="Close image preview"
+            className="absolute top-4 right-4 bg-white/90 text-neutral-900 hover:bg-white p-2.5 rounded-full z-[1000] border border-stone-300 cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -828,7 +892,7 @@ export default function ChatRoom() {
               <button
                 onClick={executeReportUser}
                 disabled={!reportReason.trim()}
-                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
               >
                 Submit report
               </button>

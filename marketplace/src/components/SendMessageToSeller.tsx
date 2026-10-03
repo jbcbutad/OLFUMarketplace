@@ -13,11 +13,23 @@ interface SendMessageToSellerProps {
   placeholder?: string;
 }
 
+// `border-border` is too light to see against stone-200, so every divider and
+// outline uses these instead. Change them here to restyle all lines at once.
+const LINE = "border-stone-400 dark:border-neutral-700";
+
+const chipBase =
+  "text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+const chipOff =
+  "bg-stone-200 text-black border-stone-800 hover:bg-emerald-50 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:hover:bg-emerald-950 dark:hover:border-emerald-700";
+const chipOn =
+  "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-800";
+
 export default function SendMessageToSeller({ sellerId, productId, existingRoomId, placeholder }: SendMessageToSellerProps) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [checkingOwner, setCheckingOwner] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -44,12 +56,13 @@ export default function SendMessageToSeller({ sellerId, productId, existingRoomI
     if (!text.trim() || loading || isOwner) return;
 
     if (!sellerId) {
-      alert("The Seller ID is missing.");
+      setError("The seller ID is missing.");
       console.error("SendMessageToSeller was rendered without a valid sellerId prop.");
       return;
     }
 
     setLoading(true);
+    setError(null);
 
     try {
       // 1. Get or create direct room using Supabase RPC
@@ -73,18 +86,18 @@ export default function SendMessageToSeller({ sellerId, productId, existingRoomI
 
       if (msgError) throw new Error(msgError.message);
 
-      // 3. Redirect to the direct chat room
+      // 3. Redirect to the direct chat room. The form stays in its loading
+      // state until the navigation finishes, so a second click can't resend.
       router.push(`/chat/${roomId}?sellerId=${sellerId}${productId ? `&productId=${productId}` : ""}`);
     } catch (err: any) {
-      alert("Error: " + err.message);
-    } finally {
+      setError(err.message || "Something went wrong. Please try again.");
       setLoading(false);
     }
   }
 
   if (checkingOwner) {
     return (
-      <div className="pt-5 border-t border-border flex justify-center py-6">
+      <div className={`pt-5 border-t ${LINE} flex justify-center py-6`}>
         <Loader2 className="animate-spin text-muted-foreground" size={24} />
       </div>
     );
@@ -92,8 +105,8 @@ export default function SendMessageToSeller({ sellerId, productId, existingRoomI
 
   if (isOwner) {
     return (
-      <div className="pt-5 border-t border-border">
-        <div className="w-full py-3.5 bg-muted border border-border text-muted-foreground font-semibold rounded-xl text-center text-sm cursor-not-allowed select-none">
+      <div className={`pt-5 border-t ${LINE}`}>
+        <div className={`w-full py-3.5 px-4 bg-stone-100 dark:bg-neutral-800 border ${LINE} text-muted-foreground font-semibold rounded-xl text-center text-sm cursor-not-allowed select-none`}>
           This is your listing. You cannot send a message to yourself.
         </div>
       </div>
@@ -102,13 +115,13 @@ export default function SendMessageToSeller({ sellerId, productId, existingRoomI
 
   if (existingRoomId) {
     return (
-      <div className="pt-5 border-t border-border space-y-2">
+      <div className={`pt-5 border-t ${LINE} space-y-2`}>
         <p className="text-xs font-semibold text-muted-foreground">
           You already have a conversation about this item.
         </p>
         <Link
-          href={`/chat/${existingRoomId}?sellerId=${sellerId}&productId=${productId}`}
-          className="flex w-full items-center justify-center py-3 bg-foreground text-background font-bold rounded-xl text-sm hover:opacity-90 transition-opacity"
+          href={`/chat/${existingRoomId}?sellerId=${sellerId}${productId ? `&productId=${productId}` : ""}`}
+          className="flex w-full items-center justify-center py-3 bg-foreground text-background font-bold rounded-xl text-sm hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           View conversation
         </Link>
@@ -117,20 +130,25 @@ export default function SendMessageToSeller({ sellerId, productId, existingRoomI
   }
 
   return (
-    <div className="space-y-3 pt-5 border-t border-border">
+    <div className={`space-y-3 pt-5 border-t ${LINE}`}>
 
       {/* Quick Replies */}
-      <div className="flex flex-wrap gap-2 mb-2">
-        {quickReplies.map((reply, index) => (
-          <button
-            key={index}
-            onClick={() => setText(reply)}
-            disabled={loading}
-            className="text-xs font-semibold px-3.5 py-1.5 bg-muted hover:bg-accent text-foreground rounded-full border border-border transition-all shadow-sm disabled:opacity-50 cursor-pointer"
-          >
-            {reply}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Quick replies">
+        {quickReplies.map((reply) => {
+          const selected = text === reply;
+          return (
+            <button
+              key={reply}
+              type="button"
+              onClick={() => setText(reply)}
+              disabled={loading}
+              aria-pressed={selected}
+              className={`${chipBase} ${selected ? chipOn : chipOff}`}
+            >
+              {reply}
+            </button>
+          );
+        })}
       </div>
 
       {/* Message Input Area */}
@@ -141,14 +159,17 @@ export default function SendMessageToSeller({ sellerId, productId, existingRoomI
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder || "Type your message here..."}
           disabled={loading}
-          className="w-full bg-muted border border-border rounded-xl pt-4 px-4 pb-14 text-foreground placeholder:text-muted-foreground/60 outline-none resize-none focus:ring-2 focus:ring-foreground/20 transition-all text-sm disabled:opacity-50 font-medium"
+          aria-label="Message to seller"
+          className="w-full bg-stone-200 border border-stone-800 rounded-xl pt-4 px-4 pb-14 text-neutral-900 placeholder:text-neutral-500 outline-none resize-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 transition-all text-sm font-medium disabled:opacity-50 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:placeholder:text-neutral-400 dark:focus:border-emerald-600"
         />
 
         {/* Floating Send Button */}
         <button
+          type="button"
           onClick={onSend}
           disabled={!text.trim() || loading}
-          className="absolute bottom-3 right-3 flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold text-sm rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+          aria-busy={loading}
+          className="absolute bottom-3 right-3 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 border border-emerald-700 text-black font-bold text-sm rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-200 dark:focus-visible:ring-offset-neutral-800"
         >
           {loading ? (
             <span className="flex items-center gap-2">
@@ -162,6 +183,12 @@ export default function SendMessageToSeller({ sellerId, productId, existingRoomI
           )}
         </button>
       </div>
+
+      {error && (
+        <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,283 +1,243 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Star, ThumbsUp, ThumbsDown, Sparkles, MessageSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
+import SellerControls from "@/components/SellerControls";
+import MakeOffer from "@/components/MakeOffer";
+import RequestToBorrow from "@/components/RequestToBorrow";
+import SendMessageToSeller from "@/components/SendMessageToSeller";
+import { Mail, Loader2, Building2, MessageSquare, ShieldCheck } from "lucide-react";
+import { getListingState } from "@/lib/listingStatus";
 
-export default function ProductReviews({ initialReviews = [], aiSummary = null, sellerName = "" }) {
-    const [activeTab, setActiveTab] = useState("all");
+// `border-border` is too light to see against stone-200, so every divider and
+// outline uses these instead. Change them here to restyle all lines at once.
+const LINE = "border-stone-400 dark:border-neutral-700";
+const CARD = `bg-stone-100 dark:bg-neutral-800/60 border ${LINE}`;
 
-    const sellerReviews = initialReviews.filter((r) => r.role_reviewed === "seller");
-    const buyerReviews = initialReviews.filter((r) => r.role_reviewed === "buyer");
+export default function ProductActions({
+    product,
+    profile,
+    sellerName,
+    isVerifiedOrg = false,
+    orgName = null,
+}) {
+    const [currentUserId, setCurrentUserId] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [orderQty, setOrderQty] = useState(1);
+    const [inquiring, setInquiring] = useState(false);
+    const [orderError, setOrderError] = useState(null);
+    const [existingRoomId, setExistingRoomId] = useState(null);
+    const router = useRouter();
 
-    const calculateAvg = (list) => {
-        if (!list.length) return "0.0";
-        const sum = list.reduce((acc, r) => acc + Number(r.rating || 0), 0);
-        return (sum / list.length).toFixed(1);
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+                if (user.id !== product.seller_id) {
+                    const { data: roomId } = await supabase.rpc("find_product_room", { p_product_id: product.id });
+                    setExistingRoomId(roomId ?? null);
+                }
+            }
+            setLoading(false);
+        };
+        checkUser();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="py-6 flex justify-center text-muted-foreground">
+                <Loader2 className="animate-spin" size={20} />
+            </div>
+        );
+    }
+
+    const isOwner = currentUserId && currentUserId === product.seller_id;
+
+    if (isOwner) {
+        return <SellerControls product={product} currentUserId={currentUserId} />;
+    }
+
+    const isMerchandise = product.categories?.name === "Merchandise";
+    const stockAvailable = product.stock_quantity ?? 1;
+    const listingState = getListingState(product);
+    const canBuy = listingState === "active";
+
+    // 👉 Handle Merchandise Inquiry & Messaging Flow
+    const handleInquireMerchandise = async () => {
+        if (!currentUserId) {
+            router.push("/login");
+            return;
+        }
+
+        if (orderQty > stockAvailable) {
+            setOrderError(`Only ${stockAvailable} units left in stock.`);
+            return;
+        }
+
+        setInquiring(true);
+        setOrderError(null);
+
+        try {
+            const { data: roomId, error } = await supabase.rpc("get_or_create_product_room", {
+                p_product_id: product.id,
+            });
+            if (error || !roomId) throw new Error(error?.message || "Failed to open chat.");
+
+            const body = `Hi! I would like to order ${orderQty} unit(s) of "${product.title}" (Total: ₱${(product.price * orderQty).toLocaleString()}). I'll send my GCash payment screenshot here.`;
+            const res = await fetch("/api/direct-messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomId, body, image_url: null }),
+            });
+            if (!res.ok) {
+                const d = await res.json().catch(() => ({}));
+                throw new Error(d.error || "Failed to send order message.");
+            }
+
+            // The button stays in its loading state until the redirect finishes
+            router.push(`/chat/${roomId}?sellerId=${product.seller_id}&productId=${product.id}`);
+        } catch (err) {
+            setOrderError(err.message || "Failed to open chat. Please try again.");
+            setInquiring(false);
+        }
     };
 
-    const sellerAvg = calculateAvg(sellerReviews);
-    const buyerAvg = calculateAvg(buyerReviews);
-
-    const displayedReviews =
-        activeTab === "seller"
-            ? sellerReviews
-            : activeTab === "buyer"
-                ? buyerReviews
-                : initialReviews;
-
-    const getBadgeDetails = (rating, sentimentLabel) => {
-        const numRating = Number(rating || 0);
-        let label = sentimentLabel;
-        if (numRating >= 4) label = "Positive";
-        else if (numRating <= 2) label = "Negative";
-
-        if (label === "Positive") {
-            return { label: "Positive", className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" };
-        }
-        if (label === "Negative") {
-            return { label: "Negative", className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20" };
-        }
-        return label ? { label, className: "bg-muted text-muted-foreground border-border" } : null;
-    };
-
-    // Safely handle aiSummary whether it's an object { summary, pros, cons } or a string
-    const summaryText = typeof aiSummary === "string" ? aiSummary : aiSummary?.summary;
-    const pros = typeof aiSummary === "object" && Array.isArray(aiSummary?.pros) ? aiSummary.pros : [];
-    const cons = typeof aiSummary === "object" && Array.isArray(aiSummary?.cons) ? aiSummary.cons : [];
-    const hasAiContent = Boolean(summaryText || pros.length > 0 || cons.length > 0);
+    const isRentalOrBorrow = product.tags?.some((tag) =>
+        ["Rentals", "Rental", "Borrow", "For Borrow"].includes(tag)
+    );
 
     return (
-        <div className="bg-card text-card-foreground border border-border rounded-3xl p-6 sm:p-8 mt-10 shadow-sm transition-colors">
-            {/* HEADER & OVERALL RATINGS */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
-                <div>
-                    <h2 className="text-2xl font-bold flex items-center gap-2 text-foreground">
-                        {sellerName ? `Ratings and reviews of ${sellerName}` : "Ratings & Reviews"}
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Community feedback as a buyer and seller
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="bg-muted border border-border rounded-2xl px-4 py-2 text-center">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                            Seller Rating
-                        </span>
-                        <div className="flex items-center gap-1 mt-0.5 justify-center">
-                            <Star size={14} className="fill-amber-400 text-amber-400" />
-                            <span className="text-sm font-extrabold text-foreground">{sellerAvg}</span>
-                            <span className="text-xs text-muted-foreground">({sellerReviews.length})</span>
+        <div className="space-y-6">
+            {/* Seller info first */}
+            <div className={`pt-4 border-t ${LINE}`}>
+                {/* Clickable Seller Profile Link */}
+                <Link
+                    href={`/profile/${product.seller_id}`}
+                    className="flex items-center gap-3 group hover:opacity-80 transition-opacity w-fit"
+                >
+                    {/* 👉 AVATAR WITH CONDITIONAL VERIFIED ORG GLOW & CHECKMARK BADGE */}
+                    <div className="relative shrink-0">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold overflow-hidden shadow-md transition-all ${isVerifiedOrg
+                            ? "border-2 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)] bg-emerald-600 text-white"
+                            : `border-2 ${LINE} bg-stone-300 dark:bg-neutral-800 text-neutral-900 dark:text-white`
+                            }`}>
+                            {profile?.avatar_url ? (
+                                <img src={profile.avatar_url} alt="Seller Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                sellerName?.charAt(0).toUpperCase()
+                            )}
                         </div>
+
+                        {/* Floating Checkmark Badge */}
+                        {isVerifiedOrg && (
+                            <div className="absolute -bottom-0.5 -right-0.5 bg-emerald-600 text-white p-0.5 rounded-full border-2 border-background shadow-sm flex items-center justify-center" title="Verified Official Organization">
+                                <ShieldCheck size={11} />
+                            </div>
+                        )}
                     </div>
 
-                    <div className="bg-muted border border-border rounded-2xl px-4 py-2 text-center">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                            Buyer Rating
-                        </span>
-                        <div className="flex items-center gap-1 mt-0.5 justify-center">
-                            <Star size={14} className="fill-blue-400 text-blue-400" />
-                            <span className="text-sm font-extrabold text-foreground">{buyerAvg}</span>
-                            <span className="text-xs text-muted-foreground">({buyerReviews.length})</span>
+                    <div>
+                        <div className="text-sm font-bold text-foreground group-hover:underline flex items-center gap-2 flex-wrap">
+                            <span>{sellerName}</span>
+
+                            {/* VERIFIED ORG BADGE */}
+                            {isVerifiedOrg && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-md text-[11px] font-bold no-underline">
+                                    <Building2 size={12} />
+                                    <span>{orgName || "Verified Org"}</span>
+                                </span>
+                            )}
                         </div>
+
                     </div>
-                </div>
+                </Link>
             </div>
 
-            {/* HIGH-IMPACT AI SELLER HIGHLIGHTS */}
-            {hasAiContent && (activeTab === "all" || activeTab === "seller") && (
-                <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 my-6 bg-gradient-to-br from-amber-500/15 via-purple-500/10 to-card border border-amber-500/30 dark:border-amber-400/30 shadow-sm">
-                    {/* Background Ambient Glow */}
-                    <div className="absolute -top-12 -right-12 w-36 h-36 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+            {/* Logged-out visitors can browse but not contact the seller */}
+            {canBuy && !currentUserId ? (
+                <div className={`pt-4 border-t ${LINE}`}>
+                    <div className={`p-4 rounded-2xl ${CARD} space-y-3 text-center`}>
+                        <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                            Log in to message the seller or make an offer.
+                        </p>
+                        <Link
+                            href="/login"
+                            className="inline-flex items-center justify-center px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition-opacity text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        >
+                            Log in
+                        </Link>
+                    </div>
+                </div>
+            ) : canBuy ? (
+                <div className={`space-y-4 pt-4 border-t ${LINE}`}>
 
-                    <div className="relative z-10 space-y-3">
-                        {/* Header & AI Badge */}
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-extrabold text-xs uppercase tracking-widest">
-                                <Sparkles size={16} className="text-amber-500 shrink-0" />
-                                <span>AI Seller Highlights</span>
+                    {/* 👉 MERCHANDISE QUANTITY & MESSAGING / INQUIRY FLOW */}
+                    {isMerchandise ? (
+                        <div className={`p-4 ${CARD} rounded-2xl space-y-4`}>
+                            <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                                <span>Select Quantity:</span>
+                                <span className="text-emerald-600 dark:text-emerald-400">{stockAvailable} Units Available</span>
                             </div>
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                                AI Insights
-                            </span>
+
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max={stockAvailable}
+                                    value={orderQty}
+                                    onChange={(e) => setOrderQty(Math.min(parseInt(e.target.value) || 1, stockAvailable))}
+                                    aria-label="Quantity"
+                                    className="w-24 bg-stone-200 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-neutral-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 transition-all dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:focus:border-emerald-600"
+                                />
+                                <button
+                                    onClick={handleInquireMerchandise}
+                                    disabled={inquiring || stockAvailable <= 0}
+                                    className="flex-1 py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                >
+                                    {inquiring ? (
+                                        <><Loader2 className="animate-spin" size={16} /> Opening Chat...</>
+                                    ) : stockAvailable <= 0 ? (
+                                        "Sold Out"
+                                    ) : (
+                                        <><MessageSquare size={16} /> Order & Message Org (₱{(product.price * orderQty).toLocaleString()})</>
+                                    )}
+                                </button>
+                            </div>
+                            {orderError && (
+                                <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400 text-center">
+                                    {orderError}
+                                </p>
+                            )}
+                            <p className="text-[11px] text-muted-foreground text-center">
+                                Clicking this opens a chat with the organization to send your GCash receipt.
+                            </p>
                         </div>
+                    ) : (
+                        <MakeOffer sellerId={product.seller_id} productTitle={product.title} productId={product.id} />
+                    )}
 
-                        {/* Summary Quote */}
-                        {summaryText && (
-                            <blockquote className="text-sm font-medium italic text-foreground leading-relaxed pl-3.5 border-l-2 border-amber-500">
-                                "{summaryText}"
-                            </blockquote>
-                        )}
-
-                        {/* Pros & Cons Tags */}
-                        {(pros.length > 0 || cons.length > 0) && (
-                            <div className="flex flex-wrap gap-2 pt-1">
-                                {pros.map((pro, i) => (
-                                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shadow-xs">
-                                        <ThumbsUp size={13} className="shrink-0" /> {pro}
-                                    </span>
-                                ))}
-                                {cons.map((con, i) => (
-                                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 shadow-xs">
-                                        <ThumbsDown size={13} className="shrink-0" /> {con}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
+                    {/* ONLY SHOWN FOR RENTAL/BORROW ITEMS */}
+                    {isRentalOrBorrow && !isMerchandise && (
+                        <RequestToBorrow sellerId={product.seller_id} productTitle={product.title} productId={product.id} />
+                    )}
+                </div>
+            ) : (
+                <div className={`pt-4 border-t ${LINE}`}>
+                    <div className={`p-4 rounded-2xl ${CARD} text-xs font-bold text-neutral-700 dark:text-neutral-300`}>
+                        {listingState === "expired"
+                            ? "This listing has expired."
+                            : "This listing is no longer available."}
                     </div>
                 </div>
             )}
 
-            {/* FILTER TABS */}
-            <div className="flex gap-2 my-6">
-                <button
-                    onClick={() => setActiveTab("all")}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${activeTab === "all"
-                        ? "bg-foreground text-background border-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground border-border hover:text-foreground"
-                        }`}
-                >
-                    All ({initialReviews.length})
-                </button>
-                <button
-                    onClick={() => setActiveTab("seller")}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${activeTab === "seller"
-                        ? "bg-amber-500 text-black border-amber-500 shadow-sm"
-                        : "bg-muted text-muted-foreground border-border hover:text-foreground"
-                        }`}
-                >
-                    As Seller ({sellerReviews.length})
-                </button>
-                <button
-                    onClick={() => setActiveTab("buyer")}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${activeTab === "buyer"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                        : "bg-muted text-muted-foreground border-border hover:text-foreground"
-                        }`}
-                >
-                    As Buyer ({buyerReviews.length})
-                </button>
-            </div>
-
-            {/* REVIEWS LIST WRAPPED IN A SCROLLABLE CONTAINER */}
-            <div className="max-h-[480px] overflow-y-auto pr-2 space-y-4 scrollbar-thin">
-                {displayedReviews.length === 0 ? (
-                    <div className="p-10 text-center text-muted-foreground bg-background rounded-2xl border border-border space-y-2">
-                        <MessageSquare size={32} className="mx-auto text-muted-foreground/40" />
-                        <p className="text-sm font-semibold text-foreground">No reviews found</p>
-                        <p className="text-xs text-muted-foreground">There is no feedback matching this criteria yet.</p>
-                    </div>
-                ) : (
-                    displayedReviews.map((review) => {
-                        const reviewer = review.profiles || review.reviewer || {};
-                        const name = reviewer.full_name || `${reviewer.First_Name || ""} ${reviewer.Last_Name || ""}`.trim() || "Anonymous";
-                        const reviewerId = reviewer.id || review.reviewer_id;
-                        const badge = getBadgeDetails(review.rating, review.sentiment_label);
-                        const numericRating = Number(review.rating || 0);
-
-                        return (
-                            <div key={review.id} className="p-4 bg-background border border-border rounded-2xl flex flex-col gap-2 shadow-sm">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        {reviewerId ? (
-                                            <Link href={`/profile/${reviewerId}`} className="flex items-center gap-3 group hover:opacity-80 transition-opacity">
-                                                <div className="relative w-9 h-9 rounded-full overflow-hidden bg-muted border border-border shrink-0">
-                                                    <Image
-                                                        src={reviewer.avatar_url || "/placeholder-avatar.png"}
-                                                        alt={name}
-                                                        fill
-                                                        sizes="36px"
-                                                        className="object-cover"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold text-foreground group-hover:underline">{name}</span>
-                                                        <span
-                                                            className={`px-2 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wider ${review.role_reviewed === "seller"
-                                                                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
-                                                                : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-                                                                }`}
-                                                        >
-                                                            As {review.role_reviewed === "seller" ? "Seller" : "Buyer"}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[10px] text-muted-foreground block">
-                                                        {new Date(review.created_at).toLocaleDateString("en-US", {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            year: "numeric",
-                                                        })}
-                                                    </span>
-                                                </div>
-                                            </Link>
-                                        ) : (
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative w-9 h-9 rounded-full overflow-hidden bg-muted border border-border shrink-0">
-                                                    <Image
-                                                        src={reviewer.avatar_url || "/placeholder-avatar.png"}
-                                                        alt={name}
-                                                        fill
-                                                        sizes="36px"
-                                                        className="object-cover"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold text-foreground">{name}</span>
-                                                        <span
-                                                            className={`px-2 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wider ${review.role_reviewed === "seller"
-                                                                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
-                                                                : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
-                                                                }`}
-                                                        >
-                                                            As {review.role_reviewed === "seller" ? "Seller" : "Buyer"}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[10px] text-muted-foreground block">
-                                                        {new Date(review.created_at).toLocaleDateString("en-US", {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            year: "numeric",
-                                                        })}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        {badge && (
-                                            <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${badge.className}`}>
-                                                {badge.label}
-                                            </span>
-                                        )}
-                                        <div className="flex text-amber-400">
-                                            {[...Array(5)].map((_, idx) => (
-                                                <Star
-                                                    key={idx}
-                                                    size={14}
-                                                    className={
-                                                        idx < numericRating
-                                                            ? "fill-amber-400 text-amber-400"
-                                                            : "text-muted-foreground/30 fill-muted/20"
-                                                    }
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <p className="text-xs text-foreground/90 leading-relaxed mt-1">
-                                    {review.comment || "No comment provided."}
-                                </p>
-                            </div>
-                        );
-                    })
-                )}
-            </div>
+            {/* Message box (logged-in buyers only). It draws its own top divider. */}
+            {currentUserId && (
+                <SendMessageToSeller sellerId={product.seller_id} productId={product.id} existingRoomId={existingRoomId} />
+            )}
         </div>
     );
 }

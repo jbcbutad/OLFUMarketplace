@@ -67,6 +67,7 @@ export default async function CategoriesPage({ searchParams }) {
     new Set(products?.flatMap((p) => p.tags || []) || [])
   );
 
+
   return (
     <div className="text-foreground w-full min-h-screen flex flex-col justify-between select-none transition-colors">
       <div className="max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow">
@@ -90,22 +91,22 @@ export default async function CategoriesPage({ searchParams }) {
               name="q"
               defaultValue={searchQuery}
               placeholder="Search product titles..."
-              className="w-full pl-11 pr-4 py-3 rounded-2xl bg-neutral-900 border border-neutral-800 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              className="w-full pl-11 pr-4 py-3 rounded-2xl bg-stone-200 border border-neutral-800 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:focus:ring-yellow-500"
             />
           </div>
         </form>
 
         {/* Category Pills */}
         <div className="mb-8">
-          <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <h3 className="text-xs font-bold text-neutral-800 uppercase tracking-wider mb-3 flex items-center gap-1.5 dark:text-neutral-200">
             <Filter size={14} /> Categories
           </h3>
           <div className="flex flex-wrap gap-2">
             <Link
               href="/categories"
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${!activeCategory
-                ? "bg-foreground text-background"
-                : "bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-700"
+                ? "bg-stone-200 text-black hover:bg-emerald-50 border border-neutral-800 hover:border-emerald-700 dark:bg-emerald-900 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700"
+                : "bg-neutral-800 text-white hover:bg-emerald-50 border border-neutral-800 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700"
                 }`}
             >
               ALL CATEGORIES
@@ -116,8 +117,8 @@ export default async function CategoriesPage({ searchParams }) {
                 href={`/categories?category=${encodeURIComponent(cat.name)}${activeTag ? `&tag=${encodeURIComponent(activeTag)}` : ""
                   }`}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeCategory === cat.name
-                  ? "bg-foreground text-background"
-                  : "bg-neutral-900 text-neutral-300 border border-neutral-800 hover:border-neutral-700"
+                  ? "bg-stone-200 text-black hover:bg-emerald-50 border border-neutral-800 hover:border-emerald-700 dark:bg-emerald-900 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700"
+                  : "bg-neutral-800 text-white hover:bg-emerald-50 border border-neutral-800 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700"
                   }`}
               >
                 <span>{cat.icon}</span>
@@ -130,7 +131,7 @@ export default async function CategoriesPage({ searchParams }) {
         {/* Tag Filters */}
         {allTags.length > 0 && (
           <div className="mb-10">
-            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold text-neutral-800 uppercase tracking-wider mb-3 flex items-center gap-1.5 dark:text-neutral-200">
               <Tag size={14} /> Popular Tags
             </h3>
             <div className="flex flex-wrap gap-2">

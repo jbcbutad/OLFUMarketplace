@@ -9,6 +9,7 @@ import {
   Home,
   Tag,
   Clock,
+  CalendarClock,
   MessageSquare,
   ListOrdered,
   PlusCircle,
@@ -30,6 +31,99 @@ import {
   Flag,
   ScrollText,
 } from "lucide-react";
+
+// Explicit light/dark colors instead of theme tokens (border-border,
+// text-muted-foreground, bg-card...). Those are too light to see against
+// stone-200, and `[&_svg]:text-background` turned active icons dark in dark
+// mode. Change the values here to restyle the whole sidebar at once.
+const LINE = "border-stone-400 dark:border-neutral-700";
+const ITEM_BASE = "flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all";
+const ITEM_ON = "bg-emerald-600 text-white font-bold shadow-sm [&_svg]:text-white";
+const ITEM_OFF =
+  "text-neutral-700 dark:text-neutral-300 hover:bg-emerald-600 hover:text-white";
+const ICON_BTN =
+  "p-2 rounded-xl text-neutral-700 dark:text-neutral-300 hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shrink-0";
+
+// Single nav link. Handles the open/collapsed layouts and the unread badge.
+function NavLink({ href, title, label, icon: Icon, active, isOpen, iconClassName = "", badge = 0 }) {
+  return (
+    <Link
+      href={href}
+      title={title || label}
+      aria-current={active ? "page" : undefined}
+      className={`${ITEM_BASE} relative ${active ? ITEM_ON : ITEM_OFF} ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
+    >
+      <Icon size={18} className={`shrink-0 ${iconClassName}`} />
+      {isOpen && <span className="truncate flex-1">{label}</span>}
+      {isOpen && badge > 0 && (
+        <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+          {badge}
+        </span>
+      )}
+      {!isOpen && badge > 0 && (
+        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-600 rounded-full ring-2 ring-stone-200 dark:ring-neutral-900" />
+      )}
+    </Link>
+  );
+}
+
+// Button that opens a group of sub-links (Categories, My Transactions)
+function GroupButton({ title, label, icon: Icon, active, isOpen, expanded, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-expanded={isOpen ? expanded : undefined}
+      className={`${ITEM_BASE} cursor-pointer ${active
+        ? "bg-emerald-600 text-white font-bold [&_svg]:text-white"
+        : ITEM_OFF
+        } ${isOpen ? "w-full justify-between px-3" : "justify-center w-10 h-10 mx-auto"}`}
+    >
+      <div className="flex items-center gap-3">
+        <Icon size={18} className="shrink-0" />
+        {isOpen && <span>{label}</span>}
+      </div>
+      {isOpen && (
+        <ChevronDown
+          size={16}
+          className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+        />
+      )}
+    </button>
+  );
+}
+
+function SubLink({ href, active, children }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${active
+        ? "bg-emerald-600 text-white font-bold"
+        : "text-neutral-700 dark:text-neutral-300 hover:bg-emerald-600 hover:text-white"
+        }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function AdminLink({ href, title, label, icon: Icon, theme, pathname, isOpen }) {
+  const active = pathname.startsWith(href);
+  return (
+    <Link
+      href={href}
+      title={title}
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${active ? theme.activeLink : theme.inactiveLink
+        } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
+    >
+      <Icon size={18} className={`${active ? "text-white" : theme.icon} shrink-0`} />
+      {isOpen && <span className="truncate">{label}</span>}
+    </Link>
+  );
+}
 
 function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }) {
   const pathname = usePathname();
@@ -96,26 +190,41 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
     return () => window.removeEventListener("user-role-changed", loadRole);
   }, []);
 
-
+  // In the collapsed rail, clicking a group icon expands the sidebar and opens it
+  const toggleGroup = (groupOpen, setGroupOpen) => {
+    if (!isOpen) {
+      toggleSidebar();
+      setGroupOpen(true);
+    } else {
+      setGroupOpen(!groupOpen);
+    }
+  };
 
   const allowedAdminRoles = ["super_admin", "superadmin", "admin", "moderator"];
   const isAdminUser = role && allowedAdminRoles.includes(role);
 
+  const categoryGroupActive = pathname.startsWith("/categories") && activeCategory !== "Merchandise";
+  const transactionGroupActive = pathname === "/purchase-history" || pathname === "/sales-history";
+
   return (
-    <aside className={`navigation-surface h-full text-foreground border-r border-border flex flex-col justify-between p-3 transition-all duration-300 shrink-0 overflow-x-hidden ${isOpen ? "w-64" : "w-16"}`}>
+    <aside className={`navigation-surface h-full text-neutral-900 dark:text-white border-r ${LINE} flex flex-col justify-between p-3 transition-all duration-300 shrink-0 overflow-x-hidden ${isOpen ? "w-64" : "w-16"}`}>
       <div className="space-y-6 overflow-y-auto overflow-x-hidden">
         {/* BRAND LOGO & COLLAPSE / EXPAND TOGGLE */}
         <div className={`py-2 flex items-center ${isOpen ? "px-1 justify-between" : "justify-center"}`}>
           {isOpen ? (
             <>
-              <h2 className="text-xl font-black uppercase tracking-wider italic text-foreground hover:text-foreground dark:hover:text-white transition-colors cursor-pointer truncate">
+              <Link
+                href="/marketplace"
+                className="text-xl font-black uppercase tracking-wider italic text-neutral-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors truncate"
+              >
                 Marketplace
-              </h2>
+              </Link>
               <button
                 onClick={toggleSidebar}
                 type="button"
-                className="p-2 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground dark:hover:text-white transition-colors cursor-pointer shrink-0"
+                className={ICON_BTN}
                 title="Collapse Sidebar"
+                aria-label="Collapse sidebar"
               >
                 <PanelLeftClose size={18} />
               </button>
@@ -124,8 +233,9 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
             <button
               onClick={toggleSidebar}
               type="button"
-              className="p-2 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground dark:hover:text-white transition-colors cursor-pointer flex items-center justify-center w-10 h-10 bg-card border border-border shadow-sm mx-auto"
+              className={`${ICON_BTN} flex items-center justify-center w-10 h-10 bg-stone-100 dark:bg-neutral-800 border ${LINE} shadow-sm mx-auto`}
               title="Expand Sidebar"
+              aria-label="Expand sidebar"
             >
               <PanelLeftOpen size={20} />
             </button>
@@ -134,203 +244,85 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
 
         {/* NAVIGATION LINKS */}
         <nav className="space-y-1">
-          <Link
-            href="/marketplace"
-            title="Home"
-            className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive("/marketplace")
-              ? "bg-foreground text-background font-bold shadow-sm [&_svg]:text-background dark:[&_svg]:text-background"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-          >
-            <Home size={18} className="shrink-0" />
-            {isOpen && <span className="truncate">Home</span>}
-          </Link>
-
-          <Link
-            href="/recent"
-            title="Recent Listings"
-            className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive("/recent")
-              ? "bg-foreground text-background font-bold shadow-sm [&_svg]:text-background dark:[&_svg]:text-background"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-          >
-            <Clock size={18} className="shrink-0" />
-            {isOpen && <span className="truncate">Recent Listings</span>}
-          </Link>
+          <NavLink href="/marketplace" label="Home" icon={Home} active={isActive("/marketplace")} isOpen={isOpen} />
+          <NavLink href="/recent" label="Recent Listings" icon={Clock} active={isActive("/recent")} isOpen={isOpen} />
+          <NavLink href="/rentals" label="Rentals" icon={CalendarClock} active={pathname.startsWith("/rentals")} isOpen={isOpen} />
 
           {/* CATEGORIES DROPDOWN */}
           <div className="space-y-1">
-            <button
-              type="button"
-              onClick={() => isOpen && setIsCategoryOpen(!isCategoryOpen)}
+            <GroupButton
               title="Categories"
-              className={`w-full flex items-center justify-between py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${pathname.startsWith("/categories") && activeCategory !== "Merchandise"
-                ? "text-foreground font-bold [&_svg]:text-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-            >
-              <div className="flex items-center gap-3">
-                <Tag size={18} className="shrink-0" />
-                {isOpen && <span>Categories</span>}
-              </div>
-              {isOpen && (
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${isCategoryOpen ? "rotate-180" : ""
-                    }`}
-                />
-              )}
-            </button>
+              label="Categories"
+              icon={Tag}
+              active={categoryGroupActive}
+              isOpen={isOpen}
+              expanded={isCategoryOpen}
+              onClick={() => toggleGroup(isCategoryOpen, setIsCategoryOpen)}
+            />
 
             {isOpen && isCategoryOpen && (
               <div className="pl-9 pr-2 space-y-1 animate-in slide-in-from-top-1 duration-150">
-                <Link
-                  href="/categories"
-                  className={`block px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${pathname === "/categories" && !activeCategory
-                    ? "bg-accent text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
-                    }`}
-                >
+                <SubLink href="/categories" active={pathname === "/categories" && !activeCategory}>
                   All Categories & Tags
-                </Link>
-
-                <Link
-                  href="/categories?category=Textbooks"
-                  className={`block px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${activeCategory === "Textbooks"
-                    ? "bg-accent text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
-                    }`}
-                >
+                </SubLink>
+                <SubLink href="/categories?category=Textbooks" active={activeCategory === "Textbooks"}>
                   📚 Textbooks
-                </Link>
-                <Link
-                  href="/categories?category=Electronics"
-                  className={`block px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${activeCategory === "Electronics"
-                    ? "bg-accent text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
-                    }`}
-                >
+                </SubLink>
+                <SubLink href="/categories?category=Electronics" active={activeCategory === "Electronics"}>
                   💻 Electronics
-                </Link>
-                <Link
-                  href="/categories?category=Uniforms"
-                  className={`block px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${activeCategory === "Uniforms"
-                    ? "bg-accent text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
-                    }`}
-                >
+                </SubLink>
+                <SubLink href="/categories?category=Uniforms" active={activeCategory === "Uniforms"}>
                   👕 Uniforms
-                </Link>
+                </SubLink>
               </div>
             )}
           </div>
 
-          <Link
+          <NavLink
             href="/merchandise"
-            title="Merchandise"
-            className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeCategory === "Merchandise"
-              ? "bg-foreground text-background font-bold shadow-sm [&_svg]:text-background dark:[&_svg]:text-background"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-          >
-            <ShoppingBag size={18} className="shrink-0 text-amber-500" />
-            {isOpen && <span className="truncate">Merchandise</span>}
-          </Link>
+            label="Merchandise"
+            icon={ShoppingBag}
+            iconClassName="text-amber-500"
+            active={pathname.startsWith("/merchandise") || activeCategory === "Merchandise"}
+            isOpen={isOpen}
+          />
 
           {/* MESSAGES LINK WITH BADGE */}
-          <Link
+          <NavLink
             href="/chat"
-            title="Messages"
-            className={`flex items-center justify-between py-2.5 rounded-xl text-sm font-semibold transition-all relative ${isActive("/chat")
-              ? "bg-foreground text-background font-bold shadow-sm [&_svg]:text-background dark:[&_svg]:text-background"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-          >
-            <div className="flex items-center gap-3">
-              <MessageSquare size={18} className="shrink-0" />
-              {isOpen && <span className="truncate">Messages</span>}
-            </div>
-            {isOpen && unreadCount > 0 && (
-              <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                {unreadCount}
-              </span>
-            )}
-            {!isOpen && unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-600 rounded-full ring-2 ring-card" />
-            )}
-          </Link>
+            label="Messages"
+            icon={MessageSquare}
+            active={pathname.startsWith("/chat")}
+            isOpen={isOpen}
+            badge={unreadCount}
+          />
 
-          <Link
-            href="/ai-chat"
-            title="AI Support"
-            className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive("/ai-chat")
-              ? "bg-foreground text-background font-bold shadow-sm [&_svg]:text-background dark:[&_svg]:text-background"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-          >
-            <Bot size={18} className="shrink-0" />
-            {isOpen && <span className="truncate">AI Support</span>}
-          </Link>
-
-          <Link
-            href="/mylistings"
-            title="My Listings"
-            className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive("/mylistings")
-              ? "bg-foreground text-background font-bold shadow-sm [&_svg]:text-background dark:[&_svg]:text-background"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-          >
-            <ListOrdered size={18} className="shrink-0" />
-            {isOpen && <span className="truncate">My Listings</span>}
-          </Link>
+          <NavLink href="/ai-chat" title="AI Support" label="AI Support" icon={Bot} active={isActive("/ai-chat")} isOpen={isOpen} />
+          <NavLink href="/mylistings" label="My Listings" icon={ListOrdered} active={isActive("/mylistings")} isOpen={isOpen} />
 
           {/* TRANSACTIONS DROPDOWN MENU */}
           <div className="space-y-1">
-            <button
-              type="button"
-              onClick={() => isOpen && setIsTransactionOpen(!isTransactionOpen)}
+            <GroupButton
               title="My Transactions"
-              className={`w-full flex items-center justify-between py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${pathname === "/purchase-history" || pathname === "/sales-history"
-                ? "text-foreground font-bold [&_svg]:text-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-            >
-              <div className="flex items-center gap-3">
-                <History size={18} className="shrink-0" />
-                {isOpen && <span>My Transactions</span>}
-              </div>
-              {isOpen && (
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${isTransactionOpen ? "rotate-180" : ""
-                    }`}
-                />
-              )}
-            </button>
+              label="My Transactions"
+              icon={History}
+              active={transactionGroupActive}
+              isOpen={isOpen}
+              expanded={isTransactionOpen}
+              onClick={() => toggleGroup(isTransactionOpen, setIsTransactionOpen)}
+            />
 
             {/* COLLAPSIBLE TRANSACTION ITEMS */}
             {isOpen && isTransactionOpen && (
               <div className="pl-9 pr-2 space-y-1 animate-in slide-in-from-top-1 duration-150">
-                <Link
-                  href="/purchase-history"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${pathname === "/purchase-history"
-                    ? "bg-accent text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
-                    }`}
-                >
+                <SubLink href="/purchase-history" active={pathname === "/purchase-history"}>
                   <ShoppingCart size={14} className="shrink-0" />
                   <span>Purchase History</span>
-                </Link>
-                <Link
-                  href="/sales-history"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${pathname === "/sales-history"
-                    ? "bg-accent text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
-                    }`}
-                >
+                </SubLink>
+                <SubLink href="/sales-history" active={pathname === "/sales-history"}>
                   <ShoppingBag size={14} className="shrink-0" />
                   <span>Sales History</span>
-                </Link>
+                </SubLink>
               </div>
             )}
           </div>
@@ -381,6 +373,8 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 label: "Moderator Mode",
               };
 
+          const adminProps = { theme: themeConfig, pathname, isOpen };
+
           return (
             <div
               className={`pt-4 border-t space-y-1 animate-in fade-in duration-200 ${themeConfig.border}`}
@@ -400,94 +394,20 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 </div>
               )}
 
-              <Link
-                href="/admin/organizations"
-                title="Org Applications"
-                className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/organizations")
-                  ? themeConfig.activeLink
-                  : themeConfig.inactiveLink
-                  } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-              >
-                <Building2 size={18} className={`${pathname.startsWith("/admin/organizations") ? "text-white" : themeConfig.icon} shrink-0`} />
-                {isOpen && <span className="truncate">Org Applications</span>}
-              </Link>
-
-              <Link
-                href="/admin/merch-approvals"
-                title="Merch Approvals"
-                className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/merch-approvals")
-                  ? themeConfig.activeLink
-                  : themeConfig.inactiveLink
-                  } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-              >
-                <ShieldCheck size={18} className={`${pathname.startsWith("/admin/merch-approvals") ? "text-white" : themeConfig.icon} shrink-0`} />
-                {isOpen && <span className="truncate">Merch Approvals</span>}
-              </Link>
-
-              <Link
-                href="/admin/reports"
-                title="Reports"
-                className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/reports")
-                  ? themeConfig.activeLink
-                  : themeConfig.inactiveLink
-                  } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-              >
-                <ShieldAlert size={18} className={`${pathname.startsWith("/admin/reports") ? "text-white" : themeConfig.icon} shrink-0`} />
-                {isOpen && <span className="truncate">Reports</span>}
-              </Link>
-
-              <Link
-                href="/admin/flagged"
-                title="Flagged Content"
-                className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/flagged")
-                  ? themeConfig.activeLink
-                  : themeConfig.inactiveLink
-                  } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-              >
-                <Flag size={18} className={`${pathname.startsWith("/admin/flagged") ? "text-white" : themeConfig.icon} shrink-0`} />
-                {isOpen && <span className="truncate">Flagged Content</span>}
-              </Link>
+              <AdminLink href="/admin/organizations" title="Org Applications" label="Org Applications" icon={Building2} {...adminProps} />
+              <AdminLink href="/admin/merch-approvals" title="Merch Approvals" label="Merch Approvals" icon={ShieldCheck} {...adminProps} />
+              <AdminLink href="/admin/reports" title="Reports" label="Reports" icon={ShieldAlert} {...adminProps} />
+              <AdminLink href="/admin/flagged" title="Flagged Content" label="Flagged Content" icon={Flag} {...adminProps} />
 
               {!isMod && (
                 <>
-                  <Link
-                    href="/admin/analytics"
-                    title="Analytics"
-                    className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/analytics")
-                      ? themeConfig.activeLink
-                      : themeConfig.inactiveLink
-                      } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-                  >
-                    <TrendingUp size={18} className={`${pathname.startsWith("/admin/analytics") ? "text-white" : themeConfig.icon} shrink-0`} />
-                    {isOpen && <span className="truncate">Analytics</span>}
-                  </Link>
-
-                  <Link
-                    href="/admin/users"
-                    title="Users Management"
-                    className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/users")
-                      ? themeConfig.activeLink
-                      : themeConfig.inactiveLink
-                      } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-                  >
-                    <Users size={18} className={`${pathname.startsWith("/admin/users") ? "text-white" : themeConfig.icon} shrink-0`} />
-                    {isOpen && <span className="truncate">Users Management</span>}
-                  </Link>
+                  <AdminLink href="/admin/analytics" title="Analytics" label="Analytics" icon={TrendingUp} {...adminProps} />
+                  <AdminLink href="/admin/users" title="Users Management" label="Users Management" icon={Users} {...adminProps} />
                 </>
               )}
 
               {isSuper && (
-                <Link
-                  href="/admin/audit-logs"
-                  title="Audit Logs"
-                  className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/audit-logs")
-                    ? themeConfig.activeLink
-                    : themeConfig.inactiveLink
-                    } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
-                >
-                  <ScrollText size={18} className={`${pathname.startsWith("/admin/audit-logs") ? "text-white" : themeConfig.icon} shrink-0`} />
-                  {isOpen && <span className="truncate">Audit Logs</span>}
-                </Link>
+                <AdminLink href="/admin/audit-logs" title="Audit Logs" label="Audit Logs" icon={ScrollText} {...adminProps} />
               )}
             </div>
           );
@@ -495,12 +415,12 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
       </div>
 
       {/* BOTTOM CONTROLS & THEME TOGGLE */}
-      <div className="pt-4 border-t border-border space-y-2 shrink-0">
+      <div className={`pt-4 border-t ${LINE} space-y-2 shrink-0`}>
         <button
           onClick={toggleTheme}
           type="button"
           title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          className={`flex items-center justify-center w-full py-2.5 rounded-xl text-sm font-semibold transition-all text-muted-foreground hover:bg-accent hover:text-foreground border border-border cursor-pointer ${isOpen ? "px-3 gap-3" : "w-10 h-10 mx-auto"
+          className={`flex items-center justify-center w-full py-2.5 rounded-xl text-sm font-semibold transition-all text-neutral-700 dark:text-neutral-300 hover:bg-stone-300 dark:hover:bg-neutral-800 border ${LINE} cursor-pointer ${isOpen ? "px-3 gap-3" : "w-10 h-10 mx-auto"
             }`}
         >
           {theme === "dark" ? (
@@ -514,7 +434,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
         <Link
           href="/create-listing"
           title="Create Listing"
-          className={`flex items-center justify-center gap-2 w-full py-3 bg-foreground text-background font-bold text-xs uppercase tracking-wider rounded-xl hover:opacity-90 transition-opacity active:scale-95 shadow-sm ${isOpen ? "px-3" : "w-10 h-10 mx-auto"
+          className={`flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-black border border-emerald-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors active:scale-95 shadow-sm ${isOpen ? "px-3" : "w-10 h-10 mx-auto"
             }`}
         >
           <PlusCircle size={16} className="shrink-0" />

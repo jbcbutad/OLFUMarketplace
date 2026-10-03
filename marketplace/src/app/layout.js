@@ -22,14 +22,8 @@ export default function RootLayout({ children }) {
       >
         <Providers>
           <BanGuard />
-
           {children}
-
-          <Toaster
-            position="top-right"
-            theme="dark"
-            richColors
-          />
+          <Toaster position="top-right" theme="dark" richColors />
         </Providers>
       </body>
     </html>

@@ -2,10 +2,21 @@ import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import OlfuMerchBanner from "@/components/OlfuMerchBanner";
 import Link from "next/link";
-import { X, Filter, Tag, ShieldCheck, Package, Sparkles, ArrowRight } from "lucide-react";
-
+import { X, Tag, Sparkles, ArrowRight, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const BASE_PATH = "/marketplace";
+const HIDDEN_CATEGORY = "merchandise";
+const VISIBLE_TAGS = 12; // tags shown before "Show more"
+const HIDDEN_TAG_KEYS = new Set(["pending", "expired"]);
+
+// "Campus Essentials", "campus-essentials", "#campusessentials" -> "campusessentials"
+const tagKey = (t) =>
+  String(t).trim().replace(/^#+/, "").toLowerCase().replace(/[\s_-]+/g, "");
+
+const tagLabel = (t) =>
+  String(t).trim().replace(/^#+/, "").toLowerCase().replace(/\s+/g, " ");
 
 // ---------- Generated merch illustrations (inline SVG) ----------
 function TeeArt() {
@@ -97,29 +108,93 @@ const MERCH_BOXES = [
   },
 ];
 
-
-
 export default async function Home({ searchParams }) {
-  const resolvedParams = await searchParams;
+  const params = await searchParams;
   const nowIso = new Date().toISOString();
-  const selectedCategory = resolvedParams?.category || null;
-  const activeTag = resolvedParams?.tag || null;
+  const selectedCategory = params?.category || null;
+  const activeTag = params?.tag ? tagKey(params.tag) : null;
 
-  // 1. Fetch ALL categories
+  // Build links that keep the other filter intact
+  const buildHref = (overrides = {}) => {
+    const next = { category: selectedCategory, tag: activeTag, ...overrides };
+    const qs = new URLSearchParams();
+    Object.entries(next).forEach(([k, v]) => v && qs.set(k, v));
+    const s = qs.toString();
+    return s ? `${BASE_PATH}?${s}` : BASE_PATH;
+  };
+
+  // 1. Categories (Merchandise stays out of the browse bar)
   const { data: categoriesData } = await supabase
     .from("categories")
     .select("id, name, icon")
     .order("name", { ascending: true });
 
-  // 👉 Filter out "Merchandise" from the category browse bar
-  const filteredCategories = categoriesData?.filter(
-    (cat) => cat.name.toLowerCase() !== "merchandise"
+  const categories = (categoriesData || []).filter(
+    (c) => c.name.toLowerCase() !== HIDDEN_CATEGORY
   );
 
-  // 2. The Filter Query
-  let query = supabase
-    .from("products")
-    .select(`
+  // Shared base query so the product grid and the tag list always agree
+  const buildQuery = (fields) => {
+    let q = supabase
+      .from("products")
+      .select(
+        `${fields}, categories${selectedCategory ? "!inner" : ""} ( name )`
+      )
+      .eq("is_available", true)
+      .eq("status", "active")
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
+    if (selectedCategory) q = q.eq("categories.name", selectedCategory);
+    return q;
+  };
+
+  // General feed hides merchandise (it lives on /merchandise)
+  const dropMerch = (rows) =>
+    selectedCategory
+      ? rows || []
+      : (rows || []).filter(
+        (p) => p.categories?.name?.toLowerCase() !== HIDDEN_CATEGORY
+      );
+
+  // 2. Tags for the current category (ignores the tag filter so the list doesn't collapse)
+  const { data: tagRowsRaw } = await buildQuery("tags");
+  const tagRows = dropMerch(tagRowsRaw);
+
+  const tagMap = new Map(); // key -> { key, label, count }
+  tagRows.forEach((row) => {
+    const seenInRow = new Set();
+    (row.tags || []).forEach((raw) => {
+      const key = tagKey(raw);
+      if (!key || seenInRow.has(key)) return;
+      seenInRow.add(key);
+
+      const label = tagLabel(raw);
+      const existing = tagMap.get(key);
+      if (!existing) {
+        tagMap.set(key, { key, label, count: 1 });
+      } else {
+        existing.count += 1;
+        if (/[\s-]/.test(label) && !/[\s-]/.test(existing.label)) {
+          existing.label = label; // prefer the more readable variant
+        }
+      }
+    });
+  });
+
+  const sortedTags = Array.from(tagMap.values()).sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label)
+  );
+  const tags = activeTag
+    ? [
+      ...sortedTags.filter((t) => t.key === activeTag),
+      ...sortedTags.filter((t) => t.key !== activeTag),
+    ]
+    : sortedTags;
+  const topTags = tags.slice(0, VISIBLE_TAGS);
+  const moreTags = tags.slice(VISIBLE_TAGS);
+  const activeTagLabel = tagMap.get(activeTag)?.label || activeTag;
+
+  // 3. Products
+  const { data: rawProducts, error } = await buildQuery(`
     id,
     title,
     price,
@@ -127,72 +202,46 @@ export default async function Home({ searchParams }) {
     created_at,
     tags,
     status,
-    profiles ( full_name ),
-    categories ( name )
-  `)
-    .eq("is_available", true)
-    .eq("status", "active")
-    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-    .order("created_at", { ascending: false });
+    profiles ( full_name )
+  `).order("created_at", { ascending: false });
 
-  if (selectedCategory) {
-    query = supabase
-      .from("products")
-      .select(`
-      id,
-      title,
-      price,
-      image_urls,
-      created_at,
-      tags,
-      status,
-      profiles ( full_name ),
-      categories!inner ( name )
-    `)
-      .eq("is_available", true)
-      .eq("status", "active")
-      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-      .eq("categories.name", selectedCategory)
-      .order("created_at", { ascending: false });
-  }
+  if (error) console.error("Error fetching products:", error);
 
-  // 👉 Tag filter (works with either query above)
-  if (activeTag) {
-    query = query.contains("tags", [activeTag]);
-  }
+  // Tag filter in JS so "Books" / "books" / "#books" all match
+  const products = dropMerch(rawProducts).filter(
+    (p) =>
+      !activeTag || (p.tags || []).some((t) => tagKey(t) === activeTag)
+  );
 
-  const { data: rawProducts, error } = await query;
-
-  if (error) {
-    console.error("Error fetching products:", error);
-  }
-
-  // 👉 If browsing the general marketplace feed (no category selected), 
-  // exclude merchandise items so they only show up on the /merchandise page.
-  const products = selectedCategory
-    ? rawProducts
-    : rawProducts?.filter((p) => p.categories?.name?.toLowerCase() !== "merchandise");
-
-  // Extract all unique tags across items for filter pills
-  const HIDDEN_TAGS = ["Pending", "Expired"];
-  const allTags = Array.from(
-    new Set(products?.flatMap((p) => p.tags || []) || [])
-  ).filter((t) => !HIDDEN_TAGS.includes(t));
+  const pillBase =
+    "shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 border";
+  const pillOn = "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 hover:border-emerald-800 dark:bg-emerald-700 dark:text-white dark:border-emerald-600 dark:hover:bg-emerald-800 dark:hover:border-emerald-500";
+  const pillOff = "bg-stone-200 text-black border-stone-800 hover:bg-emerald-50 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:hover:bg-emerald-950 dark:hover:border-emerald-700";
+  const tagPill = (t) => (
+    <Link
+      key={t.key}
+      href={buildHref({ tag: activeTag === t.key ? null : t.key })}
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTag === t.key
+        ? "bg-emerald-600 text-white font-semibold border border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:hover:bg-emerald-800 dark:border-emerald-600"
+        : "bg-stone-200 text-neutral-700 border border-neutral-800 hover:bg-emerald-50 hover:text-black hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700 dark:hover:text-white"
+        }`}
+    >
+      #{t.label}
+      <span className="ml-1.5 opacity-50">{t.count}</span>
+    </Link>
+  );
 
   return (
     <div className="text-foreground w-full min-h-screen flex flex-col justify-between select-none transition-colors">
-
-      {/* Main Content Area */}
       <div className="max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow">
-
-        {/* 👉 MERCHANDISE PROMOTIONAL BANNER (PLACED AT THE VERY TOP) */}
+        {/* Merchandise banners */}
         {!selectedCategory && (
           <div className="mb-10">
-            <OlfuMerchBanner className="h-56 sm:h-[380px] rounded-3xl border border-white/10 mb-10"
+            <OlfuMerchBanner
+              className="h-56 sm:h-95 rounded-3xl border border-white/10 mb-10"
               merchUrl="/merchandise"
             />
 
-            {/* 👉 MERCH BANNERS (3 BOXES WITH GENERATED ART) */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
               {MERCH_BOXES.map(({ badge, title, sub, Art, bg, glow, tilt }) => (
                 <Link
@@ -200,28 +249,32 @@ export default async function Home({ searchParams }) {
                   href="/merchandise"
                   className={`group relative block h-56 sm:h-64 overflow-hidden rounded-3xl border border-white/10 hover:border-white/30 bg-gradient-to-br ${bg} transition-colors`}
                 >
-                  {/* dotted texture */}
                   <div
                     className="absolute inset-0 opacity-30"
                     style={{
-                      backgroundImage: "radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px)",
+                      backgroundImage:
+                        "radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px)",
                       backgroundSize: "18px 18px",
                     }}
                   />
-                  <div className={`absolute -right-10 -bottom-10 w-64 h-64 rounded-full blur-3xl ${glow}`} />
+                  <div
+                    className={`absolute -right-10 -bottom-10 w-64 h-64 rounded-full blur-3xl ${glow}`}
+                  />
 
-                  {/* illustration */}
-                  <div className={`absolute right-2 bottom-2 w-40 h-40 sm:w-48 sm:h-48 transition-transform duration-500 ${tilt}`}>
+                  <div
+                    className={`absolute right-2 bottom-2 w-40 h-40 sm:w-48 sm:h-48 transition-transform duration-500 ${tilt}`}
+                  >
                     <Art />
                   </div>
 
-                  {/* copy */}
                   <div className="relative z-10 h-full p-6 flex flex-col justify-between max-w-[60%]">
                     <div className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/10 text-white border border-white/20 backdrop-blur">
                       <Sparkles size={12} /> {badge}
                     </div>
                     <div>
-                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">{title}</h3>
+                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                        {title}
+                      </h3>
                       <p className="text-xs sm:text-sm text-white/70 mt-1">{sub}</p>
                       <span className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl font-black text-[11px] uppercase tracking-wider group-hover:gap-3 transition-all">
                         Shop now <ArrowRight size={14} />
@@ -234,131 +287,153 @@ export default async function Home({ searchParams }) {
           </div>
         )}
 
-        {/* Page Header */}
-        <div className="flex flex-col mb-8">
+        {/* Header */}
+        <div className="mb-8">
           <h2 className="text-3xl font-extrabold text-foreground">Marketplace</h2>
           <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-            Select a category to start shopping
+            Pick a category or tag to find what you need.
           </p>
         </div>
 
-        {/* Category Pills */}
-        <div className="mb-8">
-          <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <Filter size={14} /> Categories
-          </h3>
-          <div className="flex flex-wrap gap-2">
+        {/* Categories: one scrollable row on mobile, wraps on larger screens */}
+        <section className="mb-8" aria-label="Categories">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
             <Link
-              href="/marketplace"
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${!selectedCategory
-                ? "bg-foreground text-background"
-                : "bg-muted text-muted-foreground border border-border hover:text-foreground"
-                }`}
+              href={buildHref({ category: null, tag: null })}
+              aria-current={!selectedCategory ? "page" : undefined}
+              className={`${pillBase} ${!selectedCategory ? pillOn : pillOff}`}
             >
-              ALL CATEGORIES
+              All
             </Link>
-            {filteredCategories?.map((cat) => (
+            {categories.map((cat) => (
               <Link
                 key={cat.id}
-                href={`/marketplace?category=${encodeURIComponent(cat.name)}${activeTag ? `&tag=${encodeURIComponent(activeTag)}` : ""
-                  }`}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${selectedCategory === cat.name
-                  ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground border border-border hover:text-foreground"
-                  }`}
+                href={buildHref({ category: cat.name, tag: null })}
+                aria-current={selectedCategory === cat.name ? "page" : undefined}
+                className={`${pillBase} ${selectedCategory === cat.name ? pillOn : pillOff}`}
               >
-                <span>{cat.icon}</span>
-                <span>{cat.name.toUpperCase()}</span>
+                <span aria-hidden="true">{cat.icon || "🏷️"}</span>
+                <span>{cat.name}</span>
               </Link>
             ))}
           </div>
+        </section>
+
+        {/* Tags: most-used first, long tail tucked away */}
+        {tags.length > 0 && (
+          <section className="mb-8" aria-label="Tags">
+            <h3 className="text-sm font-semibold text-neutral-800 mb-3 flex items-center gap-1.5 dark:text-neutral-200">
+              <Tag size={14} />
+              {selectedCategory ? `Popular in ${selectedCategory}` : "Popular tags"}
+            </h3>
+            <div className="flex flex-wrap gap-2">{topTags.map(tagPill)}</div>
+
+            {moreTags.length > 0 && (
+              <details className="group mt-3">
+                <summary className="inline-flex items-center gap-1 cursor-pointer list-none text-xs font-medium text-neutral-800 hover:text-foreground [&::-webkit-details-marker]:hidden dark:text-neutral-200 dark:hover:text-white">
+                  <span className="group-open:hidden">
+                    Show {moreTags.length} more
+                  </span>
+                  <span className="hidden group-open:inline">Show less</span>
+                  <ChevronDown
+                    size={14}
+                    className="transition-transform group-open:rotate-180"
+                  />
+                </summary>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {moreTags.map(tagPill)}
+                </div>
+              </details>
+            )}
+          </section>
+        )}
+
+        {/* Active filters + result count */}
+        <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[28px] dark:text-neutral-200">
+          <span className="text-xs text-neutral-800 dark:text-white">
+            {error
+              ? ""
+              : `${products.length} item${products.length === 1 ? "" : "s"}`}
+          </span>
+          {selectedCategory && (
+            <FilterChip
+              label={selectedCategory}
+              href={buildHref({ category: null, tag: null })}
+            />
+          )}
+          {activeTag && (
+            <FilterChip
+              label={`#${activeTagLabel}`}
+              href={buildHref({ tag: null })}
+            />
+          )}
+          {(selectedCategory || activeTag) && (
+            <Link
+              href={BASE_PATH}
+              className="text-xs font-medium text-red-400 hover:underline ml-1"
+            >
+              Clear all
+            </Link>
+          )}
         </div>
 
-        {/* Tag Filters */}
-        {allTags.length > 0 && (
-          <div className="mb-10">
-            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <Tag size={14} /> Popular Tags
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {allTags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/marketplace?${selectedCategory ? `category=${encodeURIComponent(selectedCategory)}&` : ""
-                    }tag=${encodeURIComponent(tag)}`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTag === tag
-                    ? "bg-yellow-500 text-black font-bold"
-                    : "bg-muted text-muted-foreground border border-border hover:text-foreground"
-                    }`}
-                >
-                  #{tag}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Active Filters Bar */}
-        {(selectedCategory || activeTag) && (
-          <div className="mb-6 flex items-center gap-3">
-            <span className="text-xs text-neutral-400">Active filters:</span>
-            <Link
-              href="/marketplace"
-              className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold hover:bg-red-500/20"
-            >
-              <X size={12} /> Clear Filters
-            </Link>
-          </div>
-        )}
-
-        {/* 4. PRODUCT LISTING GRID */}
+        {/* Product grid */}
         {error ? (
           <div className="text-center py-20 text-red-500 font-semibold">
-            Error loading marketplace data.
+            Couldn't load items. Please refresh the page.
           </div>
-        ) : products?.length === 0 ? (
-          <div className="text-center py-24 bg-neutral-50 dark:bg-neutral-900/40 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 animate-in fade-in duration-500">
-            <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium">
+        ) : products.length === 0 ? (
+          <div className="text-center py-24 bg-stone-200 rounded-3xl border border-dashed border-neutral-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+            <p className="text-neutral-800 text-base font-medium dark:text-white">
               {selectedCategory
-                ? `No products found in "${selectedCategory}".`
-                : "No products match your active filters."}
+                ? `No items found in "${selectedCategory}"${activeTag ? ` with #${activeTagLabel}` : ""
+                }.`
+                : "No items match these filters."}
             </p>
             <Link
-              href="/marketplace"
-              className="text-blue-600 dark:text-blue-400 font-bold mt-4 inline-block hover:underline"
+              href={BASE_PATH}
+              className="text-red-500 font-semibold mt-3 inline-block hover:underline text-sm"
             >
-              Clear filter and see all items
+              Clear filters
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {products?.map((product, index) => {
-              const sellerName = product.profiles?.full_name || "Unknown Seller";
-              const coverImage = product.image_urls?.[0] || "/placeholder.png";
-
-              return (
-                <Link
-                  href={`/products/${product.id}`}
-                  key={product.id}
-                  className="block group transition-all duration-300 hover:-translate-y-1 active:scale-95"
-                >
-                  <ProductCard
-                    title={product.title}
-                    price={product.price}
-                    seller={sellerName}
-                    image={coverImage}
-                    category={product.categories?.name}
-                    tags={product.tags}
-                    priority={index < 4}
-                  />
-                </Link>
-              );
-            })}
+            {products.map((product, index) => (
+              <Link
+                href={`/products/${product.id}`}
+                key={product.id}
+                className="block group transition-all duration-300 hover:-translate-y-1 active:scale-95"
+              >
+                <ProductCard
+                  title={product.title}
+                  price={product.price}
+                  seller={product.profiles?.full_name || "Unknown Seller"}
+                  image={product.image_urls?.[0] || "/placeholder.png"}
+                  category={product.categories?.name}
+                  tags={product.tags}
+                  priority={index < 4}
+                />
+              </Link>
+            ))}
           </div>
         )}
       </div>
 
       <footer className="w-full h-2 bg-background shrink-0" />
     </div>
+  );
+}
+
+function FilterChip({ label, href }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-200 text-xs font-medium hover:bg-neutral-700"
+      aria-label={`Remove filter ${label}`}
+    >
+      {label}
+      <X size={12} />
+    </Link>
   );
 }

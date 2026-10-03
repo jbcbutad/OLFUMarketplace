@@ -163,7 +163,8 @@ export default function AiChatPage() {
             >
               <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border ${isUser
                 ? 'bg-foreground text-background border-transparent'
-                : 'bg-white dark:bg-neutral-900 text-indigo-500 border-indigo-500/50'}`}>
+                : 'bg-white text-indigo-500 border-indigo-500/50'
+                }`}>
                 {isUser ? <User size={14} /> : <Bot size={14} />}
               </div>
               <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${isUser
@@ -178,7 +179,8 @@ export default function AiChatPage() {
 
         {loading && (
           <div className="flex items-start gap-3 mr-auto max-w-[70%]">
-            <div className="w-8 h-8 rounded-full bg-white dark:bg-neutral-900 text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">              <Bot size={14} />
+            <div className="w-8 h-8 rounded-full bg-white text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <Bot size={14} />
             </div>
             <div className="p-4 rounded-2xl bg-card border border-border text-muted-foreground rounded-tl-none flex items-center gap-2 text-xs font-medium">
               <Loader2 size={14} className="animate-spin text-indigo-500" /> AI is thinking...
@@ -189,12 +191,12 @@ export default function AiChatPage() {
       </div>
 
       {/* SUGGESTION QUICK PILLS */}
-      <div className="bg-white dark:bg-neutral-900 max-w-4xl w-full mx-auto px-4 pb-2 flex flex-wrap gap-2">
+      <div className="dark:bg-neutral-900 max-w-4xl w-full mx-auto px-4 pb-2 flex flex-wrap gap-2">
         {["How do I create a listing?", "Where are my transactions?", "How do I report a user?"].map((suggestion) => (
           <button
             key={suggestion}
             onClick={() => setInput(suggestion)}
-            className="px-3 py-1.5 rounded-full bg-muted border border-border text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-full bg-white border border-border text-[11px] font-semibold text-muted-foreground hover:border border-black hover:text-foreground hover:bg-neutral-800 transition-colors cursor-pointer dark:text-black"
           >
             {suggestion}
           </button>
@@ -202,11 +204,11 @@ export default function AiChatPage() {
       </div>
 
       {/* INPUT FORM FOOTER */}
-      <div className="border-t border-border bg-card/80 backdrop-blur-md p-4 sticky bottom-0 z-20">
+      <div className="border-t border-border bg-card/80 backdrop-blur-md p-4 sticky bottom-0 z-20 dark:text-black">
         <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-2">
           <input
             type="text"
-            className="flex-grow bg-muted border border-border rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 placeholder:text-muted-foreground"
+            className="flex-grow bg-white border border-border rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-foreground/20 placeholder:text-muted-foreground dark:text-black"
             placeholder="Ask AI assistant anything about the marketplace..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
