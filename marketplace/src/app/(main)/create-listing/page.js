@@ -64,6 +64,8 @@ const compressToBlob = (file, maxSize = 768, quality = 0.7) =>
     img.src = url;
   });
 
+// Tags the app controls: users can't add these by hand, and they aren't sent to AI moderation
+const RESERVED_TAGS = ["official-merch", "flagged", "pending", "expired"];
 function CreateListingContent() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -176,6 +178,10 @@ function CreateListingContent() {
 
   const addTag = (tagToAdd) => {
     const cleanTag = tagToAdd.trim().toLowerCase();
+    if (RESERVED_TAGS.includes(cleanTag)) {
+      alert(`"${cleanTag}" is a reserved tag and can't be added manually.`);
+      return;
+    }
     if (cleanTag && !tags.includes(cleanTag)) {
       setTags([...tags, cleanTag]);
     }
@@ -244,7 +250,9 @@ function CreateListingContent() {
         if (aiPrice !== undefined && aiPrice !== null) setPrice(aiPrice.toString());
 
         if (aiTags && Array.isArray(aiTags)) {
-          const cleanAiTags = aiTags.map(t => t.trim().toLowerCase());
+          const cleanAiTags = aiTags
+            .map(t => t.trim().toLowerCase())
+            .filter(t => t && !RESERVED_TAGS.includes(t));
           setTags(prev => [...new Set([...prev, ...cleanAiTags])]);
         }
       } else {
@@ -266,6 +274,10 @@ function CreateListingContent() {
 
     form.append("title", title.trim());
     form.append("description", description.trim());
+    form.append(
+      "tags",
+      JSON.stringify(tags.filter((t) => !RESERVED_TAGS.includes(t.toLowerCase())))
+    );
 
     const blobs = await Promise.all(
       images.map((file) => compressToBlob(file))
@@ -312,6 +324,26 @@ function CreateListingContent() {
       // 1. Run safety moderation check
       const moderation = await moderateListing();
 
+      // Bad tags: block the post and strip the offending tags so the seller can fix and retry
+      const badTags = Array.isArray(moderation.bad_tags) ? moderation.bad_tags : [];
+      const tagBlocked =
+        moderation.tag_verdict === "rejected" ||
+        (moderation.tag_verdict === "flagged" && badTags.length > 0);
+
+      if (tagBlocked) {
+        if (badTags.length > 0) {
+          const lower = badTags.map((t) => t.toLowerCase());
+          setTags((prev) => prev.filter((t) => !lower.includes(t.toLowerCase())));
+        }
+        alert(
+          badTags.length > 0
+            ? `These tags can't be used and were removed: ${badTags.map((t) => `#${t}`).join(", ")}. Please review your tags and post again.`
+            : `One of your tags can't be used: ${moderation.reason || "it appears to break our posting rules"}`
+        );
+        setLoading(false);
+        return;
+      }
+
       if (moderation.verdict === "rejected") {
         const sourceText =
           moderation.sources?.includes("text") &&
@@ -355,7 +387,12 @@ function CreateListingContent() {
       const uploadedUrls = await Promise.all(uploadPromises);
 
       let finalCategoryId = categoryId;
-      let finalTags = [...new Set([...tags, listingType])];
+      let finalTags = [
+        ...new Set([
+          ...tags.filter((t) => !RESERVED_TAGS.includes(t.toLowerCase())),
+          listingType,
+        ]),
+      ];
 
       if (isOfficialOrgMerch) {
         const merchCat = categories.find(c => c.name.toLowerCase() === "merchandise");
