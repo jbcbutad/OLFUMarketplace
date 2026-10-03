@@ -122,6 +122,15 @@ export async function proxy(request: NextRequest) {
 
       return NextResponse.redirect(url);
     }
+    // Audit logs: super admins only
+    if (
+      url.pathname.startsWith("/admin/audit-logs") &&
+      !["super_admin", "superadmin"].includes(role)
+    ) {
+      url.pathname = "/admin/reports";
+
+      return NextResponse.redirect(url);
+    }
 
     // Moderators cannot access /admin/users
     if (

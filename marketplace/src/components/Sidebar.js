@@ -28,6 +28,7 @@ import {
   Building2,
   ShieldCheck,
   Flag,
+  ScrollText,
 } from "lucide-react";
 
 function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }) {
@@ -473,6 +474,20 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                     {isOpen && <span className="truncate">Users Management</span>}
                   </Link>
                 </>
+              )}
+
+              {isSuper && (
+                <Link
+                  href="/admin/audit-logs"
+                  title="Audit Logs"
+                  className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${pathname.startsWith("/admin/audit-logs")
+                    ? themeConfig.activeLink
+                    : themeConfig.inactiveLink
+                    } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
+                >
+                  <ScrollText size={18} className={`${pathname.startsWith("/admin/audit-logs") ? "text-white" : themeConfig.icon} shrink-0`} />
+                  {isOpen && <span className="truncate">Audit Logs</span>}
+                </Link>
               )}
             </div>
           );
