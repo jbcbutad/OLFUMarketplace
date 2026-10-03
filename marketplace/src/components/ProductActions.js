@@ -11,6 +11,11 @@ import SendMessageToSeller from "@/components/SendMessageToSeller";
 import { Mail, Loader2, Building2, MessageSquare, ShieldCheck } from "lucide-react";
 import { getListingState } from "@/lib/listingStatus";
 
+// `border-border` is too light to see against stone-200, so every divider and
+// outline uses these instead. Change them here to restyle all lines at once.
+const LINE = "border-stone-400 dark:border-neutral-700";
+const CARD = `bg-stone-100 dark:bg-neutral-800/60 border ${LINE}`;
+
 export default function ProductActions({
   product,
   profile,
@@ -22,6 +27,7 @@ export default function ProductActions({
   const [loading, setLoading] = useState(true);
   const [orderQty, setOrderQty] = useState(1);
   const [inquiring, setInquiring] = useState(false);
+  const [orderError, setOrderError] = useState(null);
   const [existingRoomId, setExistingRoomId] = useState(null);
   const router = useRouter();
 
@@ -62,17 +68,17 @@ export default function ProductActions({
   // 👉 Handle Merchandise Inquiry & Messaging Flow
   const handleInquireMerchandise = async () => {
     if (!currentUserId) {
-      alert("Please log in to purchase merchandise.");
       router.push("/login");
       return;
     }
 
     if (orderQty > stockAvailable) {
-      alert(`Only ${stockAvailable} units left in stock!`);
+      setOrderError(`Only ${stockAvailable} units left in stock.`);
       return;
     }
 
     setInquiring(true);
+    setOrderError(null);
 
     try {
       const { data: roomId, error } = await supabase.rpc("get_or_create_product_room", {
@@ -91,9 +97,10 @@ export default function ProductActions({
         throw new Error(d.error || "Failed to send order message.");
       }
 
+      // The button stays in its loading state until the redirect finishes
       router.push(`/chat/${roomId}?sellerId=${product.seller_id}&productId=${product.id}`);
     } catch (err) {
-      alert("Failed to open chat: " + err.message);
+      setOrderError(err.message || "Failed to open chat. Please try again.");
       setInquiring(false);
     }
   };
@@ -105,7 +112,7 @@ export default function ProductActions({
   return (
     <div className="space-y-6">
       {/* Seller info first */}
-      <div className="pt-4 border-t border-border">
+      <div className={`pt-4 border-t ${LINE}`}>
         {/* Clickable Seller Profile Link */}
         <Link
           href={`/profile/${product.seller_id}`}
@@ -115,7 +122,7 @@ export default function ProductActions({
           <div className="relative shrink-0">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold overflow-hidden shadow-md transition-all ${isVerifiedOrg
               ? "border-2 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)] bg-emerald-600 text-white"
-              : "border-2 border-neutral-300 dark:border-neutral-700 bg-muted text-foreground"
+              : `border-2 ${LINE} bg-stone-300 dark:bg-neutral-800 text-neutral-900 dark:text-white`
               }`}>
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="Seller Avatar" className="w-full h-full object-cover" />
@@ -151,25 +158,25 @@ export default function ProductActions({
 
       {/* Logged-out visitors can browse but not contact the seller */}
       {canBuy && !currentUserId ? (
-        <div className="pt-4 border-t border-border">
-          <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-3 text-center">
-            <p className="text-xs font-bold text-muted-foreground">
+        <div className={`pt-4 border-t ${LINE}`}>
+          <div className={`p-4 rounded-2xl ${CARD} space-y-3 text-center`}>
+            <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
               Log in to message the seller or make an offer.
             </p>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition-opacity text-xs"
+              className="inline-flex items-center justify-center px-5 py-2.5 bg-foreground text-background font-bold rounded-xl hover:opacity-90 transition-opacity text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Log in
             </Link>
           </div>
         </div>
       ) : canBuy ? (
-        <div className="space-y-4 pt-4 border-t border-border">
+        <div className={`space-y-4 pt-4 border-t ${LINE}`}>
 
           {/* 👉 MERCHANDISE QUANTITY & MESSAGING / INQUIRY FLOW */}
           {isMerchandise ? (
-            <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-4">
+            <div className={`p-4 ${CARD} rounded-2xl space-y-4`}>
               <div className="flex items-center justify-between text-xs font-bold text-foreground">
                 <span>Select Quantity:</span>
                 <span className="text-emerald-600 dark:text-emerald-400">{stockAvailable} Units Available</span>
@@ -182,12 +189,13 @@ export default function ProductActions({
                   max={stockAvailable}
                   value={orderQty}
                   onChange={(e) => setOrderQty(Math.min(parseInt(e.target.value) || 1, stockAvailable))}
-                  className="w-24 bg-background border border-border rounded-xl px-3 py-2 text-xs font-bold text-foreground outline-none"
+                  aria-label="Quantity"
+                  className="w-24 bg-stone-200 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-neutral-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 transition-all dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:focus:border-emerald-600"
                 />
                 <button
                   onClick={handleInquireMerchandise}
                   disabled={inquiring || stockAvailable <= 0}
-                  className="flex-1 py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="flex-1 py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   {inquiring ? (
                     <><Loader2 className="animate-spin" size={16} /> Opening Chat...</>
@@ -198,6 +206,11 @@ export default function ProductActions({
                   )}
                 </button>
               </div>
+              {orderError && (
+                <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400 text-center">
+                  {orderError}
+                </p>
+              )}
               <p className="text-[11px] text-muted-foreground text-center">
                 Clicking this opens a chat with the organization to send your GCash receipt.
               </p>
@@ -212,8 +225,8 @@ export default function ProductActions({
           )}
         </div>
       ) : (
-        <div className="pt-4 border-t border-border">
-          <div className="p-4 rounded-2xl bg-muted/40 border border-border text-xs font-bold text-muted-foreground">
+        <div className={`pt-4 border-t ${LINE}`}>
+          <div className={`p-4 rounded-2xl ${CARD} text-xs font-bold text-neutral-700 dark:text-neutral-300`}>
             {listingState === "expired"
               ? "This listing has expired."
               : "This listing is no longer available."}
@@ -221,12 +234,9 @@ export default function ProductActions({
         </div>
       )}
 
-      {/* Message box (logged-in buyers only) */}
+      {/* Message box (logged-in buyers only). It draws its own top divider. */}
       {currentUserId && (
-        <div className="pt-6 border-t border-border">
-
-          <SendMessageToSeller sellerId={product.seller_id} productId={product.id} existingRoomId={existingRoomId} />
-        </div>
+        <SendMessageToSeller sellerId={product.seller_id} productId={product.id} existingRoomId={existingRoomId} />
       )}
     </div>
   );

@@ -89,12 +89,12 @@ export default function MakeOffer({
 
   return (
     <div className="space-y-2.5">
-      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+      <label className="text-xs font-bold uppercase tracking-wider text-black dark:text-white">
         Offer a Price (₱)
       </label>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 ">
         <div className="relative grow">
-          <PhilippinePeso className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+          <PhilippinePeso className="absolute left-3.5 top-1/2 -translate-y-1/2 text-black dark:text-white" size={18} />
           <input
             type="number"
             min="1"
@@ -102,13 +102,13 @@ export default function MakeOffer({
             onChange={(e) => setOfferAmount(e.target.value)}
             placeholder="0.00"
             disabled={loading}
-            className="w-full bg-muted border border-border text-foreground rounded-xl py-2.5 pl-9 pr-4 text-sm font-semibold focus:ring-2 focus:ring-foreground/20 outline-none transition-all placeholder:text-muted-foreground/60 disabled:opacity-50"
+            className="w-full bg-muted border border-black text-foreground rounded-xl py-2.5 pl-9 pr-4 text-sm font-semibold focus:ring-2 focus:ring-foreground/20 outline-none transition-all placeholder:text-muted-foreground/60 disabled:opacity-50"
           />
         </div>
         <button
           onClick={handleOffer}
           disabled={!offerAmount || Number(offerAmount) <= 0 || loading}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-xl transition-all active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm cursor-pointer"
         >
           {loading ? (
             <Loader2 size={18} className="animate-spin" />
