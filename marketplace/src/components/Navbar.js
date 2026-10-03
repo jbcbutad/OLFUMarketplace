@@ -78,6 +78,8 @@ export default function Navbar() {
   return (
     <nav className="navigation-surface h-20 border-b border-neutral-200/80 dark:border-neutral-800/80 text-foreground px-6 flex items-center justify-between sticky top-0 z-50 transition-colors">
       <div className="flex items-center space-x-6 flex-1">
+        {/* LOGO: the image already includes the "O.L.F.U Marketplace" text,
+            so we swap between the light and dark versions by theme. */}
         <Link href="/marketplace" className="flex items-center shrink-0" aria-label="OLFU Marketplace home">
           <Image
             src="/olfu_logo_light.png"
