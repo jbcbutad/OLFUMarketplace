@@ -1,0 +1,898 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
+.olfu {
+    --bg: #F7F5EF;
+    --surface: #FFFFFF;
+    --ink: #1D2A22;
+    --ink-soft: #5B6A5F;
+    --line: #E7E2D6;
+    --green: #1F5A3F;
+    --green-deep: #123826;
+    --green-tint: #E7F0EA;
+    --gold: #C68A2E;
+    --gold-soft: #F3E3C4;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px)
+}
+
+@media (prefers-color-scheme:dark) {
+    .olfu:not([data-theme="light"]) {
+        --bg: #0F1511;
+        --surface: #182019;
+        --ink: #EDEFE9;
+        --ink-soft: #96A395;
+        --line: #2A342D;
+        --green: #4CAE84;
+        --green-deep: #8FD9B3;
+        --green-tint: #17231C;
+        --gold: #E3B25E;
+        --gold-soft: #3A2F1B
+    }
+}
+
+.olfu[data-theme="dark"] {
+    --bg: #0F1511;
+    --surface: #182019;
+    --ink: #EDEFE9;
+    --ink-soft: #96A395;
+    --line: #2A342D;
+    --green: #4CAE84;
+    --green-deep: #8FD9B3;
+    --green-tint: #17231C;
+    --gold: #E3B25E;
+    --gold-soft: #3A2F1B
+}
+
+.olfu,
+.olfu * {
+    box-sizing: border-box
+}
+
+.olfu h1,
+.olfu h2,
+.olfu h3,
+.olfu .brand,
+.olfu .stat b {
+    font-family: 'Fraunces', serif
+}
+
+.olfu a {
+    color: inherit
+}
+
+.olfu .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 6%
+}
+
+.olfu .topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 6%;
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line)
+}
+
+.olfu .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--green-deep)
+}
+
+.olfu .brand .mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--green), #2E8C63);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 15px
+}
+
+.olfu .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+    align-items: center
+}
+
+.olfu .btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .15s ease, box-shadow .15s ease
+}
+
+.olfu .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(20, 50, 35, .16)
+}
+
+.olfu .btn.primary {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff
+}
+
+.olfu .btn.gold {
+    background: #E3B25E;
+    border-color: #E3B25E;
+    color: #2A1D05
+}
+
+.olfu .btn.ghost {
+    background: rgba(255, 255, 255, .08);
+    border-color: rgba(255, 255, 255, .28);
+    color: #fff
+}
+
+.olfu .btn.large {
+    padding: 14px 28px;
+    font-size: 15px
+}
+
+.olfu .icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer
+}
+
+.olfu .hero-band {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    background: radial-gradient(1200px 500px at 85% -10%, #2E8C63 0%, transparent 60%), radial-gradient(800px 500px at 0% 110%, #B8842B55 0%, transparent 60%), linear-gradient(160deg, #0E3323 0%, #154A34 55%, #0B2A1D 100%)
+}
+
+.olfu .hero-band::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, .14) 1px, transparent 1.2px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 100%)
+}
+
+.olfu .glow {
+    position: absolute;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(227, 178, 94, .28), transparent 65%);
+    left: 0;
+    top: 0;
+    transform: translate(-50%, -50%);
+    transition: opacity .3s;
+    opacity: 0
+}
+
+.olfu .hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 40px;
+    align-items: center;
+    padding: 84px 0 96px
+}
+
+.olfu .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .2);
+    margin-bottom: 22px
+}
+
+.olfu .pill i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #7CE3B0;
+    box-shadow: 0 0 0 4px rgba(124, 227, 176, .25)
+}
+
+.olfu .hero h1 {
+    font-size: clamp(36px, 5vw, 60px);
+    line-height: 1.05;
+    margin: 0 0 20px;
+    font-weight: 700;
+    letter-spacing: -.01em
+}
+
+.olfu .rot {
+    display: inline-block;
+    color: #E3B25E;
+    position: relative;
+    min-width: 3ch
+}
+
+.olfu .rot::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -4px;
+    height: 3px;
+    border-radius: 2px;
+    background: #E3B25E;
+    opacity: .5
+}
+
+.olfu .hero p {
+    font-size: 17px;
+    line-height: 1.55;
+    max-width: 46ch;
+    color: rgba(255, 255, 255, .78);
+    margin: 0 0 30px
+}
+
+.olfu .hero-ctas {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap
+}
+
+.olfu .hero-visual {
+    position: relative;
+    height: 400px
+}
+
+.olfu .float-card {
+    position: absolute;
+    width: 184px;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 22px 40px rgba(0, 0, 0, .35);
+    cursor: pointer;
+    animation: bob 6s ease-in-out infinite
+}
+
+.olfu .float-card:hover {
+    z-index: 5;
+    box-shadow: 0 26px 50px rgba(0, 0, 0, .45)
+}
+
+.olfu .float-cover {
+    height: 84px;
+    border-radius: 9px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-end;
+    padding: 8px 10px;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: rgba(0, 0, 0, .7);
+    position: relative;
+    overflow: hidden
+}
+
+.olfu .float-cover::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 9px;
+    background: rgba(0, 0, 0, .16)
+}
+
+.olfu .float-card .t {
+    font-size: 13px;
+    font-weight: 600
+}
+
+.olfu .float-card .p {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1F5A3F;
+    margin-top: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center
+}
+
+.olfu .float-card .p small {
+    font-weight: 500;
+    color: #6B7A6F;
+    font-size: 11px
+}
+
+.olfu .fc1 {
+    top: 0;
+    left: 6%;
+    --r: -6deg;
+    animation-delay: 0s
+}
+
+.olfu .fc2 {
+    top: 110px;
+    left: 46%;
+    --r: 5deg;
+    animation-delay: -2s;
+    z-index: 2
+}
+
+.olfu .fc3 {
+    top: 236px;
+    left: 2%;
+    --r: 3deg;
+    animation-delay: -4s
+}
+
+.olfu .fc4 {
+    top: 290px;
+    left: 52%;
+    --r: -4deg;
+    animation-delay: -1s
+}
+
+@keyframes bob {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(var(--r))
+    }
+
+    50% {
+        transform: translateY(-12px) rotate(var(--r))
+    }
+}
+
+.olfu .marquee {
+    background: var(--gold-soft);
+    border-block: 1px solid var(--line);
+    overflow: hidden;
+    padding: 14px 0
+}
+
+.olfu .track {
+    display: flex;
+    gap: 14px;
+    width: max-content;
+    animation: scroll 40s linear infinite
+}
+
+.olfu .marquee:hover .track {
+    animation-play-state: paused
+}
+
+.olfu .mchip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap
+}
+
+.olfu .mchip b {
+    color: var(--green-deep)
+}
+
+@keyframes scroll {
+    to {
+        transform: translateX(-50%)
+    }
+}
+
+.olfu section.block {
+    padding: 84px 0;
+    position: relative
+}
+
+.olfu .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity .65s ease, transform .65s ease
+}
+
+.olfu .reveal.in {
+    opacity: 1;
+    transform: none
+}
+
+.olfu .eyebrow {
+    font-size: 13px;
+    color: var(--green);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin: 0 0 10px
+}
+
+.olfu .head {
+    max-width: 60ch;
+    margin-bottom: 40px
+}
+
+.olfu .head h2 {
+    font-size: clamp(28px, 3.4vw, 40px);
+    margin: 0 0 12px;
+    color: var(--green-deep);
+    font-weight: 700;
+    line-height: 1.12
+}
+
+.olfu .head p {
+    color: var(--ink-soft);
+    font-size: 16px;
+    line-height: 1.55;
+    margin: 0
+}
+
+.olfu .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    margin-top: 48px;
+    position: relative;
+    z-index: 3;
+    box-shadow: 0 18px 40px rgba(15, 40, 28, .12)
+}
+
+.olfu .stat {
+    padding: 26px 24px;
+    border-right: 1px solid var(--line)
+}
+
+.olfu .stat:last-child {
+    border-right: none
+}
+
+.olfu .stat b {
+    display: block;
+    font-size: 34px;
+    color: var(--green-deep);
+    font-weight: 700
+}
+
+.olfu .stat span {
+    font-size: 13px;
+    color: var(--ink-soft)
+}
+
+.olfu .bento {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: minmax(150px, auto);
+    gap: 18px
+}
+
+.olfu .tile {
+    border-radius: 20px;
+    padding: 28px;
+    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease
+}
+
+.olfu .tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(15, 40, 28, .14)
+}
+
+.olfu .tile h3 {
+    font-size: 21px;
+    margin: 0 0 8px;
+    font-weight: 600
+}
+
+.olfu .tile p {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.55;
+    opacity: .85;
+    max-width: 38ch
+}
+
+.olfu .tile .num {
+    font-family: 'Fraunces', serif;
+    font-size: 56px;
+    font-weight: 700;
+    opacity: .16;
+    position: absolute;
+    right: 20px;
+    bottom: -6px;
+    line-height: 1
+}
+
+.olfu .t1 {
+    grid-column: span 3;
+    grid-row: span 2;
+    background: linear-gradient(160deg, #154A34, #0E3323);
+    color: #fff;
+    border-color: transparent
+}
+
+.olfu .t2 {
+    grid-column: span 3;
+    background: var(--gold-soft);
+    color: #2A1D05
+}
+
+.olfu .t3 {
+    grid-column: span 3;
+    background: var(--green-tint);
+    color: var(--ink)
+}
+
+.olfu .t4 {
+    grid-column: span 2;
+    background: var(--surface)
+}
+
+.olfu .t5 {
+    grid-column: span 2;
+    background: #E8DFF0;
+    color: #2A1B3D
+}
+
+.olfu .t6 {
+    grid-column: span 2;
+    background: #DCE0EA;
+    color: #1B2440
+}
+
+.olfu .t1 .chatdemo {
+    margin-top: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px
+}
+
+.olfu .bubble {
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13.5px;
+    line-height: 1.4
+}
+
+.olfu .bubble.a {
+    background: rgba(255, 255, 255, .14);
+    border-bottom-left-radius: 4px
+}
+
+.olfu .bubble.b {
+    background: #E3B25E;
+    color: #2A1D05;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px
+}
+
+.olfu .bubble.warn {
+    background: rgba(255, 120, 100, .18);
+    border: 1px dashed rgba(255, 150, 130, .5);
+    font-size: 12px;
+    align-self: center;
+    max-width: 100%
+}
+
+.olfu .cats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px
+}
+
+.olfu .cat {
+    border-radius: 20px;
+    padding: 24px 22px;
+    min-height: 190px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-decoration: none;
+    color: rgba(0, 0, 0, .82);
+    border: 1px solid rgba(0, 0, 0, .06);
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease
+}
+
+.olfu .cat:hover {
+    transform: translateY(-6px) rotate(-.6deg);
+    box-shadow: 0 18px 34px rgba(15, 40, 28, .2)
+}
+
+.olfu .cat .ico {
+    font-size: 40px;
+    line-height: 1;
+    transition: transform .25s ease
+}
+
+.olfu .cat:hover .ico {
+    transform: scale(1.2) rotate(-8deg)
+}
+
+.olfu .cat span {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    display: block
+}
+
+.olfu .cat small {
+    font-size: 13px;
+    opacity: .65
+}
+
+.olfu .cat .go {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: background .2s, transform .2s
+}
+
+.olfu .cat:hover .go {
+    background: rgba(0, 0, 0, .85);
+    color: #fff;
+    transform: translate(3px, -3px)
+}
+
+.olfu .trust {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+    background: var(--green-tint);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 48px
+}
+
+.olfu .trust h2 {
+    font-size: 30px;
+    color: var(--green-deep);
+    margin: 0 0 12px;
+    line-height: 1.15
+}
+
+.olfu .trust p {
+    color: var(--ink-soft);
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0
+}
+
+.olfu .badge-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px
+}
+
+.olfu .badge {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+    border-radius: 14px
+}
+
+.olfu .badge svg {
+    flex-shrink: 0;
+    color: var(--green)
+}
+
+.olfu .cta-band {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    text-align: center;
+    padding: 90px 6%;
+    background: radial-gradient(700px 300px at 50% 0%, #2E8C63 0%, transparent 65%), linear-gradient(160deg, #0E3323, #154A34)
+}
+
+.olfu .cta-band::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, .12) 1px, transparent 1.2px);
+    background-size: 26px 26px
+}
+
+.olfu .cta-band>* {
+    position: relative
+}
+
+.olfu .cta-band h2 {
+    font-size: clamp(30px, 4vw, 46px);
+    margin: 0 0 14px;
+    font-weight: 700
+}
+
+.olfu .cta-band p {
+    color: rgba(255, 255, 255, .78);
+    margin: 0 0 28px;
+    font-size: 16px
+}
+
+.olfu footer {
+    padding: 26px 6%;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center
+}
+
+.olfu .backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 15, 12, .55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50
+}
+
+.olfu .backdrop.open {
+    display: flex
+}
+
+.olfu .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    max-width: 340px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--line)
+}
+
+.olfu .modal-cover {
+    height: 130px;
+    position: relative
+}
+
+.olfu .modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .8);
+    border: none;
+    cursor: pointer
+}
+
+.olfu .modal-body {
+    padding: 18px 20px 20px
+}
+
+.olfu .modal-body h3 {
+    margin: 0 0 6px;
+    font-size: 18px
+}
+
+.olfu .modal-price {
+    color: var(--green-deep);
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 8px
+}
+
+.olfu .modal-seller {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 16px
+}
+
+.olfu .modal-actions {
+    display: flex;
+    gap: 10px
+}
+
+.olfu .modal-actions .btn {
+    flex: 1;
+    justify-content: center
+}
+
+@media (max-width:900px) {
+    .olfu .hero {
+        grid-template-columns: 1fr;
+        padding: 56px 0 72px
+    }
+
+    .olfu .hero-visual {
+        display: none
+    }
+
+    .olfu .stats {
+        grid-template-columns: 1fr 1fr
+    }
+
+    .olfu .stat:nth-child(2) {
+        border-right: none
+    }
+
+    .olfu .stat:nth-child(-n+2) {
+        border-bottom: 1px solid var(--line)
+    }
+
+    .olfu .bento {
+        grid-template-columns: 1fr
+    }
+
+    .olfu .tile {
+        grid-column: auto !important;
+        grid-row: auto !important
+    }
+
+    .olfu .cats {
+        grid-template-columns: 1fr 1fr
+    }
+
+    .olfu .trust {
+        grid-template-columns: 1fr;
+        padding: 28px
+    }
+}
+
+.olfu {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden
+}
