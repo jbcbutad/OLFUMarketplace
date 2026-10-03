@@ -342,13 +342,12 @@ function MyListingsContent() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b border-neutral-200 dark:border-neutral-800 pb-4 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "all" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
-          >
-            All Listings ({listings.length})
-          </button>
+        <div className="flex items-center gap-2 mb-6 border-b border-neutral-900 dark:border-neutral-200 pb-4 overflow-x-auto">          <button
+          onClick={() => setActiveTab("all")}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "all" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+        >
+          All Listings ({listings.length})
+        </button>
           <button
             onClick={() => setActiveTab("active")}
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "active" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
@@ -385,26 +384,26 @@ function MyListingsContent() {
 
               const isUnavailable = !item.is_available || isExpiredTag;
 
-              let cardBgStyles = "bg-neutral-50 dark:bg-neutral-900/60 border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md";
-              if (isFlagged) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-300 dark:border-neutral-800 opacity-75";
-              else if (isPendingAdmin) cardBgStyles = "bg-amber-50/40 dark:bg-amber-950/20 border-amber-500/50 shadow-sm";
+              let cardBgStyles = "bg-neutral-50 dark:bg-neutral-900 border-neutral-900 dark:border-white shadow-sm hover:shadow-md";
+              if (isFlagged) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-900 dark:border-white opacity-75";
+              else if (isPendingAdmin) cardBgStyles = "bg-amber-50/40 dark:bg-amber-950/20 border-neutral-900 dark:border-white shadow-sm";
               else if (isExpiredTag) cardBgStyles = "bg-red-500/10 dark:bg-red-950/30 border-red-500/40";
-              else if (isUnavailable) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-300 dark:border-neutral-800 opacity-75";
+              else if (isUnavailable) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-900 dark:border-white opacity-65";
 
               let currentStatusLabel = "Available";
-              let dropdownTriggerStyles = "bg-foreground text-background border-foreground";
+              let dropdownTriggerStyles = "bg-foreground text-background border-neutral-900 dark:border-white";
               if (isFlagged) {
                 currentStatusLabel = "Flagged";
-                dropdownTriggerStyles = "bg-rose-600 text-white border-rose-700";
+                dropdownTriggerStyles = "bg-rose-600 text-white border-neutral-900 dark:border-white";
               } else if (isPendingAdmin) {
                 currentStatusLabel = "Awaiting Admin";
-                dropdownTriggerStyles = "bg-amber-500 text-black border-amber-600";
+                dropdownTriggerStyles = "bg-amber-500 text-black border-neutral-900 dark:border-white";
               } else if (isExpiredTag) {
                 currentStatusLabel = "Expired";
                 dropdownTriggerStyles = "bg-red-600 text-white border-red-600";
               } else if (isUnavailable) {
                 currentStatusLabel = "Unavailable";
-                dropdownTriggerStyles = "bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700";
+                dropdownTriggerStyles = "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border-neutral-900 dark:border-white";
               }
 
               return (

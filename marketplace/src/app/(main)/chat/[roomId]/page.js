@@ -448,14 +448,13 @@ export default function ChatRoom() {
 
       <div className="max-w-3xl w-full mx-auto h-full flex flex-col border-x border-border overflow-hidden">
         {/* HEADER BAR */}
-        <div className="p-4 border-b border-border bg-card flex items-center gap-4 relative z-40 shrink-0">
-          <button
-            onClick={() => router.push("/chat")}
-            className="text-foreground hover:bg-accent hover:text-foreground transition-colors p-2 rounded-full cursor-pointer"
-            title="Back to messages"
-          >
-            <ArrowLeft size={20} />
-          </button>
+        <div className="p-4 border-b border-border bg-white dark:bg-neutral-900 flex items-center gap-4 relative z-40 shrink-0">          <button
+          onClick={() => router.push("/chat")}
+          className="text-foreground hover:bg-accent hover:text-foreground transition-colors p-2 rounded-full cursor-pointer"
+          title="Back to messages"
+        >
+          <ArrowLeft size={20} />
+        </button>
 
           {/* Clickable Profile Link */}
           {otherUser?.id ? (
@@ -463,7 +462,7 @@ export default function ChatRoom() {
               href={`/profile/${otherUser.id}`}
               className="flex items-center gap-3 flex-1 min-w-0 group hover:opacity-80 transition-opacity"
             >
-              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-foreground font-bold overflow-hidden shrink-0 border border-border">
+              <div className="w-10 h-10 bg-white dark:bg-neutral-900 rounded-full flex items-center justify-center text-foreground font-bold overflow-hidden shrink-0 border border-border">
                 {otherUser?.avatar_url ? (
                   <img
                     src={otherUser.avatar_url}

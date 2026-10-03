@@ -162,14 +162,13 @@ export default function AiChatPage() {
                 }`}
             >
               <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border ${isUser
-                  ? 'bg-foreground text-background border-transparent'
-                  : 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
-                }`}>
+                ? 'bg-foreground text-background border-transparent'
+                : 'bg-white dark:bg-neutral-900 text-indigo-500 border-indigo-500/50'}`}>
                 {isUser ? <User size={14} /> : <Bot size={14} />}
               </div>
               <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${isUser
-                  ? 'bg-foreground text-background rounded-tr-none font-medium'
-                  : 'bg-card border border-border text-foreground rounded-tl-none font-normal'
+                ? 'bg-foreground text-background rounded-tr-none font-medium'
+                : 'bg-white dark:bg-neutral-900 border border-border text-foreground rounded-tl-none font-normal'
                 }`}>
                 {msg.content}
               </div>
@@ -179,8 +178,7 @@ export default function AiChatPage() {
 
         {loading && (
           <div className="flex items-start gap-3 mr-auto max-w-[70%]">
-            <div className="w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
-              <Bot size={14} />
+            <div className="w-8 h-8 rounded-full bg-white dark:bg-neutral-900 text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">              <Bot size={14} />
             </div>
             <div className="p-4 rounded-2xl bg-card border border-border text-muted-foreground rounded-tl-none flex items-center gap-2 text-xs font-medium">
               <Loader2 size={14} className="animate-spin text-indigo-500" /> AI is thinking...
@@ -191,7 +189,7 @@ export default function AiChatPage() {
       </div>
 
       {/* SUGGESTION QUICK PILLS */}
-      <div className="max-w-4xl w-full mx-auto px-4 pb-2 flex flex-wrap gap-2">
+      <div className="bg-white dark:bg-neutral-900 max-w-4xl w-full mx-auto px-4 pb-2 flex flex-wrap gap-2">
         {["How do I create a listing?", "Where are my transactions?", "How do I report a user?"].map((suggestion) => (
           <button
             key={suggestion}

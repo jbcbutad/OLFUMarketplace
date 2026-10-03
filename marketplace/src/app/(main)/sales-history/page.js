@@ -124,18 +124,16 @@ export default function SalesHistoryPage() {
                 </div>
 
                 {/* THEMED FILTER & CONTROL BAR */}
-                <div className="bg-card border border-border rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
-                    {/* Search Input */}
-                    <div className="relative w-full md:w-72">
-                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                            type="text"
-                            placeholder="Search title or buyer..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-muted/60 border border-border rounded-xl pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-yellow-500 transition-colors"
-                        />
-                    </div>
+                <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">                    <div className="relative w-full md:w-72">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                        type="text"
+                        placeholder="Search title or buyer..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-muted/60 border border-border rounded-xl pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-yellow-500 transition-colors"
+                    />
+                </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                         {/* Transaction Type Filter */}
@@ -145,8 +143,8 @@ export default function SalesHistoryPage() {
                                     key={type}
                                     onClick={() => setFilterType(type)}
                                     className={`px-3 py-1.5 rounded-lg capitalize transition-all ${filterType === type
-                                            ? "bg-yellow-500 text-black shadow-xs font-black"
-                                            : "text-muted-foreground hover:text-foreground"
+                                        ? "bg-yellow-500 text-black shadow-xs font-black"
+                                        : "text-muted-foreground hover:text-foreground"
                                         }`}
                                 >
                                     {type}
@@ -181,31 +179,30 @@ export default function SalesHistoryPage() {
                             const existingReview = reviewsMap[tx.id];
 
                             return (
-                                <div key={tx.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
-                                    <div className="flex items-center gap-4">
-                                        <img src={product?.image_urls?.[0] || "/placeholder.png"} alt={product?.title} className="w-16 h-16 rounded-xl object-cover border border-border bg-muted shrink-0" />
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                                                    {tx.status}
+                                <div key={tx.id} className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">                                    <div className="flex items-center gap-4">
+                                    <img src={product?.image_urls?.[0] || "/placeholder.png"} alt={product?.title} className="w-16 h-16 rounded-xl object-cover border border-border bg-muted shrink-0" />
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                                                {tx.status}
+                                            </span>
+                                            {tx.transaction_type && (
+                                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-muted text-muted-foreground border-border">
+                                                    {tx.transaction_type}
                                                 </span>
-                                                {tx.transaction_type && (
-                                                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-muted text-muted-foreground border-border">
-                                                        {tx.transaction_type}
-                                                    </span>
-                                                )}
-                                                {product?.price && (
-                                                    <span className="text-xs font-bold text-yellow-500">
-                                                        ₱{Number(product.price).toLocaleString()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <h3 className="font-bold text-base text-foreground">{product?.title || "Item"}</h3>
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                                <User size={12} className="text-yellow-500" /> Buyer: <strong className="text-foreground">{buyerName}</strong>
-                                            </p>
+                                            )}
+                                            {product?.price && (
+                                                <span className="text-xs font-bold text-yellow-500">
+                                                    ₱{Number(product.price).toLocaleString()}
+                                                </span>
+                                            )}
                                         </div>
+                                        <h3 className="font-bold text-base text-foreground">{product?.title || "Item"}</h3>
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                            <User size={12} className="text-yellow-500" /> Buyer: <strong className="text-foreground">{buyerName}</strong>
+                                        </p>
                                     </div>
+                                </div>
 
                                     <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                                         {/* View Chat Button */}
