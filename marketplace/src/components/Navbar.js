@@ -78,20 +78,23 @@ export default function Navbar() {
   return (
     <nav className="navigation-surface h-20 border-b border-neutral-200/80 dark:border-neutral-800/80 text-foreground px-6 flex items-center justify-between sticky top-0 z-50 transition-colors">
       <div className="flex items-center space-x-6 flex-1">
-        <Link href="/marketplace" className="flex items-center gap-3 shrink-0">
-          <div className="relative w-12 h-12">
-            <Image
-              src="/olfu_logo.png"
-              alt="Logo"
-              fill
-              sizes="48px"
-              priority
-              className="rounded-full object-contain"
-            />
-          </div>
-          <h1 className="text-xl font-bold hidden lg:block">
-            OLFU <span>Marketplace</span>
-          </h1>
+        <Link href="/marketplace" className="flex items-center shrink-0" aria-label="OLFU Marketplace home">
+          <Image
+            src="/olfu_logo_light.png"
+            alt="OLFU Marketplace"
+            width={400}
+            height={100}
+            priority
+            className="block dark:hidden h-11 sm:h-16 w-auto"
+          />
+          <Image
+            src="/olfu_logo_dark.png"
+            alt="OLFU Marketplace"
+            width={400}
+            height={100}
+            priority
+            className="hidden dark:block h-11 sm:h-16 w-auto"
+          />
         </Link>
 
         <div className="max-w-md w-full ml-4">
@@ -135,7 +138,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <Link
               href="/create-listing"
-              className="flex items-center gap-2 px-4 py-2 border border-black/30 dark:border-white/30 bg-foreground text-background hover:opacity-90 rounded-lg font-medium transition-all"
+              className="flex items-center gap-2 px-4 py-2 border border-black/30 dark:border-white/30 bg-emerald-700 text-white hover:opacity-90 rounded-lg font-medium transition-all"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">Create Listing</span>
