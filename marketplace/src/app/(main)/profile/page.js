@@ -404,199 +404,193 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start">
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-card hover:bg-neutral-100 dark:hover:bg-neutral-800 text-foreground rounded-xl transition-colors border border-neutral-300 dark:border-neutral-700 font-semibold shadow-sm"
-              >
-                <Edit size={16} /> Edit Profile
-              </button>
 
-              <Link href="/mylistings" className="flex items-center gap-2 px-5 py-2.5 bg-foreground text-background hover:opacity-90 rounded-xl transition-all font-semibold shadow-sm">
-                <ExternalLink size={16} /> Manage Listings
-              </Link>
-            </div>
-          </div>
-        </div>
 
-        {/* MY LISTINGS SECTION */}
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-            <Package className="text-foreground" /> My Recent Listings
-          </h2>
-          <Link href="/create-listing" className="text-foreground hover:opacity-70 text-sm font-semibold underline underline-offset-2">
-            + Create New Listing
-          </Link>
-        </div>
-
-        {myProducts.length === 0 ? (
-          <div className="text-center py-20 bg-card rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-800">
-            <p className="text-muted-foreground mb-4 font-medium">You haven&apos;t listed any products yet.</p>
-            <Link href="/create-listing" className="px-6 py-3 bg-foreground text-background rounded-xl font-bold inline-block hover:opacity-90 transition-colors">
-              Start Selling
+            <Link href="/mylistings" className="flex items-center gap-2 px-5 py-2.5 bg-foreground text-background hover:opacity-90 rounded-xl transition-all font-semibold shadow-sm">
+              <ExternalLink size={16} /> Manage Listings
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {myProducts.map((product) => {
-              const listingState = getListingState(product);
-              const isPending = listingState === "pending_approval";
-              const isFlagged = listingState === "flagged";
-              const isExpired = listingState === "expired";
-              const isUnavailable = listingState === "unavailable" || listingState === "rejected";
+        </div>
+      </div>
 
-              return (
-                <div key={product.id} className="relative group transition-all duration-300 hover:-translate-y-1">
-                  <Link href={`/products/${product.id}`} className="block">
-                    <div className="relative overflow-hidden rounded-2xl">
-                      <div className="transition-all duration-300">
-                        <ProductCard
-                          title={product.title}
-                          price={product.price}
-                          seller={fullName}
-                          orgName={profileData?.org_name}
-                          isVerifiedOrg={profileData?.is_verified_org || false}
-                          image={product.image_urls?.[0] || "/placeholder.png"}
-                          category={product.categories?.name}
-                          tags={product.tags}
-                          stockQuantity={product.stock_quantity}
-                        />
+      {/* MY LISTINGS SECTION */}
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+          <Package className="text-foreground" /> My Recent Listings
+        </h2>
+        <Link href="/create-listing" className="text-foreground hover:opacity-70 text-sm font-semibold underline underline-offset-2">
+          + Create New Listing
+        </Link>
+      </div>
+
+      {myProducts.length === 0 ? (
+        <div className="text-center py-20 bg-card rounded-2xl border border-dashed border-neutral-300 dark:border-neutral-800">
+          <p className="text-muted-foreground mb-4 font-medium">You haven&apos;t listed any products yet.</p>
+          <Link href="/create-listing" className="px-6 py-3 bg-foreground text-background rounded-xl font-bold inline-block hover:opacity-90 transition-colors">
+            Start Selling
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {myProducts.map((product) => {
+            const listingState = getListingState(product);
+            const isPending = listingState === "pending_approval";
+            const isFlagged = listingState === "flagged";
+            const isExpired = listingState === "expired";
+            const isUnavailable = listingState === "unavailable" || listingState === "rejected";
+
+            return (
+              <div key={product.id} className="relative group transition-all duration-300 hover:-translate-y-1">
+                <Link href={`/products/${product.id}`} className="block">
+                  <div className="relative overflow-hidden rounded-2xl">
+                    <div className="transition-all duration-300">
+                      <ProductCard
+                        title={product.title}
+                        price={product.price}
+                        seller={fullName}
+                        orgName={profileData?.org_name}
+                        isVerifiedOrg={profileData?.is_verified_org || false}
+                        image={product.image_urls?.[0] || "/placeholder.png"}
+                        category={product.categories?.name}
+                        tags={product.tags}
+                        stockQuantity={product.stock_quantity}
+                      />
+                    </div>
+
+                    {/* Veils */}
+                    {(isUnavailable || isPending || isFlagged || isExpired) && (
+                      <div className="absolute inset-0 bg-neutral-900/25 pointer-events-none transition-all" />
+                    )}
+                    {isExpired && !isFlagged && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <span className="text-[10px] bg-red-600 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-red-700 shadow-xl">
+                          EXPIRED
+                        </span>
                       </div>
-
-                      {/* Veils */}
-                      {(isUnavailable || isPending || isFlagged || isExpired) && (
-                        <div className="absolute inset-0 bg-neutral-900/25 pointer-events-none transition-all" />
-                      )}
-                      {isExpired && !isFlagged && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                          <span className="text-[10px] bg-red-600 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-red-700 shadow-xl">
-                            EXPIRED
-                          </span>
-                        </div>
-                      )}
-                      {/* CENTERED STATUS OVERLAYS */}
-                      {isFlagged && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                          <span className="text-[10px] bg-rose-600 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-rose-700 shadow-xl">
-                            FLAGGED / REVIEW
-                          </span>
-                        </div>
-                      )}
-                      {isPending && !isFlagged && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                          <span className="text-[10px] bg-amber-500 text-black px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-amber-600 shadow-xl">
-                            PENDING APPROVAL
-                          </span>
-                        </div>
-                      )}
-                      {isUnavailable && !isFlagged && !isPending && !isExpired && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                          <span className="text-[10px] bg-neutral-900 text-neutral-100 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-white/20 shadow-xl">
-                            UNAVAILABLE
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* EDIT PROFILE MODAL */}
-        {isEditModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-card border border-neutral-300 dark:border-neutral-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-              <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-card">
-                <h3 className="text-xl font-bold text-foreground">Update Profile</h3>
-                <button onClick={() => setIsEditModalOpen(false)} className="text-foreground hover:opacity-70 transition-colors p-1">
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form onSubmit={handleUpdateProfile} className="p-8 space-y-6">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="relative w-24 h-24">
-                    <div className="w-24 h-24 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden border border-neutral-300 dark:border-neutral-700 flex items-center justify-center">
-                      {editForm.avatarUrl ? (
-                        <img src={editForm.avatarUrl} className="w-full h-full object-cover" alt="Preview avatar" />
-                      ) : (
-                        <User size={36} className="text-muted-foreground" />
-                      )}
-                    </div>
-                    <label className="absolute bottom-0 right-0 bg-foreground text-background p-2 rounded-full cursor-pointer hover:opacity-90 shadow-md transition-opacity border border-background">
-                      <Camera size={16} />
-                      <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isUpdating} />
-                    </label>
+                    )}
+                    {/* CENTERED STATUS OVERLAYS */}
+                    {isFlagged && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <span className="text-[10px] bg-rose-600 text-white px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-rose-700 shadow-xl">
+                          FLAGGED / REVIEW
+                        </span>
+                      </div>
+                    )}
+                    {isPending && !isFlagged && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <span className="text-[10px] bg-amber-500 text-black px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-amber-600 shadow-xl">
+                          PENDING APPROVAL
+                        </span>
+                      </div>
+                    )}
+                    {isUnavailable && !isFlagged && !isPending && !isExpired && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <span className="text-[10px] bg-neutral-900 text-neutral-100 px-3 py-1.5 rounded-lg font-black uppercase tracking-wider border border-white/20 shadow-xl">
+                          UNAVAILABLE
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-                <div className="grid grid-cols-1 gap-4">
-                  <input
-                    placeholder="First Name"
-                    className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-3.5 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all font-medium placeholder:text-muted-foreground"
-                    value={editForm.firstName}
-                    onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                  />
-                  <input
-                    placeholder="Middle Name"
-                    className="w-full bg-background border border-border rounded-xl p-3.5 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all font-medium placeholder:text-muted-foreground"
-                    value={editForm.middleName}
-                    onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })}
-                  />
-                  <input
-                    placeholder="Last Name"
-                    className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-3.5 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all font-medium placeholder:text-muted-foreground"
-                    value={editForm.lastName}
-                    onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3.5 bg-background text-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-sm">
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={isUpdating} className="flex-1 py-3.5 bg-foreground text-background rounded-xl font-bold flex items-center justify-center hover:opacity-90 transition-colors disabled:opacity-50 shadow-sm">
-                    {isUpdating ? <Loader2 className="animate-spin" size={20} /> : "Save Changes"}
-                  </button>
-                </div>
-              </form>
+      {/* EDIT PROFILE MODAL */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-neutral-300 dark:border-neutral-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-card">
+              <h3 className="text-xl font-bold text-foreground">Update Profile</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-foreground hover:opacity-70 transition-colors p-1">
+                <X size={24} />
+              </button>
             </div>
-          </div>
-        )}
 
-        {/* REVIEWS POPUP MODAL */}
-        {isReviewsModalOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150"
-            onClick={() => setIsReviewsModalOpen(false)}
-          >
-            <div
-              className="relative z-10 w-full max-w-2xl max-h-[85vh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900 shrink-0">
-                <h3 className="text-xl font-bold text-neutral-900 dark:text-white">Community Feedback</h3>
-                <button
-                  onClick={() => setIsReviewsModalOpen(false)}
-                  className="text-neutral-400 hover:text-neutral-700 dark:hover:text-white transition-colors p-1 cursor-pointer"
-                >
-                  <X size={22} />
-                </button>
+            <form onSubmit={handleUpdateProfile} className="p-8 space-y-6">
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative w-24 h-24">
+                  <div className="w-24 h-24 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden border border-neutral-300 dark:border-neutral-700 flex items-center justify-center">
+                    {editForm.avatarUrl ? (
+                      <img src={editForm.avatarUrl} className="w-full h-full object-cover" alt="Preview avatar" />
+                    ) : (
+                      <User size={36} className="text-muted-foreground" />
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 bg-foreground text-background p-2 rounded-full cursor-pointer hover:opacity-90 shadow-md transition-opacity border border-background">
+                    <Camera size={16} />
+                    <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={isUpdating} />
+                  </label>
+                </div>
               </div>
 
-              <div className="p-6 overflow-y-auto bg-neutral-50 dark:bg-neutral-900/50">
-                <ProductReviews
-                  initialReviews={reviews}
-                  aiSummary={aiSummary}
+              <div className="grid grid-cols-1 gap-4">
+                <input
+                  placeholder="First Name"
+                  className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-3.5 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all font-medium placeholder:text-muted-foreground"
+                  value={editForm.firstName}
+                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                />
+                <input
+                  placeholder="Middle Name"
+                  className="w-full bg-background border border-border rounded-xl p-3.5 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all font-medium placeholder:text-muted-foreground"
+                  value={editForm.middleName}
+                  onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })}
+                />
+                <input
+                  placeholder="Last Name"
+                  className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-3.5 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all font-medium placeholder:text-muted-foreground"
+                  value={editForm.lastName}
+                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
                 />
               </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3.5 bg-background text-foreground border border-neutral-300 dark:border-neutral-700 rounded-xl font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shadow-sm">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isUpdating} className="flex-1 py-3.5 bg-foreground text-background rounded-xl font-bold flex items-center justify-center hover:opacity-90 transition-colors disabled:opacity-50 shadow-sm">
+                  {isUpdating ? <Loader2 className="animate-spin" size={20} /> : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* REVIEWS POPUP MODAL */}
+      {isReviewsModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150"
+          onClick={() => setIsReviewsModalOpen(false)}
+        >
+          <div
+            className="relative z-10 w-full max-w-2xl max-h-[85vh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900 shrink-0">
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-white">Community Feedback</h3>
+              <button
+                onClick={() => setIsReviewsModalOpen(false)}
+                className="text-neutral-400 hover:text-neutral-700 dark:hover:text-white transition-colors p-1 cursor-pointer"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto bg-neutral-50 dark:bg-neutral-900/50">
+              <ProductReviews
+                initialReviews={reviews}
+                aiSummary={aiSummary}
+              />
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
     </div>
+    </div >
   );
 }
