@@ -2,21 +2,80 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ───────────── OLFU palette ───────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --background-grid: rgba(73, 91, 73, 0.18);
+  /* Light mode */
+  --background: #F7F5EF;
+  /* CREAM – page background */
+  --surface: #FFFFFF;
+  /* WHITE – cards, top bar, inputs */
+  --foreground: #1D2A22;
+  /* FOREST BLACK – main text */
+  --ink-soft: #5B6A5F;
+  /* SAGE GRAY – secondary text */
+  --line: #E7E2D6;
+  /* SAND – borders and lines */
+  --brand: #1F5A3F;
+  /* OLFU GREEN – buttons, active menu item, banner heading */
+  --brand-deep: #123826;
+  /* DEEP GREEN – section headings, brand name */
+  --tint: #E7F0EA;
+  /* MINT – hover and tinted backgrounds */
+  --gold: #C68A2E;
+  /* GOLD – accent */
+  --gold-soft: #F3E3C4;
+  /* SOFT GOLD – banner gradient */
+
+  --on-brand: #FFFFFF;
+  /* text on top of --brand */
+  --on-gold: #2A1D05;
+  /* text on top of --gold */
+  --dot: rgba(31, 90, 63, 0.28);
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --background-grid: rgba(95, 116, 91, 0.16);
+  /* Dark mode */
+  --background: #0F1511;
+  /* MIDNIGHT GREEN */
+  --surface: #182019;
+  /* DARK PINE */
+  --foreground: #EDEFE9;
+  /* OFF WHITE */
+  --ink-soft: #96A395;
+  /* MOSS GRAY */
+  --line: #2A342D;
+  /* DARK MOSS */
+  --brand: #4CAE84;
+  /* EMERALD */
+  --brand-deep: #8FD9B3;
+  /* LIGHT MINT */
+  --tint: #17231C;
+  /* DEEP FOREST */
+  --gold: #E3B25E;
+  /* AMBER GOLD */
+  --gold-soft: #3A2F1B;
+  /* DARK GOLD */
+
+  --on-brand: #0F1511;
+  --on-gold: #2A1D05;
+  --dot: rgba(143, 217, 179, 0.18);
 }
 
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-ink: var(--foreground);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-border: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
+  --color-tint: var(--tint);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-on-brand: var(--on-brand);
+  --color-on-gold: var(--on-gold);
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
@@ -27,16 +86,19 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Dotted page background – dot color comes from --dot */
 .marketplace-surface {
   background-color: var(--background);
-  background-image:
-    linear-gradient(45deg, transparent 48%, var(--background-grid) 49%, var(--background-grid) 51%, transparent 52%),
-    linear-gradient(-45deg, transparent 48%, var(--background-grid) 49%, var(--background-grid) 51%, transparent 52%);
-  background-size: 32px 32px;
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.5px);
+  background-size: 24px 24px;
   background-attachment: fixed;
 }
 
 .navigation-surface {
-  background-color: color-mix(in srgb, var(--background) 42%, transparent);
-  backdrop-filter: blur(2px);
+  background-color: color-mix(in srgb, var(--background) 60%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--brand) 30%, transparent);
 }
