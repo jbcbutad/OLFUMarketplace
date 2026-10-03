@@ -14,7 +14,7 @@ const STAFF_ROLES = ["super_admin", "superadmin", "admin", "moderator"];
 export default async function UsersAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; role?: string; status?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; role?: string; status?: string; type?: string; page?: string }>;
 }) {
   const { user, role: viewerRole } = await requireRole(["admin", "super_admin", "superadmin"]);
   const canChangeRoles = viewerRole === "super_admin" || viewerRole === "superadmin";
@@ -24,6 +24,7 @@ export default async function UsersAdminPage({
   const q = (sp.q || "").replace(/[,()%*\\]/g, " ").trim();
   const roleFilter = sp.role || "all";
   const statusFilter = sp.status || "all";
+  const typeFilter = sp.type === "student" || sp.type === "faculty" ? sp.type : "all";
   const page = Math.max(1, Number(sp.page) || 1);
 
   const supabase = await createClient();
@@ -41,6 +42,8 @@ export default async function UsersAdminPage({
   else if (roleFilter === "user") query = query.or("role.is.null,role.eq.user");
   else if (roleFilter !== "all") query = query.eq("role", roleFilter);
   if (statusFilter === "banned") query = query.eq("is_banned", true);
+  if (typeFilter === "student") query = query.ilike("email", "%@student.fatima.edu.ph");
+  else if (typeFilter === "faculty") query = query.ilike("email", "%@fatima.edu.ph");
 
   const { data: users, count, error } = await query;
   if (error) console.error("Error fetching users list:", error);
@@ -64,11 +67,28 @@ export default async function UsersAdminPage({
     if (q) params.set("q", q);
     if (roleFilter !== "all") params.set("role", roleFilter);
     if (statusFilter !== "all") params.set("status", statusFilter);
+    if (typeFilter !== "all") params.set("type", typeFilter);
     if (p > 1) params.set("page", String(p));
     const s = params.toString();
     return s ? `/admin/users?${s}` : "/admin/users";
   };
 
+  const tabHref = (t: string) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (roleFilter !== "all") params.set("role", roleFilter);
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (t !== "all") params.set("type", t);
+    const s = params.toString();
+    return s ? `/admin/users?${s}` : "/admin/users";
+  };
+
+  const emailType = (email?: string | null) => {
+    const e = (email || "").toLowerCase();
+    if (e.endsWith("@student.fatima.edu.ph")) return "student";
+    if (e.endsWith("@fatima.edu.ph")) return "faculty";
+    return "other";
+  };
   const resolveDisplayName = (u: any) => {
     const derived = `${u.First_Name || ""} ${u.Last_Name || ""}`.trim();
     return u.full_name || (derived.length > 0 ? derived : null) || u.email || "Unnamed Account";
@@ -115,8 +135,29 @@ export default async function UsersAdminPage({
         </div>
       </div>
 
+      {/* ACCOUNT TYPE TABS */}
+      <div className="flex gap-2">
+        {[
+          { key: "all", label: "All" },
+          { key: "student", label: "Students" },
+          { key: "faculty", label: "Faculty" },
+        ].map((t) => (
+          <Link
+            key={t.key}
+            href={tabHref(t.key)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${typeFilter === t.key
+              ? "bg-foreground text-background border-foreground"
+              : "bg-background text-muted-foreground border-border hover:text-foreground"
+              }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </div>
+
       {/* SEARCH & FILTERS (plain GET form, no client JS) */}
       <form method="get" action="/admin/users" className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="type" value={typeFilter} />
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -140,7 +181,7 @@ export default async function UsersAdminPage({
         <button type="submit" className="px-4 py-2 rounded-xl bg-foreground text-background text-xs font-bold cursor-pointer">
           Apply
         </button>
-        {(q || roleFilter !== "all" || statusFilter !== "all") && (
+        {(q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all") && (
           <Link href="/admin/users" className="text-xs font-semibold text-muted-foreground hover:text-foreground">
             Clear
           </Link>
@@ -184,6 +225,16 @@ export default async function UsersAdminPage({
                         {isMe && (
                           <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-foreground text-background rounded-md">
                             You
+                          </span>
+                        )}
+                        {emailType(u.email) === "student" && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-sky-950 text-sky-300 border border-sky-800 rounded-md">
+                            Student
+                          </span>
+                        )}
+                        {emailType(u.email) === "faculty" && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-amber-950 text-amber-300 border border-amber-800 rounded-md">
+                            Faculty
                           </span>
                         )}
                         {u.is_banned && (
