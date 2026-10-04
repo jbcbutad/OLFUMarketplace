@@ -9,7 +9,6 @@ import { ui, btn } from '../ui';
 import {
   ShieldAlert,
   CheckCircle2,
-  UserCheck,
   MessageSquare,
   XCircle,
   ExternalLink,
@@ -31,10 +30,6 @@ export default function ReportsPage() {
 
   const [reportCategory, setReportCategory] = useState('chat');
   const [filterStatus, setFilterStatus] = useState('pending');
-
-  const [userEmail, setUserEmail] = useState(null);
-  const [userName, setUserName] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState(null);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -89,24 +84,6 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    async function checkRoleAndUser() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUserEmail(session.user.email || null);
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, full_name, avatar_url, "First_Name", "Last_Name"')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        const derivedName = `${profile?.First_Name || ''} ${profile?.Last_Name || ''}`.trim();
-        setUserName(profile?.full_name || (derivedName.length > 0 ? derivedName : null) || session.user.email || 'User');
-        setAvatarUrl(profile?.avatar_url || null);
-      }
-    }
-
-    checkRoleAndUser();
     fetchReports();
 
     const channel = supabase
@@ -197,25 +174,6 @@ export default function ReportsPage() {
             Review separated chat and product reports, inspect targets, and manage archives.
           </p>
         </div>
-
-        {/* LOGGED IN USER CARD */}
-        {userEmail && (
-          <div className={`${ui.card} flex items-center gap-3 px-4 py-2.5`}>
-            <div className="w-8 h-8 rounded-full bg-tint border border-line flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                userName ? userName.charAt(0).toUpperCase() : 'U'
-              )}
-            </div>
-            <div className="text-left overflow-hidden">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft flex items-center gap-1">
-                <UserCheck size={12} className="text-brand" /> Moderator Active
-              </p>
-              <p className="text-xs font-bold text-foreground truncate max-w-[160px]">{userName || userEmail}</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* MAIN CATEGORY SWITCHER */}
