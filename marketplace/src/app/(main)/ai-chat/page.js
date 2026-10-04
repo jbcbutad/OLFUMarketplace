@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -115,7 +116,11 @@ export default function AiChatPage() {
       confirmText: 'Clear history',
     });
     if (ok) {
-      await supabase.from('ai_messages').delete().eq('user_id', currentUser.id);
+      const { error } = await supabase.from('ai_messages').delete().eq('user_id', currentUser.id);
+      if (error) {
+        toast.error('Failed to clear history: ' + error.message);
+        return;
+      }
       setMessages([
         { role: 'assistant', content: 'Chat history cleared. How can I help you today?' }
       ]);
