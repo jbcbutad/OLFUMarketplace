@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Flag,
   ScrollText,
+  Tags,
 } from "lucide-react";
 
 // Explicit light/dark colors instead of theme tokens (border-border,
@@ -398,6 +399,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
               <AdminLink href="/admin/merch-approvals" title="Merch Approvals" label="Merch Approvals" icon={ShieldCheck} {...adminProps} />
               <AdminLink href="/admin/reports" title="Reports" label="Reports" icon={ShieldAlert} {...adminProps} />
               <AdminLink href="/admin/flagged" title="Flagged Content" label="Flagged Content" icon={Flag} {...adminProps} />
+              <AdminLink href="/admin/categories" title="Categories & Tags" label="Categories & Tags" icon={Tags} {...adminProps} />
 
               {!isMod && (
                 <>
