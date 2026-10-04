@@ -3,7 +3,7 @@
 import { useTransition, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateUserRole } from './actions';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2, Lock, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 
@@ -68,37 +68,6 @@ export default function RoleSelect({ userId, currentRole }: RoleSelectProps) {
   const isProtected = isTargetSuperAdmin && !isRequesterSuperAdmin;
   const isDisabled = isPending || isModerator || isProtected;
 
-  const getRoleTheme = (role: string) => {
-    switch (role) {
-      case 'super_admin':
-        return {
-          border: 'border-purple-500/60 hover:border-purple-400',
-          bg: 'bg-purple-950/80 text-purple-200 focus:ring-purple-500',
-          spinner: 'text-purple-400',
-        };
-      case 'admin':
-        return {
-          border: 'border-blue-500/60 hover:border-blue-400',
-          bg: 'bg-blue-950/80 text-blue-200 focus:ring-blue-500',
-          spinner: 'text-blue-400',
-        };
-      case 'moderator':
-        return {
-          border: 'border-emerald-500/60 hover:border-emerald-400',
-          bg: 'bg-emerald-950/80 text-emerald-100 focus:ring-emerald-500',
-          spinner: 'text-emerald-400',
-        };
-      default:
-        return {
-          border: 'border-neutral-700 hover:border-neutral-600',
-          bg: 'bg-neutral-900 text-neutral-300 focus:ring-neutral-500',
-          spinner: 'text-neutral-400',
-        };
-    }
-  };
-
-  const theme = getRoleTheme(selectedRole);
-
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (isModerator) return;
 
@@ -130,36 +99,30 @@ export default function RoleSelect({ userId, currentRole }: RoleSelectProps) {
         value={selectedRole}
         onChange={handleRoleChange}
         disabled={isDisabled}
-        className={`border rounded-xl px-3 py-1.5 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 cursor-pointer pr-8 transition-all appearance-none ${theme.border} ${theme.bg}`}
+        aria-label="Change role"
+        className="w-36 bg-background text-foreground border border-line rounded-xl pl-3 pr-8 py-1.5 text-xs font-bold appearance-none cursor-pointer transition hover:border-brand focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <option value="user" className="bg-neutral-900 text-neutral-200 font-normal">
-          User (Buyer & Seller)
-        </option>
-        <option value="moderator" className="bg-emerald-950 text-emerald-100 font-bold">
-          Moderator
-        </option>
-        <option value="admin" className="bg-blue-950 text-blue-100 font-bold">
-          Admin
-        </option>
+        <option value="user" className="bg-surface text-foreground">User</option>
+        <option value="moderator" className="bg-surface text-foreground">Moderator</option>
+        <option value="admin" className="bg-surface text-foreground">Admin</option>
 
         {(isRequesterSuperAdmin || selectedRole === 'super_admin') && (
-          <option value="super_admin" className="bg-purple-950 text-purple-100 font-bold">
-            Super Admin
-          </option>
+          <option value="super_admin" className="bg-surface text-foreground">Super Admin</option>
         )}
       </select>
 
-      {(isProtected || isModerator) && !isPending && (
-        <span className="absolute right-2.5 pointer-events-none text-neutral-400" title={isModerator ? "Moderators cannot alter roles" : "Protected Account"}>
+      <span
+        className="absolute right-2.5 pointer-events-none text-ink-soft"
+        title={isModerator ? "Moderators cannot alter roles" : isProtected ? "Protected Account" : undefined}
+      >
+        {isPending ? (
+          <Loader2 size={12} className="animate-spin text-brand" />
+        ) : isProtected || isModerator ? (
           <Lock size={12} />
-        </span>
-      )}
-
-      {isPending && (
-        <span className="absolute right-2.5 pointer-events-none">
-          <Loader2 size={12} className={`animate-spin ${theme.spinner}`} />
-        </span>
-      )}
+        ) : (
+          <ChevronDown size={14} />
+        )}
+      </span>
     </div>
   );
 }

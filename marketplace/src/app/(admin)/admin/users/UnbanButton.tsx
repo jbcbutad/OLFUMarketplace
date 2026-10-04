@@ -1,15 +1,17 @@
 "use client";
 
 import { useConfirm } from "@/components/ConfirmProvider";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { unbanUserAction } from "../reports/actions";
+import { btn } from "../ui";
 
 export default function UnbanButton({ userId, name }: { userId: string; name: string }) {
     const router = useRouter();
     const askConfirm = useConfirm();
     const [pending, startTransition] = useTransition();
-    const [error, setError] = useState<string | null>(null);
 
     const handleUnban = async () => {
         const ok = await askConfirm({
@@ -19,24 +21,19 @@ export default function UnbanButton({ userId, name }: { userId: string; name: st
             tone: "safe",
         });
         if (!ok) return;
-        setError(null);
         startTransition(async () => {
             const res = await unbanUserAction(userId);
-            if (res.error) setError(res.error);
-            else router.refresh();
+            if (res.error) toast.error(res.error);
+            else {
+                toast.success(`${name} was unbanned`);
+                router.refresh();
+            }
         });
     };
 
     return (
-        <div className="flex flex-col items-end gap-1">
-            <button
-                onClick={handleUnban}
-                disabled={pending}
-                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer disabled:opacity-50"
-            >
-                {pending ? "Unbanning..." : "Unban"}
-            </button>
-            {error && <span className="text-[10px] text-rose-500 max-w-[140px] text-right">{error}</span>}
-        </div>
+        <button onClick={handleUnban} disabled={pending} className={btn("safeOutline", "sm")} title={`Unban ${name}`}>
+            <RotateCcw size={13} /> {pending ? "Unbanning..." : "Unban"}
+        </button>
     );
 }

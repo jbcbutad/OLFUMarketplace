@@ -4,7 +4,8 @@ import { requireRole } from "@/lib/auth/requireRole";
 import RoleSelect from "../RoleSelect";
 import UnbanButton from "./UnbanButton";
 import BanButton from "./BanButton";
-import { Users, ShieldAlert, UserCheck, Search } from "lucide-react";
+import { ui, btn, pillTone, roleStyle, roleLabel } from "../ui";
+import { Users, ShieldAlert, UserCheck, Search, Ban, Lock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -102,24 +103,24 @@ export default async function UsersAdminPage({
   const loggedInDisplayName = meRow ? resolveDisplayName(meRow) : user.email || "Unknown User";
   const loggedInAvatarUrl = meRow?.avatar_url;
 
-  const inputCls =
-    "bg-background text-foreground text-xs font-semibold px-3 py-2 rounded-xl border border-border outline-none";
+  const inputCls = `${ui.input} text-xs font-semibold`;
+  const hasFilters = q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all";
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto p-6">
-      {/* HEADER & LOGGED-IN BANNER */}
+    <div className={ui.page}>
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            <Users className="text-purple-400" size={28} /> User Directory
+          <h1 className={ui.title}>
+            <Users className={ui.titleIcon} size={28} /> User Directory
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage system permissions, roles, bans, and administrative access across all accounts.
+          <p className={ui.subtitle}>
+            Manage roles, bans, and administrative access across all accounts.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-card border border-border shadow-sm">
-          <div className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
+        <div className={`${ui.card} flex items-center gap-3 px-4 py-2.5`}>
+          <div className="w-9 h-9 rounded-full bg-tint border border-line flex items-center justify-center font-bold text-xs text-brand-deep shrink-0 overflow-hidden">
             {loggedInAvatarUrl ? (
               <img src={loggedInAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
@@ -127,166 +128,182 @@ export default async function UsersAdminPage({
             )}
           </div>
           <div className="text-left overflow-hidden">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <UserCheck size={12} className="text-emerald-500" /> Logged In As
+            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft flex items-center gap-1">
+              <UserCheck size={12} className="text-brand" /> Signed in as
             </p>
             <p className="text-xs font-bold text-foreground truncate max-w-[200px]">{loggedInDisplayName}</p>
           </div>
         </div>
       </div>
 
-      {/* ACCOUNT TYPE TABS */}
-      <div className="flex gap-2">
-        {[
-          { key: "all", label: "All" },
-          { key: "student", label: "Students" },
-          { key: "faculty", label: "Faculty" },
-        ].map((t) => (
-          <Link
-            key={t.key}
-            href={tabHref(t.key)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors ${typeFilter === t.key
-              ? "bg-foreground text-background border-foreground"
-              : "bg-background text-muted-foreground border-border hover:text-foreground"
-              }`}
-          >
-            {t.label}
-          </Link>
-        ))}
+      {/* FILTER BAR: account type tabs + search (plain GET form, no client JS) */}
+      <div className={`${ui.card} p-4 flex flex-col lg:flex-row lg:items-center gap-3`}>
+        <div className="inline-flex p-1 rounded-xl bg-tint border border-line self-start">
+          {[
+            { key: "all", label: "All" },
+            { key: "student", label: "Students" },
+            { key: "faculty", label: "Faculty" },
+          ].map((t) => (
+            <Link
+              key={t.key}
+              href={tabHref(t.key)}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${typeFilter === t.key
+                ? "bg-brand text-on-brand shadow-sm"
+                : "text-ink-soft hover:text-brand-deep"
+                }`}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
+
+        <form method="get" action="/admin/users" className="flex flex-wrap items-center gap-2 lg:ml-auto">
+          <input type="hidden" name="type" value={typeFilter} />
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Search name or email"
+              className={`${inputCls} pl-8 w-60`}
+            />
+          </div>
+          <select name="role" defaultValue={roleFilter} className={inputCls}>
+            <option value="all">All roles</option>
+            <option value="super_admin">Super admin</option>
+            <option value="admin">Admin</option>
+            <option value="moderator">Moderator</option>
+            <option value="user">User</option>
+          </select>
+          <select name="status" defaultValue={statusFilter} className={inputCls}>
+            <option value="all">All accounts</option>
+            <option value="banned">Banned only</option>
+          </select>
+          <button type="submit" className={btn("primary", "sm")}>
+            Apply
+          </button>
+          {hasFilters && (
+            <Link href="/admin/users" className="text-xs font-semibold text-ink-soft hover:text-brand-deep hover:underline">
+              Clear
+            </Link>
+          )}
+        </form>
       </div>
 
-      {/* SEARCH & FILTERS (plain GET form, no client JS) */}
-      <form method="get" action="/admin/users" className="flex flex-wrap items-center gap-2">
-        <input type="hidden" name="type" value={typeFilter} />
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Search name or email"
-            className={`${inputCls} pl-8 w-64`}
-          />
-        </div>
-        <select name="role" defaultValue={roleFilter} className={inputCls}>
-          <option value="all">All roles</option>
-          <option value="super_admin">Super admin</option>
-          <option value="admin">Admin</option>
-          <option value="moderator">Moderator</option>
-          <option value="user">User</option>
-        </select>
-        <select name="status" defaultValue={statusFilter} className={inputCls}>
-          <option value="all">All accounts</option>
-          <option value="banned">Banned only</option>
-        </select>
-        <button type="submit" className="px-4 py-2 rounded-xl bg-foreground text-background text-xs font-bold cursor-pointer">
-          Apply
-        </button>
-        {(q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all") && (
-          <Link href="/admin/users" className="text-xs font-semibold text-muted-foreground hover:text-foreground">
-            Clear
-          </Link>
-        )}
-        <span className="ml-auto text-xs text-muted-foreground">{count ?? 0} accounts</span>
-      </form>
 
-      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-sm">
-        <div className="grid grid-cols-12 gap-4 px-6 py-3.5 bg-muted/50 border-b border-border text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          <div className="col-span-4">User</div>
-          <div className="col-span-3">Email</div>
-          <div className="col-span-2">Current Role</div>
-          <div className="col-span-3 text-right">Actions</div>
+      {/* TABLE */}
+      <div className={`${ui.card} overflow-hidden`}>
+        <div className={`hidden md:grid grid-cols-12 gap-4 px-5 py-3 ${ui.tableHead}`}>
+          <div className="col-span-4 flex items-center gap-2">
+            <span>User</span>
+            <span className="text-[10px] font-semibold text-ink-soft bg-background border border-line rounded-full px-2 py-0.5">
+              {count ?? 0} {count === 1 ? "account" : "accounts"}
+            </span>
+          </div>
+
+          <div className="col-span-2">Role</div>
+
+          <div className="col-span-2">Status</div>
+
+          <div className="col-span-4 text-right">Actions</div>
         </div>
 
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-line">
           {users && users.length > 0 ? (
             users.map((u: any) => {
               const displayName = resolveDisplayName(u);
               const isMe = u.id === currentUserId;
               const targetIsStaff = STAFF_ROLES.includes(u.role || "");
+              const type = emailType(u.email);
               // Matches the database rule: only super admins can ban staff accounts
               const canBan = !isMe && !u.is_banned && (!targetIsStaff || canChangeRoles);
 
               return (
                 <div
                   key={u.id}
-                  className={`grid grid-cols-12 gap-4 px-6 py-4 items-center text-sm transition-colors ${isMe ? "bg-accent/40 hover:bg-accent/60 font-medium" : "hover:bg-muted/30"}`}
+                  className={`grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-5 py-4 items-center text-sm transition-colors ${isMe ? "bg-tint/70" : "hover:bg-tint/50"}`}
                 >
-                  <div className="col-span-4 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
+                  {/* User */}
+                  <div className="md:col-span-4 flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-tint border border-line flex items-center justify-center font-bold text-sm text-brand-deep shrink-0 overflow-hidden">
                       {u.avatar_url ? (
                         <img src={u.avatar_url} alt={displayName} className="w-full h-full object-cover" />
                       ) : (
                         displayName.charAt(0).toUpperCase()
                       )}
                     </div>
-                    <div className="truncate">
-                      <span className="font-semibold text-foreground truncate flex items-center gap-1.5">
-                        {displayName}
-                        {isMe && (
-                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-foreground text-background rounded-md">
-                            You
-                          </span>
-                        )}
-                        {emailType(u.email) === "student" && (
-                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-sky-950 text-sky-300 border border-sky-800 rounded-md">
-                            Student
-                          </span>
-                        )}
-                        {emailType(u.email) === "faculty" && (
-                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-amber-950 text-amber-300 border border-amber-800 rounded-md">
-                            Faculty
-                          </span>
-                        )}
-                        {u.is_banned && (
-                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase bg-rose-600 text-white rounded-md">
-                            Banned
-                          </span>
-                        )}
-                      </span>
-                      {u.is_banned && banReasons[u.id] && (
-                        <p className="text-[11px] text-rose-500 truncate">Reason: {banReasons[u.id]}</p>
-                      )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-semibold text-foreground truncate">{displayName}</span>
+                        {isMe && <span className={`${ui.pill} ${pillTone.you}`}>You</span>}
+                        {type === "student" && <span className={`${ui.pill} ${pillTone.student}`}>Student</span>}
+                        {type === "faculty" && <span className={`${ui.pill} ${pillTone.faculty}`}>Faculty</span>}
+                      </div>
+                      <p className="text-xs text-ink-soft truncate">{u.email || "No email provided"}</p>
                     </div>
                   </div>
 
-                  <div className="col-span-3 text-muted-foreground text-xs truncate">
-                    {u.email || "No Email Provided"}
-                  </div>
-
-                  <div className="col-span-2">
-                    <span
-                      className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider ${u.role === "super_admin" || u.role === "superadmin"
-                        ? "bg-purple-950 text-purple-300 border border-purple-800"
-                        : u.role === "admin"
-                          ? "bg-blue-950 text-blue-300 border border-blue-800"
-                          : u.role === "moderator"
-                            ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
-                            : "bg-muted text-muted-foreground border border-border"
-                        }`}
-                    >
-                      {u.role || "user"}
+                  {/* Role */}
+                  <div className="md:col-span-2">
+                    <span className={`${ui.pill} ${roleStyle(u.role)} !text-[11px] !px-2.5 !py-1 !rounded-lg`}>
+                      {roleLabel(u.role)}
                     </span>
                   </div>
 
-                  <div className="col-span-3 flex flex-col items-end gap-1.5">
+                  {/* Status */}
+                  <div className="md:col-span-2 min-w-0">
+                    {u.is_banned ? (
+                      <>
+                        <span className={`${ui.pill} ${pillTone.banned} !text-[11px] !px-2.5 !py-1 !rounded-lg`}>
+                          <Ban size={11} /> Banned
+                        </span>
+                        {banReasons[u.id] && (
+                          <p
+                            className="text-[11px] text-red-600 dark:text-red-400 mt-1 line-clamp-2"
+                            title={banReasons[u.id]}
+                          >
+                            {banReasons[u.id]}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <span className={`${ui.pill} ${pillTone.active} !text-[11px] !px-2.5 !py-1 !rounded-lg`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions: role dropdown, then ban/unban, always in one row */}
+                  <div className="md:col-span-4 flex items-center md:justify-end gap-2">
                     {canChangeRoles ? (
                       <RoleSelect userId={u.id} currentRole={u.role || "user"} />
                     ) : (
-                      <span className="text-xs text-muted-foreground">Super admin only</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
+                        <Lock size={12} /> Roles: super admin only
+                      </span>
                     )}
-                    {canBan && <BanButton userId={u.id} name={displayName} />}
-                    {u.is_banned && <UnbanButton userId={u.id} name={displayName} />}
+
+                    {canBan ? (
+                      <BanButton userId={u.id} name={displayName} />
+                    ) : u.is_banned ? (
+                      <UnbanButton userId={u.id} name={displayName} />
+                    ) : !isMe && targetIsStaff ? (
+                      <span
+                        className="p-2 text-ink-soft"
+                        title="Only super admins can ban staff accounts"
+                      >
+                        <Lock size={14} />
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="p-12 text-center text-muted-foreground">
-              <ShieldAlert size={32} className="mx-auto mb-2 text-muted-foreground/60" />
-              <p className="text-sm font-semibold">No accounts match.</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Try a different search, or clear the filters.
-              </p>
+            <div className="p-12 text-center text-ink-soft">
+              <ShieldAlert size={32} className="mx-auto mb-2 opacity-60" />
+              <p className="text-sm font-semibold text-foreground">No accounts match.</p>
+              <p className="text-xs mt-1">Try a different search, or clear the filters.</p>
             </div>
           )}
         </div>
@@ -296,13 +313,13 @@ export default async function UsersAdminPage({
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-xs">
           {page > 1 ? (
-            <Link href={buildHref(page - 1)} className="px-3 py-2 rounded-xl border border-border font-bold hover:bg-accent">
+            <Link href={buildHref(page - 1)} className={btn("outline", "sm")}>
               ← Previous
             </Link>
           ) : <span />}
-          <span className="text-muted-foreground">Page {page} of {totalPages}</span>
+          <span className="text-ink-soft">Page {page} of {totalPages}</span>
           {page < totalPages ? (
-            <Link href={buildHref(page + 1)} className="px-3 py-2 rounded-xl border border-border font-bold hover:bg-accent">
+            <Link href={buildHref(page + 1)} className={btn("outline", "sm")}>
               Next →
             </Link>
           ) : <span />}

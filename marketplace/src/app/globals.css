@@ -78,6 +78,11 @@
   --color-on-gold: var(--on-gold);
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
+  --color-card: var(--surface);
+  --color-muted: var(--tint);
+  --color-muted-foreground: var(--ink-soft);
+  --color-accent: var(--tint);
+  --color-accent-foreground: var(--brand-deep);
 }
 
 body {
