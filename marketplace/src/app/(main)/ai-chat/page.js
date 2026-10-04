@@ -1,6 +1,7 @@
 'use client';
 
 import { toast } from "sonner";
+import ReactMarkdown from 'react-markdown';
 import { useConfirm } from "@/components/ConfirmProvider";
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -87,7 +88,7 @@ export default function AiChatPage() {
       });
 
       const data = await response.json();
-      const aiReply = data.reply || "I'm having trouble responding right now.";
+      const aiReply = data.reply || data.error || "I'm having trouble responding right now.";
 
       setMessages((prev) => [...prev, { role: 'assistant', content: aiReply }]);
 
@@ -183,7 +184,25 @@ export default function AiChatPage() {
                 ? 'bg-foreground text-background rounded-tr-none font-medium'
                 : 'bg-white dark:bg-neutral-900 border border-border text-foreground rounded-tl-none font-normal'
                 }`}>
-                {msg.content}
+                {isUser ? (
+                  <span className="whitespace-pre-wrap">{msg.content}</span>
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-indigo-600">
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
           );
