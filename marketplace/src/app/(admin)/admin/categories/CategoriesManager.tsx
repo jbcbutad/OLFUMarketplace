@@ -23,6 +23,47 @@ const btnGhost =
 const btnDanger =
     "px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 cursor-pointer";
 
+const EMOJIS = [
+    "📚", "📖", "✏️", "🎒", "💻", "🖥️", "⌨️", "🖱️", "🎧", "📱", "🔌", "🔋",
+    "📷", "🎮", "👕", "👖", "👟", "🧥", "👜", "🥼", "🩺", "🧪", "🔬", "📐",
+    "🧮", "🍔", "☕", "🥤", "🪑", "🛏️", "🏠", "🚲", "🛴", "🎸", "🎨", "⚽",
+    "🏀", "💍", "🎁", "🧴", "🏷️", "📦", "🛒", "🎓",
+];
+
+function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string) => void }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="w-14 h-[42px] rounded-xl border border-line bg-background text-xl hover:bg-tint cursor-pointer"
+                aria-label="Choose icon"
+                title="Choose icon"
+            >
+                {value || "🏷️"}
+            </button>
+            {open && (
+                <>
+                    <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+                    <div className="absolute left-0 z-20 mt-2 w-72 p-2 grid grid-cols-8 gap-1 bg-surface border border-line rounded-xl shadow-lg">
+                        {EMOJIS.map((e) => (
+                            <button
+                                key={e}
+                                type="button"
+                                onClick={() => { onChange(e); setOpen(false); }}
+                                className="text-xl p-1 rounded-lg hover:bg-tint cursor-pointer"
+                            >
+                                {e}
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function CategoriesManager({
     categories, usage, suggested, tags, canDeleteCategories,
 }: {
@@ -72,8 +113,7 @@ export default function CategoriesManager({
                 </h2>
 
                 <div className="flex flex-col sm:flex-row gap-2 mb-5">
-                    <input className={`${input} sm:w-20 text-center`} placeholder="🏷️" maxLength={8}
-                        value={newIcon} onChange={(e) => setNewIcon(e.target.value)} aria-label="Category icon" />
+                    <EmojiPicker value={newIcon} onChange={setNewIcon} />
                     <input className={`${input} flex-1`} placeholder="New category name" maxLength={30}
                         value={newName} onChange={(e) => setNewName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && newName.trim() &&
@@ -85,7 +125,7 @@ export default function CategoriesManager({
                     </button>
                 </div>
 
-                <ul className="divide-y divide-line border border-line rounded-xl overflow-hidden">
+                <ul className="divide-y divide-line border border-line rounded-xl overflow-visible">
                     {categories.map((c) => {
                         const locked = c.name.toLowerCase() === "merchandise";
                         const count = usage[c.id] ?? 0;
@@ -100,11 +140,10 @@ export default function CategoriesManager({
                                     : "";
 
                         return (
-                            <li key={c.id} className="flex flex-wrap items-center gap-3 px-4 py-3 bg-background">
+                            <li key={c.id} className="flex flex-wrap items-center gap-3 px-4 py-3 bg-background first:rounded-t-xl last:rounded-b-xl">
                                 {editing ? (
                                     <>
-                                        <input className={`${input} w-16 text-center`} value={editIcon} maxLength={8}
-                                            onChange={(e) => setEditIcon(e.target.value)} aria-label="Icon" />
+                                        <EmojiPicker value={editIcon} onChange={setEditIcon} />
                                         <input className={`${input} flex-1 min-w-[140px]`} value={editName} maxLength={30}
                                             disabled={locked} onChange={(e) => setEditName(e.target.value)} aria-label="Name" />
                                         <button className={btnGhost} disabled={pending} title="Save"

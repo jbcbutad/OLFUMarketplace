@@ -14,6 +14,11 @@ const cleanName = (s: string) => s.trim().replace(/\s+/g, " ");
 const slugify = (s: string) =>
     s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
+const cleanIcon = (s: string) => {
+    const t = s.trim();
+    return /^\p{Extended_Pictographic}/u.test(t) ? t.slice(0, 8) : null;
+};
+
 async function requireRole(allowed: string[]) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -55,7 +60,7 @@ export async function addCategory(name: string, icon: string): Promise<Result> {
 
     const { error: dbError } = await supabase
         .from("categories")
-        .insert({ name: clean, slug, icon: icon.trim().slice(0, 8) || null });
+        .insert({ name: clean, slug, icon: cleanIcon(icon) });
     if (dbError) return { error: friendly(dbError) };
 
     refresh();
@@ -71,7 +76,7 @@ export async function updateCategory(id: number, name: string, icon: string): Pr
 
     const { data, error: dbError } = await supabase
         .from("categories")
-        .update({ name: clean, icon: icon.trim().slice(0, 8) || null })
+        .update({ name: clean, icon: cleanIcon(icon) })
         .eq("id", id)
         .select("id");
     if (dbError) return { error: friendly(dbError) };
