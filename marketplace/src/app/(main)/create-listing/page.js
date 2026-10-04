@@ -789,11 +789,11 @@ function CreateListingContent() {
             </div>
 
             {/* SUBMIT */}
-            <div className="pt-6">
+            <div className="pt-6 md:col-span-2 flex justify-center">
               <button
                 type="submit"
                 disabled={loading || images.length === 0}
-                className="w-full bg-foreground text-background border border-foreground font-bold py-5 rounded-2xl flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                className="w-full max-w-xl bg-foreground text-background border border-foreground font-bold py-5 rounded-2xl flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <><Loader2 className="animate-spin" size={20} /> Processing Listing...</>
