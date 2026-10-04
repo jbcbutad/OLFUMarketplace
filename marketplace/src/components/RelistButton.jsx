@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -24,7 +25,7 @@ export default function RelistButton({
         setBusy(false);
 
         if (error) {
-            alert(error.message);
+            toast.error(error.message);
             return;
         }
 

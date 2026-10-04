@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -77,7 +78,7 @@ export default function OrgApplyPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!agreedToTerms) {
-            alert("You must agree to the Official Merchandise Terms and Conditions before submitting your application.");
+            toast.error("You must agree to the Official Merchandise Terms and Conditions before submitting your application.");
             return;
         }
 
@@ -107,7 +108,7 @@ export default function OrgApplyPage() {
                 created_at: new Date().toISOString(),
             });
         } catch (err) {
-            alert(err.message || "Failed to submit application.");
+            toast.error(err.message || "Failed to submit application.");
         } finally {
             setSubmitting(false);
         }

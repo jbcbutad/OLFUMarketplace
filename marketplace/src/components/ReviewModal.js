@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Star, Loader2, X, Pencil } from "lucide-react";
@@ -32,7 +33,7 @@ export default function ReviewModal({
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!rating) return alert("Please select a rating.");
+        if (!rating) return toast.error("Please select a rating.");
 
         setLoading(true);
 
@@ -114,7 +115,7 @@ export default function ReviewModal({
             onClose();
         } catch (err) {
             console.error("Review submission error:", err);
-            alert(err.message || "Failed to submit review.");
+            toast.error(err.message || "Failed to submit review.");
         } finally {
             setLoading(false);
         }

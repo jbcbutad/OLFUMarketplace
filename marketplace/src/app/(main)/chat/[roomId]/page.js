@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
@@ -71,14 +72,14 @@ export default function ChatRoom() {
   const [activeModal, setActiveModal] = useState(null); // unsend | block | unblock | delete | report
   const [selectedMessageId, setSelectedMessageId] = useState(null);
   const [reportReason, setReportReason] = useState("");
-  const [toast, setToast] = useState({ show: false, message: "", type: "info" });
 
   const messagesEndRef = useRef(null);
   const currentUserIdRef = useRef(null);
 
   const showToast = (message, type = "info") => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "info" }), 3000);
+    if (type === "success") toast.success(message);
+    else if (type === "error") toast.error(message);
+    else toast(message);
   };
 
   const scrollToBottom = () => {
@@ -443,24 +444,6 @@ export default function ChatRoom() {
       className="text-foreground w-full h-[calc(100dvh-4rem)] max-h-screen overflow-hidden flex flex-col transition-colors"
       onClick={() => showMenu && setShowMenu(false)}
     >
-      {/* TOAST NOTIFICATION */}
-      {toast.show && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] max-w-[90vw] animate-in fade-in slide-in-from-top-4 duration-200">
-          <div
-            role="status"
-            className={`px-4 py-2.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-2 ${toast.type === "success"
-              ? "bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-neutral-900 dark:border-white"
-              : toast.type === "error"
-                ? "bg-rose-50 border-rose-500/30 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
-                : `bg-stone-200 dark:bg-neutral-800 ${TEXT} ${LINE}`
-              }`}
-          >
-            {toast.type === "success" && <Check size={16} className="text-emerald-500 shrink-0" />}
-            {toast.message}
-          </div>
-        </div>
-      )}
-
       <div className={`max-w-3xl w-full mx-auto h-full flex flex-col border-x ${LINE} overflow-hidden`}>
         {/* HEADER BAR */}
         <div className={`p-4 border-b ${LINE} ${BAR} flex items-center gap-4 relative z-40 shrink-0`}>

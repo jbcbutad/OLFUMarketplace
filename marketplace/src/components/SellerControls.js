@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { Edit3, Trash2, ChevronDown, AlertTriangle, Loader2, X, Layers, CheckCircle, Tag, PhilippinePeso, FileText, PlusCircle, RefreshCcw } from "lucide-react";
 import MarkAsTransactedModal from "@/components/MarkAsTransactedModal";
@@ -62,22 +63,22 @@ export default function SellerControls({ product, currentUserId }) {
         if (choice === "available") {
             // BLOCK FLAGGED ITEMS FROM BEING MADE AVAILABLE
             if (isFlagged) {
-                alert("This listing cannot be made available because it is flagged under safety review by moderators.");
+                toast.error("This listing cannot be made available because it is flagged under safety review by moderators.");
                 return;
             }
 
             if (product.status === "rejected") {
-                alert("This listing was rejected by an admin and cannot be made available.");
+                toast.error("This listing was rejected by an admin and cannot be made available.");
                 return;
             }
 
             if (isActuallyExpired) {
                 if (isMerchandise) {
-                    alert("This drop has expired. Use Renew & Pay Listing.");
+                    toast.error("This drop has expired. Use Renew & Pay Listing.");
                     return;
                 }
                 const { error } = await supabase.rpc("relist_product", { p_product_id: product.id });
-                if (error) alert(error.message);
+                if (error) toast.error(error.message);
                 router.refresh();
                 return;
             }
@@ -111,13 +112,13 @@ export default function SellerControls({ product, currentUserId }) {
     const handleConfirmRestock = async (e) => {
         e.preventDefault();
         if (isActuallyExpired) {
-            alert("Cannot restock an expired merchandise drop. Please renew your listing.");
+            toast.error("Cannot restock an expired merchandise drop. Please renew your listing.");
             return;
         }
 
         const addedStock = parseInt(restockQtyInput);
         if (isNaN(addedStock) || addedStock <= 0) {
-            alert("Please enter a valid stock quantity greater than 0.");
+            toast.error("Please enter a valid stock quantity greater than 0.");
             return;
         }
 
@@ -138,7 +139,7 @@ export default function SellerControls({ product, currentUserId }) {
             setIsRestockOpen(false);
             router.refresh();
         } catch (err) {
-            alert("Failed to restock: " + err.message);
+            toast.error("Failed to restock: " + err.message);
         } finally {
             setIsProcessing(false);
         }
@@ -146,13 +147,13 @@ export default function SellerControls({ product, currentUserId }) {
 
     const handleTriggerMerchSale = () => {
         if (isActuallyExpired) {
-            alert("This listing has expired. You cannot record sales until it is renewed.");
+            toast.error("This listing has expired. You cannot record sales until it is renewed.");
             return;
         }
 
         const qtyToSubtract = parseInt(deductQty) || 1;
         if (qtyToSubtract > currentStock) {
-            alert(`Cannot deduct ${qtyToSubtract} units. Only ${currentStock} units left in stock.`);
+            toast.error(`Cannot deduct ${qtyToSubtract} units. Only ${currentStock} units left in stock.`);
             return;
         }
 
@@ -194,7 +195,7 @@ export default function SellerControls({ product, currentUserId }) {
             setIsEditOpen(false);
             router.refresh();
         } else {
-            alert("Failed to update: " + error.message);
+            toast.error("Failed to update: " + error.message);
         }
     };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -34,15 +35,15 @@ export default function ChatHub() {
   const [activeTab, setActiveTab] = useState("active"); // "active" | "archived"
   const [menu, setMenu] = useState(null); // { roomId, top, right }
   const [confirm, setConfirm] = useState(null); // { type: "block" | "unblock" | "delete", room }
-  const [toast, setToast] = useState({ show: false, message: "", type: "info" });
   const router = useRouter();
 
   const [onlineUserIds, setOnlineUserIds] = useState(new Set());
   const presenceChannelName = useMemo(() => "presence:users-online", []);
 
   const showToast = (message, type = "info") => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "info" }), 3000);
+    if (type === "success") toast.success(message);
+    else if (type === "error") toast.error(message);
+    else toast(message);
   };
 
   // First load
@@ -525,23 +526,6 @@ export default function ChatHub() {
 
   return (
     <div className="text-foreground w-full min-h-screen transition-colors">
-      {/* TOAST */}
-      {toast.show && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] animate-in fade-in slide-in-from-top-4 duration-200">
-          <div
-            className={`px-4 py-2.5 rounded-xl shadow-xl border text-sm font-semibold flex items-center gap-2 ${toast.type === "success"
-              ? "bg-foreground text-background border-transparent"
-              : toast.type === "error"
-                ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400"
-                : "bg-muted border-border text-foreground"
-              }`}
-          >
-            {toast.type === "success" && <Check size={16} className="text-emerald-500" />}
-            {toast.message}
-          </div>
-        </div>
-      )}
-
       <div className="max-w-7xl mx-auto py-10 px-4 md:px-6">
         <div className="flex flex-col h-[80vh] min-h-[600px] bg-background text-foreground border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden relative shadow-sm">
           {/* Header Area */}

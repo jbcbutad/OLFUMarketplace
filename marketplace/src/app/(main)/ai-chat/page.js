@@ -1,5 +1,6 @@
 'use client';
 
+import { useConfirm } from "@/components/ConfirmProvider";
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function AiChatPage() {
+  const askConfirm = useConfirm();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -107,7 +109,12 @@ export default function AiChatPage() {
 
   const clearHistory = async () => {
     if (!currentUser) return;
-    if (confirm('Are you sure you want to clear your chat history?')) {
+    const ok = await askConfirm({
+      title: 'Clear chat history?',
+      message: 'This deletes your AI chat history and can\'t be undone.',
+      confirmText: 'Clear history',
+    });
+    if (ok) {
       await supabase.from('ai_messages').delete().eq('user_id', currentUser.id);
       setMessages([
         { role: 'assistant', content: 'Chat history cleared. How can I help you today?' }

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -64,7 +65,7 @@ export default function SearchBar() {
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert("Voice search is not supported in this browser. Please use Chrome, Edge, or Safari.");
+      toast.error("Voice search is not supported in this browser. Please use Chrome, Edge, or Safari.");
       return;
     }
 
@@ -137,11 +138,11 @@ export default function SearchBar() {
         setQuery(searchTerm);
         executeSearch(searchTerm);
       } else {
-        alert(data.error || "Failed to analyze image.");
+        toast.error(data.error || "Failed to analyze image.");
       }
     } catch (err) {
       console.error("Image search error:", err);
-      alert("Failed to analyze image for search.");
+      toast.error("Failed to analyze image for search.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -233,11 +234,10 @@ export default function SearchBar() {
             type="button"
             onClick={handleVoiceSearch}
             title={isListening ? "Listening..." : "Search with voice"}
-            className={`p-1.5 rounded-full transition-all flex items-center justify-center ${
-              isListening
+            className={`p-1.5 rounded-full transition-all flex items-center justify-center ${isListening
                 ? "text-red-500 bg-red-500/20 animate-pulse ring-1 ring-red-500"
                 : "text-neutral-500 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            }`}
+              }`}
           >
             <Mic size={18} />
           </button>

@@ -8,6 +8,7 @@ import {
   X, ImagePlus, ListFilter, Hash, ChevronLeft, Info, Plus, Sparkles, ShieldCheck, Layers, Calendar, CreditCard
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const compressAndConvertToBase64 = (file, maxWidth = 1024, quality = 0.75) => {
   return new Promise((resolve, reject) => {
@@ -179,7 +180,7 @@ function CreateListingContent() {
   const addTag = (tagToAdd) => {
     const cleanTag = tagToAdd.trim().toLowerCase();
     if (RESERVED_TAGS.includes(cleanTag)) {
-      alert(`"${cleanTag}" is a reserved tag and can't be added manually.`);
+      toast.error(`"${cleanTag}" is a reserved tag and can't be added manually.`);
       return;
     }
     if (cleanTag && !tags.includes(cleanTag)) {
@@ -202,7 +203,7 @@ function CreateListingContent() {
   const handleImageChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
     if (images.length + selectedFiles.length > 10) {
-      alert("You can only upload a maximum of 10 images.");
+      toast.error("You can only upload a maximum of 10 images.");
       return;
     }
     if (selectedFiles.length > 0) {
@@ -219,7 +220,7 @@ function CreateListingContent() {
 
   const handleAutoFillAI = async () => {
     if (images.length === 0 && !description) {
-      alert("Please upload at least one image or type a short note first!");
+      toast.error("Please upload at least one image or type a short note first!");
       return;
     }
 
@@ -256,11 +257,11 @@ function CreateListingContent() {
           setTags(prev => [...new Set([...prev, ...cleanAiTags])]);
         }
       } else {
-        alert(data.error || "Failed to generate details with AI.");
+        toast.error(data.error || "Failed to generate details with AI.");
       }
     } catch (err) {
       console.error("AI Generation error:", err);
-      alert("Error generating details with AI.");
+      toast.error("Error generating details with AI.");
     } finally {
       setAiLoading(false);
     }
@@ -316,8 +317,8 @@ function CreateListingContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (images.length === 0) return alert("Please upload at least one image!");
-    if (!categoryId) return alert("Please select a category!");
+    if (images.length === 0) return toast.error("Please upload at least one image!");
+    if (!categoryId) return toast.error("Please select a category!");
     setLoading(true);
 
     try {
@@ -335,10 +336,11 @@ function CreateListingContent() {
           const lower = badTags.map((t) => t.toLowerCase());
           setTags((prev) => prev.filter((t) => !lower.includes(t.toLowerCase())));
         }
-        alert(
+        toast.error(
           badTags.length > 0
             ? `These tags can't be used and were removed: ${badTags.map((t) => `#${t}`).join(", ")}. Please review your tags and post again.`
-            : `One of your tags can't be used: ${moderation.reason || "it appears to break our posting rules"}`
+            : `One of your tags can't be used: ${moderation.reason || "it appears to break our posting rules"}`,
+          { duration: 8000 }
         );
         setLoading(false);
         return;
@@ -353,10 +355,11 @@ function CreateListingContent() {
               ? "Your listing text"
               : "An uploaded image";
 
-        alert(
+        toast.error(
           `${sourceText} cannot be used: ${moderation.reason ||
           "it appears to break our posting rules"
-          }`
+          }`,
+          { duration: 8000 }
         );
         setLoading(false);
         return;
@@ -468,8 +471,9 @@ function CreateListingContent() {
 
         if (flagError) throw flagError;
 
-        alert(
-          "Your listing was submitted for a moderator review due to safety flags. It will go live once approved."
+        toast.warning(
+          "Your listing was submitted for a moderator review due to safety flags. It will go live once approved.",
+          { duration: 8000 }
         );
       }
 
@@ -488,7 +492,7 @@ function CreateListingContent() {
 
     } catch (error) {
       console.error("Submission error:", error);
-      alert(error.message || "Something went wrong.");
+      toast.error(error.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }

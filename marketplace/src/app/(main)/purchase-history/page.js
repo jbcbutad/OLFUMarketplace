@@ -114,7 +114,7 @@ export default function PurchaseHistoryPage() {
                 </div>
 
                 {/* THEMED FILTER & CONTROL BAR */}
-                <div className="bg-card border border-border rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
+                <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">
                     {/* Search Input */}
                     <div className="relative w-full md:w-72">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -171,7 +171,7 @@ export default function PurchaseHistoryPage() {
                             const existingReview = reviewsMap[tx.id];
 
                             return (
-                                <div key={tx.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
+                                <div key={tx.id} className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
                                     <div className="flex items-center gap-4">
                                         <img src={product?.image_urls?.[0] || "/placeholder.png"} alt={product?.title} className="w-16 h-16 rounded-xl object-cover border border-border bg-muted shrink-0" />
                                         <div>
@@ -227,7 +227,7 @@ export default function PurchaseHistoryPage() {
                             );
                         })
                     ) : (
-                        <div className="text-center py-20 bg-card/50 rounded-3xl border border-dashed border-border text-muted-foreground font-bold uppercase text-sm">
+                        <div className="text-center py-20 bg-white dark:bg-neutral-900/50 rounded-3xl border border-dashed border-border text-muted-foreground font-bold uppercase text-sm">
                             {purchases.length === 0 ? "No Purchase History Found" : "No Matching Purchases"}
                         </div>
                     )}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirm } from "@/components/ConfirmProvider";
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2, Flag, CheckCircle2, Trash2, ExternalLink } from "lucide-react";
@@ -11,6 +13,7 @@ const REASON_LABELS = {
 };
 
 export default function AdminFlaggedPage() {
+    const askConfirm = useConfirm();
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
@@ -56,7 +59,11 @@ export default function AdminFlaggedPage() {
     const resolveGroup = async (group, action) => {
         if (
             action === "remove" &&
-            !confirm("Remove this listing? It will be taken down and the seller won't be able to relist it from here.")
+            !(await askConfirm({
+                title: "Remove this listing?",
+                message: "It will be taken down and the seller won't be able to relist it from here.",
+                confirmText: "Remove listing",
+            }))
         ) {
             return;
         }
@@ -100,7 +107,7 @@ export default function AdminFlaggedPage() {
             setGroups((prev) => prev.filter((g) => g.productId !== group.productId));
         } catch (err) {
             console.error("Moderation action failed:", err);
-            alert("Could not update this listing: " + err.message);
+            toast.error("Could not update this listing: " + err.message);
         } finally {
             setProcessingId(null);
         }

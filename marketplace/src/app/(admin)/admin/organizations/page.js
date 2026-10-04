@@ -1,10 +1,13 @@
 "use client";
 
+import { useConfirm } from "@/components/ConfirmProvider";
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Building2, Check, X, ShieldCheck, Loader2, RotateCcw, Trash2 } from "lucide-react";
 
 export default function AdminOrganizationsPage() {
+    const askConfirm = useConfirm();
     const [apps, setApps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
@@ -64,14 +67,19 @@ export default function AdminOrganizationsPage() {
                 )
             );
         } catch (err) {
-            alert("Error updating status: " + err.message);
+            toast.error("Error updating status: " + err.message);
         } finally {
             setProcessingId(null);
         }
     };
 
     const deleteApplication = async (app) => {
-        if (!confirm(`Remove "${app.org_name}" from the list? This can't be undone.`)) return;
+        const ok = await askConfirm({
+            title: "Remove organization?",
+            message: `Remove "${app.org_name}" from the list? This can't be undone.`,
+            confirmText: "Remove",
+        });
+        if (!ok) return;
         setProcessingId(app.id);
         try {
             const { data, error } = await supabase
@@ -87,7 +95,7 @@ export default function AdminOrganizationsPage() {
 
             setApps((prev) => prev.filter((item) => item.id !== app.id));
         } catch (err) {
-            alert("Error removing application: " + err.message);
+            toast.error("Error removing application: " + err.message);
         } finally {
             setProcessingId(null);
         }

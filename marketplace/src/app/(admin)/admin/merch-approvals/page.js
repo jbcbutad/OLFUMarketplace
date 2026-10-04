@@ -1,10 +1,13 @@
 "use client";
 
+import { useConfirm } from "@/components/ConfirmProvider";
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2, CheckCircle2, XCircle, ShieldCheck, Layers, Calendar, PhilippinePeso } from "lucide-react";
 
 export default function AdminMerchApprovals() {
+    const askConfirm = useConfirm();
     const [pendingItems, setPendingItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
@@ -43,7 +46,7 @@ export default function AdminMerchApprovals() {
 
         if (error) {
             console.error("Approval error:", error);
-            alert("Failed to approve item: " + error.message);
+            toast.error("Failed to approve item: " + error.message);
         } else {
             setPendingItems((prev) => prev.filter((p) => p.id !== item.id));
         }
@@ -51,7 +54,12 @@ export default function AdminMerchApprovals() {
     };
 
     const rejectMerchDrop = async (productId) => {
-        if (!confirm("Are you sure you want to reject this merchandise?")) return;
+        const ok = await askConfirm({
+            title: "Reject this merchandise?",
+            message: "It will be marked as rejected and removed from the approval queue.",
+            confirmText: "Reject",
+        });
+        if (!ok) return;
         setProcessingId(productId);
         try {
             const { error } = await supabase

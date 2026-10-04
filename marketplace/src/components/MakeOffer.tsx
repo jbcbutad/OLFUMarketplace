@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Handshake, PhilippinePeso, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 
 export default function MakeOffer({
@@ -34,7 +35,7 @@ export default function MakeOffer({
   async function handleOffer() {
     if (!offerAmount || Number(offerAmount) <= 0 || loading || isOwner) return;
     if (!sellerId) {
-      alert("Seller information is missing.");
+      toast.error("Seller information is missing.");
       return;
     }
 
@@ -71,7 +72,7 @@ export default function MakeOffer({
       router.push(`/chat/${roomId}?sellerId=${sellerId}&productId=${productId}`);
       router.refresh();
     } catch (err: any) {
-      alert("Error sending offer: " + err.message);
+      toast.error("Error sending offer: " + err.message);
     } finally {
       setLoading(false);
     }

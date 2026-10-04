@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import SellerControls from "@/components/SellerControls";
 import MakeOffer from "@/components/MakeOffer";
@@ -27,7 +28,6 @@ export default function ProductActions({
   const [loading, setLoading] = useState(true);
   const [orderQty, setOrderQty] = useState(1);
   const [inquiring, setInquiring] = useState(false);
-  const [orderError, setOrderError] = useState(null);
   const [existingRoomId, setExistingRoomId] = useState(null);
   const router = useRouter();
 
@@ -73,12 +73,11 @@ export default function ProductActions({
     }
 
     if (orderQty > stockAvailable) {
-      setOrderError(`Only ${stockAvailable} units left in stock.`);
+      toast.error(`Only ${stockAvailable} units left in stock.`);
       return;
     }
 
     setInquiring(true);
-    setOrderError(null);
 
     try {
       const { data: roomId, error } = await supabase.rpc("get_or_create_product_room", {
@@ -100,7 +99,7 @@ export default function ProductActions({
       // The button stays in its loading state until the redirect finishes
       router.push(`/chat/${roomId}?sellerId=${product.seller_id}&productId=${product.id}`);
     } catch (err) {
-      setOrderError(err.message || "Failed to open chat. Please try again.");
+      toast.error(err.message || "Failed to open chat. Please try again.");
       setInquiring(false);
     }
   };
@@ -206,11 +205,6 @@ export default function ProductActions({
                   )}
                 </button>
               </div>
-              {orderError && (
-                <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400 text-center">
-                  {orderError}
-                </p>
-              )}
               <p className="text-[11px] text-muted-foreground text-center">
                 Clicking this opens a chat with the organization to send your GCash receipt.
               </p>

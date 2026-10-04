@@ -1,10 +1,11 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Check, Heart, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Heart, ShieldCheck, Trash2 } from "lucide-react";
 import ProductReviews from "@/components/ProductReviews";
 import ProductActions from "@/components/ProductActions";
 import OwnerBanner from "@/components/OwnerBanner";
@@ -41,11 +42,11 @@ export default function ProductDetailPage({ params }) {
   const [currentUser, setCurrentUser] = useState(null);
 
   // Toast State
-  const [toast, setToast] = useState({ show: false, message: "", type: "info" });
 
   const showToast = (message, type = "info") => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "info" }), 3500);
+    if (type === "success") toast.success(message);
+    else if (type === "error") toast.error(message);
+    else toast(message);
   };
 
   useEffect(() => {
@@ -265,23 +266,6 @@ export default function ProductDetailPage({ params }) {
 
   return (
     <div className="text-foreground w-full min-h-screen flex flex-col justify-between transition-colors relative">
-
-      {toast.show && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[10000] max-w-[90vw] animate-in fade-in slide-in-from-top-4 duration-200">
-          <div
-            role="status"
-            className={`px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold flex items-center gap-2.5 ${toast.type === "success"
-              ? "bg-stone-200 text-black border-emerald-600 dark:bg-neutral-800 dark:text-white"
-              : toast.type === "error"
-                ? "bg-rose-50 border-rose-500/30 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400"
-                : `bg-stone-200 text-black ${LINE} dark:bg-neutral-800 dark:text-white`
-              }`}
-          >
-            {toast.type === "success" && <Check size={15} className="text-emerald-500 shrink-0" />}
-            {toast.message}
-          </div>
-        </div>
-      )}
 
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
 

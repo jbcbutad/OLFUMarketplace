@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from "sonner";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { TrendingUp, Package, DollarSign, Users, Loader2, ShoppingCart, ShieldCheck, Calendar, Award, Tag, BarChart3, Download } from 'lucide-react';
@@ -221,7 +222,7 @@ export default function AdminAnalyticsDashboard() {
                     .order("created_at", { ascending: false });
 
                 if (error) throw error;
-                if (!data || data.length === 0) return alert("No transaction data to export.");
+                if (!data || data.length === 0) { toast.warning("No transaction data to export."); return; }
 
                 const headers = ["Transaction ID", "Type", "Status", "Product Title", "Price (PHP)", "Date"];
                 const rows = data.map((tx: any) => {
@@ -249,7 +250,7 @@ export default function AdminAnalyticsDashboard() {
                     .order("created_at", { ascending: false });
 
                 if (error) throw error;
-                if (!data || data.length === 0) return alert("No product inventory found.");
+                if (!data || data.length === 0) { toast.warning("No product inventory found."); return; }
 
                 const headers = ["Product ID", "Title", "Price (PHP)", "Type", "Condition", "Available", "Created Date"];
                 const rows = data.map((p: any) => [
@@ -271,7 +272,7 @@ export default function AdminAnalyticsDashboard() {
                     .select(`id, title, tags`);
 
                 if (error) throw error;
-                if (!data || data.length === 0) return alert("No product tags found.");
+                if (!data || data.length === 0) { toast.warning("No product tags found."); return; }
 
                 const headers = ["Product ID", "Product Title", "Associated Tags"];
                 const rows = data.map((p: any) => [
@@ -294,7 +295,7 @@ export default function AdminAnalyticsDashboard() {
             link.click();
             document.body.removeChild(link);
         } catch (err: any) {
-            alert("Failed to export data: " + err.message);
+            toast.error("Failed to export data: " + err.message);
         }
     };
 

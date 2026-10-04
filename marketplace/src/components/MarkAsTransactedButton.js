@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -36,7 +37,7 @@ export default function MarkAsTransactedButton({
             if (error) throw error;
             router.refresh();
         } catch (err) {
-            alert(err.message || "Failed to make item available.");
+            toast.error(err.message || "Failed to make item available.");
         } finally {
             setLoadingReset(false);
         }

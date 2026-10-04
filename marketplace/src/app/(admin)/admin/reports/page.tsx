@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from "sonner";
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
@@ -133,7 +134,7 @@ export default function ReportsPage() {
       if (error) throw error;
       await fetchReports();
     } catch (err) {
-      alert(`${failLabel}: ` + (err.message || err));
+      toast.error(`${failLabel}: ` + (err.message || err));
     } finally {
       setUpdatingId(null);
     }

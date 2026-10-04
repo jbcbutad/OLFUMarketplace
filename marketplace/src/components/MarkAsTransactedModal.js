@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { UserCheck, Loader2, X, Search, EyeOff } from "lucide-react";
@@ -70,12 +71,12 @@ export default function MarkAsTransactedModal({
 
         // If not closing externally, a student must be selected
         if (!isExternalClose && !selectedBuyerId) {
-            return alert("Please select a student or choose 'Mark as Unavailable (Sold Elsewhere)'.");
+            return toast.error("Please select a student or choose 'Mark as Unavailable (Sold Elsewhere)'.");
         }
 
         const qtyNum = isMerchandise ? parseInt(deductQty) || 1 : 1;
         if (isMerchandise && (qtyNum <= 0 || qtyNum > maxStock)) {
-            return alert(`Please enter a valid quantity between 1 and ${maxStock}.`);
+            return toast.error(`Please enter a valid quantity between 1 and ${maxStock}.`);
         }
 
         setLoading(true);
@@ -167,7 +168,7 @@ export default function MarkAsTransactedModal({
             onSuccess?.();
             onClose();
         } catch (err) {
-            alert(err.message || "Failed to process transaction.");
+            toast.error(err.message || "Failed to process transaction.");
         } finally {
             setLoading(false);
         }

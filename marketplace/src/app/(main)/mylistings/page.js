@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Package, Edit3, Trash2, Plus, Loader2, AlertTriangle,
   PhilippinePeso, X, Tag, Layers, Hash, FileText, ChevronDown, Clock, RefreshCcw, CreditCard
@@ -136,7 +137,7 @@ function MyListingsContent() {
       });
 
     } catch (err) {
-      alert("Failed to update renewal data: " + err.message);
+      toast.error("Failed to update renewal data: " + err.message);
       setIsProcessing(false);
     }
   };
@@ -146,22 +147,23 @@ function MyListingsContent() {
 
     if (targetStatusChoice === "available") {
       if (item.status === "pending" || item.status === "flagged" || !item.is_published) {
-        alert("This listing cannot be made available because it is still awaiting admin approval or has been flagged.");
+        toast.error("This listing cannot be made available because it is still awaiting admin approval or has been flagged.");
         return;
       }
 
       const isMerchandise = item.categories?.name === "Merchandise";
 
       if (item.status === "rejected") {
-        alert("This listing was rejected by an admin.");
+        toast.error("This listing was rejected by an admin.");
         return;
       }
 
       if (getListingState(item) === "expired") {
-        alert(
+        toast.error(
           isMerchandise
             ? "This merchandise drop has expired. Please use 'Renew Listing' to update stock, duration, and pay the renewal fee."
-            : "This listing has expired. Use 'Relist' to put it back up."
+            : "This listing has expired. Use 'Relist' to put it back up.",
+          { duration: 8000 }
         );
         return;
       }
@@ -234,7 +236,7 @@ function MyListingsContent() {
       const moderation = await modRes.json();
 
       if (moderation.verdict === "rejected") {
-        alert(`Listing update blocked: ${moderation.reason || "it violates our posting guidelines."}`);
+        toast.error(`Listing update blocked: ${moderation.reason || "it violates our posting guidelines."}`, { duration: 8000 });
         setIsProcessing(false);
         return;
       }
@@ -281,20 +283,22 @@ function MyListingsContent() {
           },
         ]);
 
-        alert(
-          "⚠️ SAFETY REVIEW REQUIRED\n\nYour recent edits triggered our automated content check. " +
-          "Your listing has been automatically set to UNAVAILABLE and sent to the admin queue for manual review. " +
-          "It will become active again once approved by a moderator."
-        );
+        toast.warning("Safety review required", {
+          description:
+            "Your recent edits triggered our automated content check. " +
+            "Your listing has been set to unavailable and sent to the admin queue for manual review. " +
+            "It will become active again once approved by a moderator.",
+          duration: 10000,
+        });
       } else {
-        alert("Your listing updates were successfully saved and approved!");
+        toast.success("Your listing updates were successfully saved and approved!");
       }
 
       setListings(listings.map(item => item.id === activeItem.id ? { ...item, ...updatePayload, price: parseFloat(editForm.price) } : item));
       setIsEditModalOpen(false);
     } catch (err) {
       console.error("Update error:", err);
-      alert("Failed to update listing: " + (err.message || "Unknown error"));
+      toast.error("Failed to update listing: " + (err.message || "Unknown error"));
     } finally {
       setIsProcessing(false);
     }
