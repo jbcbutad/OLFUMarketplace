@@ -45,17 +45,18 @@ export default function SellerControls({ product, currentUserId }) {
     const isUnavailable = !product.is_available || isExpiredTag;
 
     let statusLabel = "Available";
-    let statusBadgeStyle = "bg-foreground text-background border-foreground";
+    let statusDot = "bg-emerald-500";
     if (isFlagged) {
         statusLabel = "Flagged / Review";
-        statusBadgeStyle = "bg-rose-600 text-white border-rose-600";
+        statusDot = "bg-rose-500";
     } else if (isExpiredTag) {
-        statusLabel = "Expired";
-        statusBadgeStyle = "bg-amber-600 text-white border-amber-600";
+        statusLabel = isMerchandise ? "Expired Drop" : "Expired";
+        statusDot = "bg-amber-500";
     } else if (isUnavailable) {
         statusLabel = "Unavailable";
-        statusBadgeStyle = "bg-muted text-muted-foreground border-border";
+        statusDot = "bg-neutral-400";
     }
+    const statusBadgeStyle = "bg-[var(--surface)] text-foreground border-[var(--line)]";
 
     const handleStatusChange = async (choice) => {
         setOpenDropdown(false);
@@ -74,7 +75,7 @@ export default function SellerControls({ product, currentUserId }) {
 
             if (isActuallyExpired) {
                 if (isMerchandise) {
-                    toast.error("This drop has expired. Use Renew & Pay Listing.");
+                    toast.error("This drop has expired. Use Renew & Pay.");
                     return;
                 }
                 const { error } = await supabase.rpc("relist_product", { p_product_id: product.id });
@@ -84,6 +85,12 @@ export default function SellerControls({ product, currentUserId }) {
             }
 
             if (isMerchandise) {
+                // A merch drop with no expiry date was never approved with a duration
+                if (!product.expires_at) {
+                    toast.error("This drop has no active duration, so it can't be made available. Please contact an admin.");
+                    return;
+                }
+
                 if (currentStock > 0) {
                     setIsProcessing(true);
                     let cleanTags = Array.isArray(product.tags) ? product.tags.filter((t) => t !== "Expired") : [];
@@ -167,7 +174,7 @@ export default function SellerControls({ product, currentUserId }) {
         let updatedTags = Array.isArray(product.tags) ? [...product.tags] : [];
 
         const updatedStock = isMerchandise ? parseInt(editForm.stock_quantity) || 0 : currentStock;
-        const canBeLive = !isActuallyExpired && ["active", "unavailable"].includes(product.status);
+        const canBeLive = !isActuallyExpired && !!product.expires_at && ["active", "unavailable"].includes(product.status);
         const shouldBeAvailable = isMerchandise ? updatedStock > 0 && canBeLive : product.is_available;
         const nextStatus = shouldBeAvailable
             ? "active"
@@ -243,87 +250,103 @@ export default function SellerControls({ product, currentUserId }) {
     }
 
     return (
-        <div className="bg-muted/40 border border-border p-4 rounded-2xl my-4 space-y-3">
+        <div className="bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-4 my-4 space-y-4">
+            {/* Header: title left, status right */}
             <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                        Listing Management {isMerchandise && `(Stock: ${currentStock})`}
-                    </span>
-                    {isExpiredTag && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white uppercase tracking-widest animate-pulse">
-                            {isMerchandise ? "EXPIRED DROP" : "EXPIRED"}
+                <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
+                    Listing Management
+                    {isMerchandise && (
+                        <span className="ml-2 font-bold normal-case tracking-normal text-muted-foreground">
+                            · {currentStock} in stock
                         </span>
                     )}
-                </div>
+                </h3>
 
-                <div className="flex items-center gap-2">
-                    {isExpiredTag ? (
-                        isMerchandise ? (
-                            <button
-                                onClick={() => router.push(`/mylistings?renew=${product.id}`)}
-                                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                            >
-                                <RefreshCcw size={13} /> Renew & Pay Listing
-                            </button>
-                        ) : (
-                            <RelistButton
-                                productId={product.id}
-                                label="Relist (Free)"
-                                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer"
-                            />
-                        )
+                {isExpiredTag ? (
+                    <span className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase border flex items-center gap-2 ${statusBadgeStyle}`}>
+                        <span className={`w-2 h-2 rounded-full ${statusDot}`} />
+                        {statusLabel}
+                    </span>
+                ) : (
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setOpenDropdown(!openDropdown)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase border flex items-center gap-2 cursor-pointer hover:bg-muted transition-colors ${statusBadgeStyle}`}
+                        >
+                            <span className={`w-2 h-2 rounded-full ${statusDot}`} />
+                            <span>{statusLabel}</span>
+                            <ChevronDown size={14} />
+                        </button>
+
+                        {openDropdown && (
+                            <div className="absolute right-0 mt-2 w-36 bg-[var(--surface)] border border-[var(--line)] rounded-xl shadow-xl py-1 z-30">
+                                <button
+                                    type="button"
+                                    onClick={() => handleStatusChange("available")}
+                                    className="w-full text-left px-3 py-2 text-xs font-bold text-foreground hover:bg-muted uppercase"
+                                >
+                                    Available
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleStatusChange("unavailable")}
+                                    className="w-full text-left px-3 py-2 text-xs font-bold text-foreground hover:bg-muted uppercase"
+                                >
+                                    Unavailable
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* One-line explanation when expired */}
+            {isExpiredTag && (
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                    {isMerchandise
+                        ? "This drop has expired and is hidden from buyers. Renew it to set a new duration; it goes live again once an admin approves the payment."
+                        : "This listing has expired and is hidden from buyers. Relist it for free to put it back up."}
+                </p>
+            )}
+
+            {/* Action row */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {isExpiredTag &&
+                    (isMerchandise ? (
+                        <button
+                            onClick={() => router.push(`/mylistings?renew=${product.id}`)}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                            <RefreshCcw size={13} /> Renew & Pay
+                        </button>
                     ) : (
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setOpenDropdown(!openDropdown)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase border flex items-center gap-1 ${statusBadgeStyle}`}
-                            >
-                                <span>{statusLabel}</span>
-                                <ChevronDown size={14} />
-                            </button>
+                        <RelistButton
+                            productId={product.id}
+                            label="Relist (Free)"
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                        />
+                    ))}
 
-                            {openDropdown && (
-                                <div className="absolute right-0 mt-2 w-36 bg-background border border-border rounded-xl shadow-xl py-1 z-30">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleStatusChange("available")}
-                                        className="w-full text-left px-3 py-2 text-xs font-bold text-foreground hover:bg-muted uppercase"
-                                    >
-                                        Available
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleStatusChange("unavailable")}
-                                        className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-muted uppercase"
-                                    >
-                                        Unavailable
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <button
-                        onClick={() => setIsEditOpen(true)}
-                        className="p-2 bg-background text-foreground border border-border rounded-xl hover:opacity-80 transition-opacity"
-                    >
-                        <Edit3 size={15} />
-                    </button>
-                    <button
-                        onClick={() => setIsDeleteOpen(true)}
-                        className="p-2 bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors"
-                    >
-                        <Trash2 size={15} />
-                    </button>
-                </div>
+                <button
+                    onClick={() => setIsEditOpen(true)}
+                    className="px-3.5 py-2 bg-transparent text-foreground border border-[var(--line)] rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:bg-muted transition-colors cursor-pointer"
+                >
+                    <Edit3 size={13} /> Edit
+                </button>
+                <button
+                    onClick={() => setIsDeleteOpen(true)}
+                    className="px-3.5 py-2 bg-transparent text-red-600 dark:text-red-400 border border-red-500/40 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:bg-red-500/10 transition-colors cursor-pointer"
+                >
+                    <Trash2 size={13} /> Delete
+                </button>
             </div>
 
             {/* Merchandise Quantity Deduction Box */}
             {isMerchandise && product.is_available && currentStock > 0 && !isExpiredTag && (
-                <div className="pt-3 border-t border-border space-y-2">
+                <div className="pt-4 border-t border-[var(--line)] space-y-2">
                     <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1.5">
-                        <CheckCircle size={13} className="text-emerald-600 dark:text-emerald-400" /> Record Sale & Deduct Stock ({currentStock} left):
+                        <CheckCircle size={13} className="text-emerald-600 dark:text-emerald-400" /> Record sale & deduct stock ({currentStock} left)
                     </label>
                     <div className="flex items-center gap-2">
                         <input
@@ -332,12 +355,12 @@ export default function SellerControls({ product, currentUserId }) {
                             max={currentStock}
                             value={deductQty}
                             onChange={(e) => setDeductQty(e.target.value)}
-                            className="w-20 bg-background border border-border rounded-xl px-3 py-2 text-xs font-bold text-foreground outline-none"
+                            className="w-20 bg-transparent border border-[var(--line)] rounded-xl px-3 py-2 text-xs font-bold text-foreground outline-none"
                         />
                         <button
                             onClick={handleTriggerMerchSale}
                             disabled={currentStock <= 0}
-                            className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                            className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                         >
                             <CheckCircle size={14} /> Record Sale
                         </button>
