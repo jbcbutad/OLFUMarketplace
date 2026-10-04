@@ -263,8 +263,8 @@ export default function SellerControls({ product, currentUserId }) {
                 </h3>
 
                 {isExpiredTag ? (
-                    <span className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase border flex items-center gap-2 ${statusBadgeStyle}`}>
-                        <span className={`w-2 h-2 rounded-full ${statusDot}`} />
+                    <span className="px-3 py-1.5 rounded-xl text-xs font-black uppercase border flex items-center gap-2 bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/40">
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
                         {statusLabel}
                     </span>
                 ) : (
