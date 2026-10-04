@@ -16,6 +16,11 @@ export const ui = {
     "bg-tint border-b border-line text-[11px] font-bold text-ink-soft uppercase tracking-wider",
   pill:
     "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider border",
+  headerBar: "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4",
+  countBadge:
+    "px-4 py-2 bg-tint border border-line text-brand-deep rounded-2xl text-xs font-extrabold",
+  empty:
+    "bg-surface border border-dashed border-line rounded-2xl text-center text-ink-soft font-semibold",
 };
 
 const BTN_BASE =

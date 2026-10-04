@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { banUserAction } from './actions';
+import { ui, btn } from '../ui';
 import {
   ShieldAlert,
   CheckCircle2,
@@ -185,22 +186,22 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 p-6">
+    <div className={ui.page}>
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className={ui.headerBar}>
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            <ShieldAlert className="text-rose-500" size={28} /> Moderation Queue
+          <h1 className={ui.title}>
+            <ShieldAlert className={ui.titleIcon} size={28} /> Moderation Queue
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <p className={ui.subtitle}>
             Review separated chat and product reports, inspect targets, and manage archives.
           </p>
         </div>
 
         {/* LOGGED IN USER CARD */}
         {userEmail && (
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-card border border-border shadow-sm">
-            <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
+          <div className={`${ui.card} flex items-center gap-3 px-4 py-2.5`}>
+            <div className="w-8 h-8 rounded-full bg-tint border border-line flex items-center justify-center font-bold text-xs text-foreground shrink-0 overflow-hidden">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -208,8 +209,8 @@ export default function ReportsPage() {
               )}
             </div>
             <div className="text-left overflow-hidden">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <UserCheck size={12} className="text-emerald-500" /> Moderator Active
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft flex items-center gap-1">
+                <UserCheck size={12} className="text-brand" /> Moderator Active
               </p>
               <p className="text-xs font-bold text-foreground truncate max-w-[160px]">{userName || userEmail}</p>
             </div>
@@ -218,37 +219,37 @@ export default function ReportsPage() {
       </div>
 
       {/* MAIN CATEGORY SWITCHER */}
-      <div className="grid grid-cols-2 gap-3 p-1.5 bg-muted rounded-2xl border border-border">
+      <div className="grid grid-cols-2 gap-3 p-1.5 bg-tint rounded-2xl border border-line">
         <button
           onClick={() => setReportCategory('chat')}
           className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${reportCategory === 'chat'
-            ? 'bg-card text-foreground shadow-sm border border-border'
-            : 'text-muted-foreground hover:text-foreground'
+            ? 'bg-brand text-on-brand shadow-sm'
+            : 'text-ink-soft hover:text-brand-deep'
             }`}
         >
-          <MessageCircle size={16} className="text-indigo-500" />
+          <MessageCircle size={16} />
           Chat Reports
         </button>
 
         <button
           onClick={() => setReportCategory('product')}
           className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${reportCategory === 'product'
-            ? 'bg-card text-foreground shadow-sm border border-border'
-            : 'text-muted-foreground hover:text-foreground'
+            ? 'bg-brand text-on-brand shadow-sm'
+            : 'text-ink-soft hover:text-brand-deep'
             }`}
         >
-          <Package size={16} className="text-amber-500" />
+          <Package size={16} />
           Product Listing Reports
         </button>
       </div>
 
       {/* SUB-STATUS FILTER TABS */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-4">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line pb-4">
         <button
           onClick={() => setFilterStatus('pending')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${filterStatus === 'pending'
-            ? 'bg-foreground text-background border-foreground shadow-sm'
-            : 'bg-muted text-muted-foreground border-border hover:text-foreground'
+            ? 'bg-brand text-on-brand border-brand shadow-sm'
+            : 'bg-tint text-ink-soft border-line hover:text-brand-deep'
             }`}
         >
           Pending ({reports.filter((r) => (r.status || 'pending') === 'pending' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
@@ -256,8 +257,8 @@ export default function ReportsPage() {
         <button
           onClick={() => setFilterStatus('resolved')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${filterStatus === 'resolved'
-            ? 'bg-foreground text-background border-foreground shadow-sm'
-            : 'bg-muted text-muted-foreground border-border hover:text-foreground'
+            ? 'bg-brand text-on-brand border-brand shadow-sm'
+            : 'bg-tint text-ink-soft border-line hover:text-brand-deep'
             }`}
         >
           Resolved Archive ({reports.filter((r) => r.status === 'resolved' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
@@ -265,8 +266,8 @@ export default function ReportsPage() {
         <button
           onClick={() => setFilterStatus('dismissed')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${filterStatus === 'dismissed'
-            ? 'bg-foreground text-background border-foreground shadow-sm'
-            : 'bg-muted text-muted-foreground border-border hover:text-foreground'
+            ? 'bg-brand text-on-brand border-brand shadow-sm'
+            : 'bg-tint text-ink-soft border-line hover:text-brand-deep'
             }`}
         >
           Dismissed Archive ({reports.filter((r) => r.status === 'dismissed' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
@@ -275,15 +276,15 @@ export default function ReportsPage() {
 
       {/* QUEUE CONTENT */}
       {loading ? (
-        <div className="border border-border rounded-2xl bg-card p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
-          <Loader2 size={32} className="animate-spin text-muted-foreground mb-3" />
-          <p className="text-sm font-semibold text-muted-foreground">Loading reports queue...</p>
+        <div className="border border-line rounded-2xl bg-surface p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
+          <Loader2 size={32} className="animate-spin text-ink-soft mb-3" />
+          <p className="text-sm font-semibold text-ink-soft">Loading reports queue...</p>
         </div>
       ) : filteredReports.length === 0 ? (
-        <div className="border border-border rounded-2xl bg-card p-16 text-center flex flex-col items-center justify-center min-h-[350px] shadow-sm space-y-2">
-          <CheckCircle2 size={48} className="text-muted-foreground/40 mb-2" />
+        <div className="border border-line rounded-2xl bg-surface p-16 text-center flex flex-col items-center justify-center min-h-[350px] shadow-sm space-y-2">
+          <CheckCircle2 size={48} className="text-ink-soft/40 mb-2" />
           <h3 className="text-base font-bold text-foreground">Queue Cleared</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-ink-soft">
             No {filterStatus} {reportCategory} reports recorded right now.
           </p>
         </div>
@@ -299,10 +300,10 @@ export default function ReportsPage() {
             return (
               <div
                 key={report.id}
-                className={`bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4 transition-all ${isUpdating ? 'opacity-50 pointer-events-none' : ''
+                className={`bg-surface border border-line rounded-2xl p-5 shadow-sm space-y-4 transition-all ${isUpdating ? 'opacity-50 pointer-events-none' : ''
                   }`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
                   <div className="flex items-center gap-3">
                     <span className={`p-2 rounded-xl border ${status === 'resolved'
                       ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
@@ -316,7 +317,7 @@ export default function ReportsPage() {
                       <h4 className="text-sm font-bold text-foreground">
                         Reported User: <span className="text-rose-600 dark:text-rose-400">{reportedName}</span>
                       </h4>
-                      <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-ink-soft flex items-center gap-2 mt-0.5">
                         <span>Submitted by: <strong>{reporterName}</strong></span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
@@ -339,8 +340,8 @@ export default function ReportsPage() {
                 </div>
 
                 {/* REASON BOX */}
-                <div className="p-3.5 rounded-xl bg-muted border border-border">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                <div className="p-3.5 rounded-xl bg-tint border border-line">
+                  <p className="text-xs font-bold text-ink-soft uppercase tracking-wider mb-1">
                     Report Reason / Details
                   </p>
                   <p className="text-sm text-foreground leading-relaxed whitespace-pre-line font-medium">
@@ -349,7 +350,7 @@ export default function ReportsPage() {
                 </div>
 
                 {status !== 'pending' && report.action_taken && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-ink-soft">
                     Action: <strong>{report.action_taken.replaceAll('_', ' ')}</strong>
                     {report.resolution_note ? ` — ${report.resolution_note}` : ''}
                   </p>
@@ -361,7 +362,7 @@ export default function ReportsPage() {
                     {report.context_room_id && (
                       <Link
                         href={`/chat/${report.context_room_id}`}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent text-accent-foreground text-xs font-bold border border-border hover:bg-accent/80 transition-colors"
+                        className={btn("outline", "sm")}
                       >
                         <MessageSquare size={14} /> Inspect Chat Context <ExternalLink size={12} />
                       </Link>
@@ -370,7 +371,7 @@ export default function ReportsPage() {
                     {resolvedProductId && (
                       <Link
                         href={`/products/${resolvedProductId}`}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent text-accent-foreground text-xs font-bold border border-border hover:bg-accent/80 transition-colors"
+                        className={btn("outline", "sm")}
                       >
                         <Package size={14} /> Inspect Product Listing <ExternalLink size={12} />
                       </Link>
@@ -384,7 +385,7 @@ export default function ReportsPage() {
                           <button
                             onClick={() => setModal({ type: 'ban', report })}
                             disabled={isUpdating}
-                            className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            className={btn("dangerOutline", "sm")}
                           >
                             <Ban size={14} /> Ban User
                           </button>
@@ -393,7 +394,7 @@ export default function ReportsPage() {
                           <button
                             onClick={() => setModal({ type: 'remove', report })}
                             disabled={isUpdating}
-                            className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            className={btn("dangerOutline", "sm")}
                           >
                             <Trash2 size={14} /> Remove Listing
                           </button>
@@ -401,14 +402,14 @@ export default function ReportsPage() {
                         <button
                           onClick={() => handleResolve(report.id)}
                           disabled={isUpdating}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                          className={btn("primary", "sm")}
                         >
                           <CheckCircle2 size={14} /> Mark Resolved
                         </button>
                         <button
                           onClick={() => handleDismiss(report.id)}
                           disabled={isUpdating}
-                          className="px-3.5 py-2 rounded-xl bg-muted hover:bg-accent text-foreground text-xs font-bold transition-all border border-border cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                          className={btn("outline", "sm")}
                         >
                           <XCircle size={14} /> Dismiss
                         </button>
@@ -419,7 +420,7 @@ export default function ReportsPage() {
                       <button
                         onClick={() => handleReopen(report.id)}
                         disabled={isUpdating}
-                        className="px-3.5 py-2 rounded-xl bg-muted hover:bg-accent text-foreground text-xs font-bold transition-all border border-border cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        className={btn("outline", "sm")}
                         title="Re-open into pending queue"
                       >
                         <RotateCcw size={14} /> Re-open
@@ -433,33 +434,33 @@ export default function ReportsPage() {
         </div>
       )}
       {modal && (
-        <div className="fixed inset-0 bg-black/75 z-[9999] backdrop-blur-md flex items-center justify-center p-4"
+        <div className="fixed inset-0 bg-black/60 z-[9999] backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => { setModal(null); setModalReason(''); }}>
-          <div className="w-full max-w-md bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-2xl"
+          <div className="w-full max-w-md bg-surface text-foreground border border-line rounded-2xl p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold mb-1">
               {modal.type === 'ban'
                 ? `Ban ${resolveName(modal.report.reported)}?`
                 : `Remove "${modal.report.product?.title || 'this listing'}"?`}
             </h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
+            <p className="text-xs text-ink-soft mb-4">
               {modal.type === 'ban'
                 ? 'They are signed out, cannot post or message, and their listings are hidden. An admin can reverse this.'
                 : 'The listing is hidden and marked unavailable. The owner cannot restore it.'}
             </p>
             <textarea
-              className="w-full min-h-[90px] bg-neutral-50 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium focus:outline-none resize-none mb-4"
+              className={`${ui.input} w-full min-h-[90px] resize-none mb-4 text-xs`}
               placeholder="Reason (required, saved with the report)"
               value={modalReason}
               onChange={(e) => setModalReason(e.target.value)}
             />
             <div className="flex justify-end gap-3">
               <button onClick={() => { setModal(null); setModalReason(''); }}
-                className="px-4 py-2 text-xs font-bold border border-neutral-200 dark:border-neutral-700 rounded-xl cursor-pointer">
+                className={btn("outline", "sm")}>
                 Cancel
               </button>
               <button onClick={submitModal} disabled={!modalReason.trim()}
-                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl disabled:opacity-40 cursor-pointer">
+                className={btn("danger", "sm")}>
                 Confirm
               </button>
             </div>

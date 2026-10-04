@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2, Flag, CheckCircle2, Trash2, ExternalLink } from "lucide-react";
+import { ui, btn } from "../ui";
 
 const REASON_LABELS = {
     moderation_unavailable: "The automatic check was unavailable, so this needs a manual look.",
@@ -115,32 +116,32 @@ export default function AdminFlaggedPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-                <Loader2 className="animate-spin text-foreground" size={32} />
+            <div className="min-h-[300px] flex items-center justify-center">
+                <Loader2 className="animate-spin text-brand" size={32} />
             </div>
         );
     }
 
     return (
-        <div className="bg-background text-foreground min-h-screen p-6 md:p-10">
-            <div className="max-w-6xl mx-auto space-y-8">
-                <div className="flex justify-between items-center border-b border-border pb-6">
+        <div className="text-foreground">
+            <div className={ui.page}>
+                <div className={ui.headerBar}>
                     <div>
-                        <h1 className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
-                            <Flag className="text-rose-500" size={30} /> Flagged Content
+                        <h1 className={ui.title}>
+                            <Flag className={ui.titleIcon} size={28} /> Flagged Content
                         </h1>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className={ui.subtitle}>
                             These listings are hidden until a moderator reviews the photos below.
                         </p>
                     </div>
-                    <div className="px-4 py-2 bg-rose-500/10 border border-rose-500/30 text-rose-500 rounded-2xl text-xs font-extrabold">
+                    <div className={ui.countBadge}>
                         {groups.length} Pending
                     </div>
                 </div>
 
                 {groups.length === 0 ? (
-                    <div className="text-center py-24 bg-card rounded-3xl border border-dashed border-border">
-                        <p className="text-muted-foreground text-sm font-semibold">
+                    <div className={`${ui.empty} py-20`}>
+                        <p className="text-sm">
                             Nothing to review. Flagged listings will show up here.
                         </p>
                     </div>
@@ -154,14 +155,14 @@ export default function AdminFlaggedPage() {
                             return (
                                 <div
                                     key={group.productId}
-                                    className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-5"
+                                    className={`${ui.card} p-6 space-y-5`}
                                 >
                                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                                         <div className="space-y-1 min-w-0">
-                                            <h3 className="text-lg font-black text-foreground truncate">
+                                            <h3 className="text-lg font-bold text-foreground truncate">
                                                 {product?.title || "Listing not visible to you"}
                                             </h3>
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-xs text-ink-soft">
                                                 Seller:{" "}
                                                 <span className="text-foreground font-semibold">
                                                     {seller?.full_name || seller?.email || "Unknown"}
@@ -173,7 +174,7 @@ export default function AdminFlaggedPage() {
                                                     </>
                                                 )}
                                             </p>
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-xs text-ink-soft">
                                                 {group.flags.length} flagged {group.flags.length === 1 ? "photo" : "photos"}
                                             </p>
                                         </div>
@@ -182,7 +183,7 @@ export default function AdminFlaggedPage() {
                                             <button
                                                 onClick={() => resolveGroup(group, "approve")}
                                                 disabled={busy}
-                                                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                                className={btn("primary", "sm")}
                                             >
                                                 {busy ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
                                                 Approve listing
@@ -190,7 +191,7 @@ export default function AdminFlaggedPage() {
                                             <button
                                                 onClick={() => resolveGroup(group, "remove")}
                                                 disabled={busy}
-                                                className="px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                                className={btn("dangerOutline", "sm")}
                                             >
                                                 <Trash2 size={14} /> Remove listing
                                             </button>
@@ -201,7 +202,7 @@ export default function AdminFlaggedPage() {
                                         {group.flags.map((flag) => (
                                             <div
                                                 key={flag.id}
-                                                className="flex gap-3 p-3 bg-muted/60 border border-border rounded-xl"
+                                                className="flex gap-3 p-3 bg-tint border border-line rounded-xl"
                                             >
                                                 <a
                                                     href={flag.image_url}
@@ -212,7 +213,7 @@ export default function AdminFlaggedPage() {
                                                     <img
                                                         src={flag.image_url}
                                                         alt="Flagged photo"
-                                                        className="w-24 h-24 object-cover rounded-lg border border-border"
+                                                        className="w-24 h-24 object-cover rounded-lg border border-line"
                                                     />
                                                 </a>
                                                 <div className="space-y-1.5 min-w-0">
@@ -228,14 +229,14 @@ export default function AdminFlaggedPage() {
                                                             ))}
                                                         </div>
                                                     )}
-                                                    <p className="text-xs text-muted-foreground">
+                                                    <p className="text-xs text-ink-soft">
                                                         {REASON_LABELS[flag.reason] || flag.reason || "No reason given."}
                                                     </p>
                                                     <a
                                                         href={flag.image_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-foreground underline underline-offset-2"
+                                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand underline underline-offset-2"
                                                     >
                                                         <ExternalLink size={11} /> Open full size
                                                     </a>

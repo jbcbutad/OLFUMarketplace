@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { TrendingUp, Package, DollarSign, Users, Loader2, ShoppingCart, ShieldCheck, Calendar, Award, Tag, BarChart3, Download } from 'lucide-react';
+import { ui } from '../ui';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LineChart, Line } from 'recharts';
 
 export default function AdminAnalyticsDashboard() {
@@ -300,25 +301,25 @@ export default function AdminAnalyticsDashboard() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 p-6">
+        <div className={ui.page}>
             {/* HEADER & CONTROLS */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className={ui.headerBar}>
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-                        <TrendingUp className="text-emerald-500" size={28} /> Marketplace Analytics & Intelligence
+                    <h1 className={ui.title}>
+                        <TrendingUp className={ui.titleIcon} size={28} /> Marketplace Analytics & Intelligence
                     </h1>
-                    <p className="text-muted-foreground text-sm mt-1">
+                    <p className={ui.subtitle}>
                         Predictive campus telemetry tracking inventory distribution, pricing valuations, user activity, and catalog tags.
                     </p>
                 </div>
 
                 {/* EXPORT OPTIONS & TIMEFRAME CONTROLS */}
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1.5 p-1 bg-card border border-border rounded-xl shadow-xs">
+                    <div className="flex items-center gap-1.5 p-1 bg-surface border border-line rounded-xl shadow-xs">
                         <select
                             value={exportType}
                             onChange={(e) => setExportType(e.target.value)}
-                            className="bg-background text-foreground text-xs font-bold px-2 py-1.5 rounded-lg border border-border outline-none cursor-pointer"
+                            className="bg-background text-foreground text-xs font-bold px-2 py-1.5 rounded-lg border border-line outline-none cursor-pointer"
                         >
                             <option value="transactions">Transactions Report</option>
                             <option value="products">Product Inventory</option>
@@ -326,31 +327,31 @@ export default function AdminAnalyticsDashboard() {
                         </select>
                         <button
                             onClick={handleExportCSV}
-                            className="px-3 py-1.5 bg-foreground text-background rounded-lg text-xs font-black uppercase tracking-wider hover:opacity-95 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                            className="px-3 py-1.5 bg-brand text-on-brand rounded-lg text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                             <Download size={13} /> Export CSV
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5 p-1 bg-card border border-border rounded-xl shadow-xs">
-                        <span className="text-xs font-bold text-muted-foreground px-2 flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 p-1 bg-surface border border-line rounded-xl shadow-xs">
+                        <span className="text-xs font-bold text-ink-soft px-2 flex items-center gap-1">
                             <Calendar size={12} /> Timeframe:
                         </span>
                         <button
                             onClick={() => setTimeframe('all')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeframe === 'all' ? 'bg-foreground text-background shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeframe === 'all' ? 'bg-brand text-on-brand shadow-xs' : 'text-ink-soft hover:text-brand-deep'}`}
                         >
                             All-Time
                         </button>
                         <button
                             onClick={() => setTimeframe('30days')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeframe === '30days' ? 'bg-foreground text-background shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeframe === '30days' ? 'bg-brand text-on-brand shadow-xs' : 'text-ink-soft hover:text-brand-deep'}`}
                         >
                             Last 30 Days
                         </button>
                         <button
                             onClick={() => setTimeframe('7days')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeframe === '7days' ? 'bg-foreground text-background shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${timeframe === '7days' ? 'bg-brand text-on-brand shadow-xs' : 'text-ink-soft hover:text-brand-deep'}`}
                         >
                             Last 7 Days
                         </button>
@@ -360,60 +361,60 @@ export default function AdminAnalyticsDashboard() {
 
             {/* METRICS GRID */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
+                <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-2">
+                    <div className="flex items-center justify-between text-ink-soft">
                         <span className="text-xs font-bold uppercase tracking-wider">Total Accounts</span>
-                        <Users size={18} className="text-purple-500" />
+                        <Users size={18} className="text-brand" />
                     </div>
                     <p className="text-3xl font-black text-foreground">{metrics.totalUsers}</p>
-                    <p className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1">
+                    <p className="text-[11px] text-brand font-semibold flex items-center gap-1">
                         <ShieldCheck size={12} /> Institutional SSO verified
                     </p>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
+                <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-2">
+                    <div className="flex items-center justify-between text-ink-soft">
                         <span className="text-xs font-bold uppercase tracking-wider">Active Inventory</span>
-                        <Package size={18} className="text-amber-500" />
+                        <Package size={18} className="text-gold" />
                     </div>
                     <p className="text-3xl font-black text-foreground">{metrics.activeProducts}</p>
-                    <p className="text-[11px] text-muted-foreground">Live items currently available</p>
+                    <p className="text-[11px] text-ink-soft">Live items currently available</p>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
+                <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-2">
+                    <div className="flex items-center justify-between text-ink-soft">
                         <span className="text-xs font-bold uppercase tracking-wider">Completed Transactions</span>
-                        <ShoppingCart size={18} className="text-blue-500" />
+                        <ShoppingCart size={18} className="text-brand" />
                     </div>
                     <p className="text-3xl font-black text-foreground">{metrics.totalTransactions}</p>
-                    <p className="text-[11px] text-muted-foreground">Logged transaction events</p>
+                    <p className="text-[11px] text-ink-soft">Logged transaction events</p>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-2">
-                    <div className="flex items-center justify-between text-muted-foreground">
+                <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-2">
+                    <div className="flex items-center justify-between text-ink-soft">
                         <span className="text-xs font-bold uppercase tracking-wider">Trade Valuation</span>
-                        <DollarSign size={18} className="text-emerald-500" />
+                        <DollarSign size={18} className="text-gold" />
                     </div>
                     <p className="text-3xl font-black text-foreground">₱{metrics.totalRevenue.toLocaleString()}</p>
-                    <p className="text-[11px] text-muted-foreground">Aggregate transaction volume</p>
+                    <p className="text-[11px] text-ink-soft">Aggregate transaction volume</p>
                 </div>
             </div>
 
             {loading ? (
-                <div className="border border-border rounded-2xl bg-card p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
-                    <Loader2 size={32} className="animate-spin text-muted-foreground mb-3" />
-                    <p className="text-sm font-semibold text-muted-foreground">Recalculating charts & telemetry...</p>
+                <div className="border border-line rounded-2xl bg-surface p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
+                    <Loader2 size={32} className="animate-spin text-ink-soft mb-3" />
+                    <p className="text-sm font-semibold text-ink-soft">Recalculating charts & telemetry...</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* LINE CHART HERO: TRADE MOMENTUM OVER TIME */}
-                    <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4 lg:col-span-2">
+                    <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-4 lg:col-span-2">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div>
                                 <h3 className="text-base font-bold text-foreground flex items-center gap-1.5">
-                                    <TrendingUp size={18} className="text-blue-500" /> Marketplace Trade Momentum & Velocity
+                                    <TrendingUp size={18} className="text-brand" /> Marketplace Trade Momentum & Velocity
                                 </h3>
-                                <p className="text-xs text-muted-foreground">Time-series tracking of transaction frequency and financial volume within the selected timeframe.</p>
+                                <p className="text-xs text-ink-soft">Time-series tracking of transaction frequency and financial volume within the selected timeframe.</p>
                             </div>
                         </div>
                         <div className="h-[320px] w-full pt-4">
@@ -424,29 +425,29 @@ export default function AdminAnalyticsDashboard() {
                                     <YAxis stroke="currentColor" fontSize={11} tickLine={false} allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: '#18181b',
-                                            borderColor: '#27272a',
+                                            backgroundColor: 'var(--surface)',
+                                            borderColor: 'var(--line)',
                                             borderRadius: '12px',
                                             fontSize: '12px',
-                                            color: '#f4f4f5',
+                                            color: 'var(--foreground)',
                                             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                                             padding: '12px 16px'
                                         }}
-                                        itemStyle={{ color: '#f4f4f5', fontWeight: '600', padding: '2px 0' }}
-                                        labelStyle={{ color: '#a1a1aa', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
+                                        itemStyle={{ color: 'var(--foreground)', fontWeight: '600', padding: '2px 0' }}
+                                        labelStyle={{ color: 'var(--ink-soft)', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                                    <Line type="monotone" dataKey="trades" name="Completed Transactions" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                    <Line type="monotone" dataKey="trades" name="Completed Transactions" stroke="var(--brand)" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* CHART 1: CATEGORY INVENTORY BREAKDOWN */}
-                    <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+                    <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-4">
                         <div>
                             <h3 className="text-base font-bold text-foreground">Category Inventory Breakdown</h3>
-                            <p className="text-xs text-muted-foreground">Available items categorized by For Sale vs. Rentals per category.</p>
+                            <p className="text-xs text-ink-soft">Available items categorized by For Sale vs. Rentals per category.</p>
                         </div>
                         <div className="h-[320px] w-full pt-4">
                             <ResponsiveContainer width="100%" height="100%">
@@ -456,33 +457,33 @@ export default function AdminAnalyticsDashboard() {
                                     <YAxis stroke="currentColor" fontSize={11} tickLine={false} allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: '#18181b',
-                                            borderColor: '#27272a',
+                                            backgroundColor: 'var(--surface)',
+                                            borderColor: 'var(--line)',
                                             borderRadius: '12px',
                                             fontSize: '12px',
-                                            color: '#f4f4f5',
+                                            color: 'var(--foreground)',
                                             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                                             padding: '12px 16px'
                                         }}
-                                        itemStyle={{ color: '#f4f4f5', fontWeight: '600', padding: '2px 0' }}
-                                        labelStyle={{ color: '#a1a1aa', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
-                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                        itemStyle={{ color: 'var(--foreground)', fontWeight: '600', padding: '2px 0' }}
+                                        labelStyle={{ color: 'var(--ink-soft)', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
+                                        cursor={{ fill: 'var(--tint)' }}
                                     />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                                    <Bar dataKey="For Sale" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                                    <Bar dataKey="Rentals" fill="#10b981" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="For Sale" fill="var(--brand)" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="Rentals" fill="var(--gold)" radius={[6, 6, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* CHART 2: PRICING INTELLIGENCE */}
-                    <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+                    <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-4">
                         <div>
                             <h3 className="text-base font-bold text-foreground flex items-center gap-1.5">
-                                <BarChart3 size={18} className="text-emerald-500" /> Pricing Intelligence (Average Valuation)
+                                <BarChart3 size={18} className="text-brand" /> Pricing Intelligence (Average Valuation)
                             </h3>
-                            <p className="text-xs text-muted-foreground">Mean listing price in Pesos (₱) across marketplace categories.</p>
+                            <p className="text-xs text-ink-soft">Mean listing price in Pesos (₱) across marketplace categories.</p>
                         </div>
                         <div className="h-[320px] w-full pt-4">
                             <ResponsiveContainer width="100%" height="100%">
@@ -492,31 +493,31 @@ export default function AdminAnalyticsDashboard() {
                                     <YAxis stroke="currentColor" fontSize={11} tickLine={false} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: '#18181b',
-                                            borderColor: '#27272a',
+                                            backgroundColor: 'var(--surface)',
+                                            borderColor: 'var(--line)',
                                             borderRadius: '12px',
                                             fontSize: '12px',
-                                            color: '#f4f4f5',
+                                            color: 'var(--foreground)',
                                             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                                             padding: '12px 16px'
                                         }}
-                                        itemStyle={{ color: '#f4f4f5', fontWeight: '600', padding: '2px 0' }}
-                                        labelStyle={{ color: '#a1a1aa', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
-                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                        itemStyle={{ color: 'var(--foreground)', fontWeight: '600', padding: '2px 0' }}
+                                        labelStyle={{ color: 'var(--ink-soft)', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
+                                        cursor={{ fill: 'var(--tint)' }}
                                     />
-                                    <Bar dataKey="Average Price (₱)" fill="#10b981" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="Average Price (₱)" fill="var(--brand)" radius={[6, 6, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* CHART 3: TOP ACTIVE USERS LEADERBOARD */}
-                    <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+                    <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-4">
                         <div>
                             <h3 className="text-base font-bold text-foreground flex items-center gap-1.5">
-                                <Award size={18} className="text-amber-500" /> Top Active Users Leaderboard
+                                <Award size={18} className="text-gold" /> Top Active Users Leaderboard
                             </h3>
-                            <p className="text-xs text-muted-foreground">Users with the highest total completed buying and selling volume.</p>
+                            <p className="text-xs text-ink-soft">Users with the highest total completed buying and selling volume.</p>
                         </div>
                         <div className="h-[320px] w-full pt-4">
                             <ResponsiveContainer width="100%" height="100%">
@@ -526,31 +527,31 @@ export default function AdminAnalyticsDashboard() {
                                     <YAxis dataKey="name" type="category" stroke="currentColor" fontSize={11} tickLine={false} width={100} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: '#18181b',
-                                            borderColor: '#27272a',
+                                            backgroundColor: 'var(--surface)',
+                                            borderColor: 'var(--line)',
                                             borderRadius: '12px',
                                             fontSize: '12px',
-                                            color: '#f4f4f5',
+                                            color: 'var(--foreground)',
                                             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                                             padding: '12px 16px'
                                         }}
-                                        itemStyle={{ color: '#f4f4f5', fontWeight: '600', padding: '2px 0' }}
-                                        labelStyle={{ color: '#a1a1aa', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
-                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                        itemStyle={{ color: 'var(--foreground)', fontWeight: '600', padding: '2px 0' }}
+                                        labelStyle={{ color: 'var(--ink-soft)', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
+                                        cursor={{ fill: 'var(--tint)' }}
                                     />
-                                    <Bar dataKey="transactions" name="Total Transactions" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
+                                    <Bar dataKey="transactions" name="Total Transactions" fill="var(--brand)" radius={[0, 6, 6, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
                     {/* CHART 4: POPULAR PRODUCT TAGS DISTRIBUTION */}
-                    <div className="p-6 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+                    <div className="p-6 rounded-2xl bg-surface border border-line shadow-sm space-y-4">
                         <div>
                             <h3 className="text-base font-bold text-foreground flex items-center gap-1.5">
-                                <Tag size={18} className="text-indigo-500" /> Popular Product Tags Distribution
+                                <Tag size={18} className="text-brand" /> Popular Product Tags Distribution
                             </h3>
-                            <p className="text-xs text-muted-foreground">Most frequently utilized search tags and keywords across current catalog listings.</p>
+                            <p className="text-xs text-ink-soft">Most frequently utilized search tags and keywords across current catalog listings.</p>
                         </div>
                         <div className="h-[320px] w-full pt-4">
                             <ResponsiveContainer width="100%" height="100%">
@@ -560,19 +561,19 @@ export default function AdminAnalyticsDashboard() {
                                     <YAxis stroke="currentColor" fontSize={11} tickLine={false} allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: '#18181b',
-                                            borderColor: '#27272a',
+                                            backgroundColor: 'var(--surface)',
+                                            borderColor: 'var(--line)',
                                             borderRadius: '12px',
                                             fontSize: '12px',
-                                            color: '#f4f4f5',
+                                            color: 'var(--foreground)',
                                             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                                             padding: '12px 16px'
                                         }}
-                                        itemStyle={{ color: '#f4f4f5', fontWeight: '600', padding: '2px 0' }}
-                                        labelStyle={{ color: '#a1a1aa', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
-                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                        itemStyle={{ color: 'var(--foreground)', fontWeight: '600', padding: '2px 0' }}
+                                        labelStyle={{ color: 'var(--ink-soft)', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
+                                        cursor={{ fill: 'var(--tint)' }}
                                     />
-                                    <Bar dataKey="count" name="Listings Count" fill="#06b6d4" radius={[6, 6, 0, 0]} />
+                                    <Bar dataKey="count" name="Listings Count" fill="var(--gold)" radius={[6, 6, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>

@@ -12,6 +12,7 @@ import {
     ShieldAlert,
     ExternalLink,
 } from 'lucide-react';
+import { ui, btn } from '../ui';
 
 const PAGE_SIZE = 50;
 
@@ -177,7 +178,7 @@ export default function AuditLogsPage() {
     if (role === null) {
         return (
             <div className="min-h-[300px] flex items-center justify-center">
-                <Loader2 size={32} className="animate-spin text-muted-foreground" />
+                <Loader2 size={32} className="animate-spin text-ink-soft" />
             </div>
         );
     }
@@ -187,7 +188,7 @@ export default function AuditLogsPage() {
             <div className="max-w-xl mx-auto p-10 text-center space-y-2">
                 <ShieldAlert size={40} className="mx-auto text-rose-500" />
                 <h1 className="text-xl font-bold text-foreground">Superadmins only</h1>
-                <p className="text-sm text-muted-foreground">The audit trail is restricted to super admin accounts.</p>
+                <p className="text-sm text-ink-soft">The audit trail is restricted to super admin accounts.</p>
             </div>
         );
     }
@@ -196,17 +197,17 @@ export default function AuditLogsPage() {
     const liveDot = { live: 'bg-emerald-500 animate-pulse', connecting: 'bg-amber-500', error: 'bg-rose-500', off: 'bg-neutral-400' }[liveStatus];
 
     const inputClass =
-        'bg-muted border border-border rounded-xl px-3 py-2 text-xs font-semibold text-foreground outline-none focus:ring-2 focus:ring-foreground/20';
+        `${ui.input} text-xs font-semibold`;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 p-6">
+        <div className={ui.page}>
             {/* HEADER */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className={ui.headerBar}>
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-                        <ScrollText className="text-purple-500" size={28} /> Audit Trail
+                    <h1 className={ui.title}>
+                        <ScrollText className={ui.titleIcon} size={28} /> Audit Trail
                     </h1>
-                    <p className="text-muted-foreground text-sm mt-1">
+                    <p className={ui.subtitle}>
                         Append-only record of admin actions, moderation events and system problems.
                     </p>
                 </div>
@@ -215,7 +216,7 @@ export default function AuditLogsPage() {
                     <button
                         type="button"
                         onClick={() => setLive((v) => !v)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border text-xs font-bold text-foreground cursor-pointer"
+                        className={btn("outline", "sm")}
                         title="Toggle live updates"
                     >
                         <span className={`w-2 h-2 rounded-full ${liveDot}`} /> {liveLabel}
@@ -223,7 +224,7 @@ export default function AuditLogsPage() {
                     <button
                         type="button"
                         onClick={fetchLogs}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted hover:bg-accent border border-border text-xs font-bold text-foreground cursor-pointer"
+                        className={btn("outline", "sm")}
                     >
                         <RefreshCw size={14} /> Refresh
                     </button>
@@ -231,7 +232,7 @@ export default function AuditLogsPage() {
                         type="button"
                         onClick={exportCsv}
                         disabled={logs.length === 0}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-foreground text-background text-xs font-bold cursor-pointer disabled:opacity-40"
+                        className={btn("primary", "sm")}
                     >
                         <Download size={14} /> Export CSV
                     </button>
@@ -239,9 +240,9 @@ export default function AuditLogsPage() {
             </div>
 
             {/* FILTERS */}
-            <div className="bg-card border border-border rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div className="bg-surface border border-line rounded-2xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-6 gap-3">
                 <div className="relative md:col-span-2">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
                     <input
                         type="text"
                         placeholder="Search summary, actor, action, target id…"
@@ -276,26 +277,26 @@ export default function AuditLogsPage() {
 
             {/* LOG LIST */}
             {loading ? (
-                <div className="border border-border rounded-2xl bg-card p-16 text-center flex flex-col items-center justify-center min-h-[300px]">
-                    <Loader2 size={32} className="animate-spin text-muted-foreground mb-3" />
-                    <p className="text-sm font-semibold text-muted-foreground">Loading audit trail...</p>
+                <div className="border border-line rounded-2xl bg-surface p-16 text-center flex flex-col items-center justify-center min-h-[300px]">
+                    <Loader2 size={32} className="animate-spin text-ink-soft mb-3" />
+                    <p className="text-sm font-semibold text-ink-soft">Loading audit trail...</p>
                 </div>
             ) : logs.length === 0 ? (
-                <div className="border border-border rounded-2xl bg-card p-16 text-center min-h-[250px] flex items-center justify-center">
-                    <p className="text-sm font-semibold text-muted-foreground">No log entries match these filters.</p>
+                <div className="border border-line rounded-2xl bg-surface p-16 text-center min-h-[250px] flex items-center justify-center">
+                    <p className="text-sm font-semibold text-ink-soft">No log entries match these filters.</p>
                 </div>
             ) : (
                 <div className="space-y-2">
                     {logs.map((log) => {
                         const open = expandedId === log.id;
                         return (
-                            <div key={log.id} className="bg-card border border-border rounded-xl shadow-sm">
+                            <div key={log.id} className="bg-surface border border-line rounded-xl shadow-sm">
                                 <button
                                     type="button"
                                     onClick={() => setExpandedId(open ? null : log.id)}
                                     className="w-full text-left p-4 flex flex-col md:flex-row md:items-center gap-3 cursor-pointer"
                                 >
-                                    <div className="md:w-44 shrink-0 text-xs text-muted-foreground font-medium">
+                                    <div className="md:w-44 shrink-0 text-xs text-ink-soft font-medium">
                                         {new Date(log.created_at).toLocaleString()}
                                     </div>
                                     <span
@@ -306,24 +307,24 @@ export default function AuditLogsPage() {
                                     <code className="text-xs font-bold text-foreground md:w-56 shrink-0 truncate">{log.action}</code>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm text-foreground truncate">{log.summary || '—'}</p>
-                                        <p className="text-[11px] text-muted-foreground truncate">
+                                        <p className="text-[11px] text-ink-soft truncate">
                                             {log.actor_email || 'system'}
                                             {log.actor_role ? ` · ${log.actor_role}` : ''}
                                         </p>
                                     </div>
                                     <ChevronDown
                                         size={16}
-                                        className={`shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+                                        className={`shrink-0 text-ink-soft transition-transform ${open ? 'rotate-180' : ''}`}
                                     />
                                 </button>
 
                                 {open && (
                                     <div className="px-4 pb-4 space-y-3">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-ink-soft">
                                             <p>Actor ID: <span className="font-mono text-foreground">{log.actor_id || '—'}</span></p>
                                             <p>Target: <span className="font-mono text-foreground">{log.target_type || '—'} {log.target_id || ''}</span></p>
                                         </div>
-                                        <pre className="text-[11px] leading-relaxed bg-muted border border-border rounded-xl p-3 overflow-x-auto text-foreground">
+                                        <pre className="text-[11px] leading-relaxed bg-tint border border-line rounded-xl p-3 overflow-x-auto text-foreground">
                                             {JSON.stringify(log.details, null, 2)}
                                         </pre>
                                     </div>
@@ -336,7 +337,7 @@ export default function AuditLogsPage() {
                         <button
                             type="button"
                             onClick={() => setLimit((l) => l + PAGE_SIZE)}
-                            className="w-full py-3 rounded-xl bg-muted hover:bg-accent border border-border text-xs font-bold text-foreground cursor-pointer"
+                            className={`${btn("outline", "sm")} w-full py-3`}
                         >
                             Load more
                         </button>
@@ -345,12 +346,12 @@ export default function AuditLogsPage() {
             )}
 
             {/* INFRASTRUCTURE LOGS */}
-            <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 pt-2">
+            <div className="text-xs text-ink-soft flex flex-wrap items-center gap-x-4 gap-y-1 pt-2">
                 <span>Need raw infrastructure logs?</span>
-                <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-foreground hover:underline">
+                <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-brand hover:underline">
                     Supabase dashboard → Logs <ExternalLink size={11} />
                 </a>
-                <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-foreground hover:underline">
+                <a href="https://vercel.com/dashboard" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-brand hover:underline">
                     Vercel dashboard → Logs <ExternalLink size={11} />
                 </a>
             </div>

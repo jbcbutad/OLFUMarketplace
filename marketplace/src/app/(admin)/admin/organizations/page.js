@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Building2, Check, X, ShieldCheck, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { ui, btn } from "../ui";
 
 export default function AdminOrganizationsPage() {
     const askConfirm = useConfirm();
@@ -103,24 +104,26 @@ export default function AdminOrganizationsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Loader2 className="animate-spin text-foreground" size={32} />
+            <div className="min-h-[300px] flex items-center justify-center">
+                <Loader2 className="animate-spin text-brand" size={32} />
             </div>
         );
     }
 
     return (
-        <div className="bg-background text-foreground min-h-screen p-6 md:p-10">
-            <div className="max-w-6xl mx-auto space-y-6">
-                <div className="flex items-center gap-3 border-b border-border pb-4">
-                    <Building2 size={28} className="text-purple-500" />
-                    <h1 className="text-3xl font-black uppercase italic tracking-tight">
-                        Organization Approval Requests
+        <div className="text-foreground">
+            <div className={ui.page}>
+                <div>
+                    <h1 className={ui.title}>
+                        <Building2 size={28} className={ui.titleIcon} /> Organization Requests
                     </h1>
+                    <p className={ui.subtitle}>
+                        Review applications from student organizations requesting verified status.
+                    </p>
                 </div>
 
                 {apps.length === 0 ? (
-                    <div className="text-center py-16 bg-card border border-dashed border-border rounded-2xl text-muted-foreground font-semibold">
+                    <div className={`${ui.empty} py-16`}>
                         No organization applications received yet.
                     </div>
                 ) : (
@@ -128,7 +131,7 @@ export default function AdminOrganizationsPage() {
                         {apps.map((app) => (
                             <div
                                 key={app.id}
-                                className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+                                className={`${ui.card} p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6`}
                             >
                                 <div className="space-y-2 flex-1">
                                     <div className="flex items-center gap-3">
@@ -144,17 +147,17 @@ export default function AdminOrganizationsPage() {
                                             {app.status}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground font-medium">
+                                    <p className="text-xs text-ink-soft font-medium">
                                         Department: <span className="text-foreground">{app.department}</span> | Email:{" "}
                                         <span className="text-foreground">{app.contact_email}</span>
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-xs text-ink-soft">
                                         Applicant:{" "}
                                         <span className="text-foreground font-semibold">
                                             {app.profiles?.full_name || "Student Applicant"}
                                         </span>
                                     </p>
-                                    <p className="text-sm bg-muted/60 p-3 rounded-xl border border-border text-foreground/90 mt-2">
+                                    <p className="text-sm bg-tint p-3 rounded-xl border border-line text-foreground/90 mt-2">
                                         {app.description}
                                     </p>
                                 </div>
@@ -166,14 +169,14 @@ export default function AdminOrganizationsPage() {
                                             <button
                                                 onClick={() => updateOrgStatus(app, "approved")}
                                                 disabled={processingId === app.id}
-                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                                className={btn("primary", "sm")}
                                             >
                                                 <Check size={14} /> Approve
                                             </button>
                                             <button
                                                 onClick={() => updateOrgStatus(app, "rejected")}
                                                 disabled={processingId === app.id}
-                                                className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                                className={btn("dangerOutline", "sm")}
                                             >
                                                 <X size={14} /> Reject
                                             </button>
@@ -184,7 +187,7 @@ export default function AdminOrganizationsPage() {
                                         <button
                                             onClick={() => updateOrgStatus(app, "rejected")}
                                             disabled={processingId === app.id}
-                                            className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                            className={btn("dangerOutline", "sm")}
                                         >
                                             <X size={14} /> Revoke Verification
                                         </button>
@@ -195,7 +198,7 @@ export default function AdminOrganizationsPage() {
                                             <button
                                                 onClick={() => updateOrgStatus(app, "approved")}
                                                 disabled={processingId === app.id}
-                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                                className={btn("primary", "sm")}
                                             >
                                                 <RotateCcw size={14} /> Re-Approve
                                             </button>
@@ -203,7 +206,7 @@ export default function AdminOrganizationsPage() {
                                                 onClick={() => deleteApplication(app)}
                                                 disabled={processingId === app.id}
                                                 title="Remove from list"
-                                                className="p-2.5 bg-muted hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 border border-border rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                                                className="p-2.5 bg-tint hover:bg-rose-500/10 text-ink-soft hover:text-rose-500 border border-line rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                                             >
                                                 <Trash2 size={16} />
                                             </button>

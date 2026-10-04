@@ -11,9 +11,9 @@ const AnalyticsContent = dynamicImport(
     {
         ssr: false,
         loading: () => (
-            <div className="border border-border rounded-2xl bg-card p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
-                <Loader2 size={32} className="animate-spin text-muted-foreground mb-3" />
-                <p className="text-sm font-semibold text-muted-foreground">Loading Analytics Dashboard...</p>
+            <div className="border border-line rounded-2xl bg-surface p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
+                <Loader2 size={32} className="animate-spin text-ink-soft mb-3" />
+                <p className="text-sm font-semibold text-ink-soft">Loading Analytics Dashboard...</p>
             </div>
         )
     }
@@ -22,9 +22,9 @@ const AnalyticsContent = dynamicImport(
 export default function Page() {
     return (
         <Suspense fallback={
-            <div className="border border-border rounded-2xl bg-card p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
-                <Loader2 size={32} className="animate-spin text-muted-foreground mb-3" />
-                <p className="text-sm font-semibold text-muted-foreground">Loading Analytics Dashboard...</p>
+            <div className="border border-line rounded-2xl bg-surface p-16 text-center flex flex-col items-center justify-center min-h-[300px] shadow-sm">
+                <Loader2 size={32} className="animate-spin text-ink-soft mb-3" />
+                <p className="text-sm font-semibold text-ink-soft">Loading Analytics Dashboard...</p>
             </div>
         }>
             <AnalyticsContent />
