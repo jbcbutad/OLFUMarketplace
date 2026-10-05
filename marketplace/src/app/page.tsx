@@ -382,7 +382,7 @@ export default function LandingPage() {
                 </div>
             </div>
             <footer>
-                OLFU Valenzuela Marketplace — a student-to-student platform for the OLFU Valenzuela community.
+                OLFU Valenzuela Marketplace — a student-to-student platform for the OLFU Valenzuela community. This is a student capstone project and is not an official service of Our Lady of Fatima University.
                 <div style={{ marginTop: 8, display: "flex", justifyContent: "center", gap: 16 }}>
                     <Link href="/privacy" style={{ textDecoration: "underline", color: "inherit" }}>Privacy Policy</Link>
                     <Link href="/terms" style={{ textDecoration: "underline", color: "inherit" }}>Terms of Service</Link>
