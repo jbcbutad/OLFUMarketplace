@@ -88,7 +88,7 @@ export default function Navbar() {
           so we swap between the light and dark versions by theme. */}
       <Link href="/marketplace" className="order-1 flex items-center shrink-0" aria-label="OLFU Marketplace home">
         <Image
-          src="/olfu_logo_light.png"
+          src="/marketplacelogo_light.png"
           alt="OLFU Marketplace"
           width={400}
           height={100}
@@ -96,7 +96,7 @@ export default function Navbar() {
           className="block dark:hidden h-8 min-[360px]:h-9 sm:h-10 md:h-12 lg:h-16 w-auto"
         />
         <Image
-          src="/olfu_logo_dark.png"
+          src="/marketplacelogo_dark.png"
           alt="OLFU Marketplace"
           width={400}
           height={100}

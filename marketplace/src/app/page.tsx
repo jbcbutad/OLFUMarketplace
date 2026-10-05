@@ -274,7 +274,7 @@ export default function LandingPage() {
             so we swap between the light and dark versions by theme. */}
                 <Link href="/marketplace" className="brand" aria-label="OLFU Marketplace home">
                     <Image
-                        src={isDark ? "/olfu_logo_dark.png" : "/olfu_logo_light.png"}
+                        src={isDark ? "/marketplacelogo_dark.png" : "/marketplacelogo_light.png"}
                         alt="OLFU Marketplace"
                         width={400}
                         height={100}
