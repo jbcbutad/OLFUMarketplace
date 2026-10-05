@@ -420,7 +420,14 @@ export default async function Home({ searchParams }) {
         )}
       </div>
 
-      <footer className="w-full h-2 bg-background shrink-0" />
+      <footer className="w-full shrink-0 border-t border-stone-400 dark:border-neutral-700 py-4 px-4 flex justify-center gap-6 text-xs text-neutral-700 dark:text-neutral-300">
+        <Link href="/privacy" className="underline hover:text-foreground">
+          Privacy Policy
+        </Link>
+        <Link href="/terms" className="underline hover:text-foreground">
+          Terms of Service
+        </Link>
+      </footer>
     </div>
   );
 }
