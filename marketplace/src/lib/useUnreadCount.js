@@ -14,6 +14,8 @@ let inflight = false;
 let rerun = false;
 let lastRefresh = 0;
 let authSub = null;
+let started = false;
+let stopTimer = null;
 
 const emit = () => listeners.forEach((l) => l(count));
 
@@ -126,13 +128,26 @@ export default function useUnreadCount() {
     const [value, setValue] = useState(count);
 
     useEffect(() => {
+        clearTimeout(stopTimer);
         listeners.add(setValue);
         setValue(count);
-        if (listeners.size === 1) start();
+
+        if (!started) {
+            started = true;
+            start();
+        }
 
         return () => {
             listeners.delete(setValue);
-            if (listeners.size === 0) stop();
+            if (listeners.size === 0) {
+                // Wait a few seconds so a layout switch can reuse the channel
+                stopTimer = setTimeout(() => {
+                    if (listeners.size === 0) {
+                        stop();
+                        started = false;
+                    }
+                }, 5000);
+            }
         };
     }, []);
 
