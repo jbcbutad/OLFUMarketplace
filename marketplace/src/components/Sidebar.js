@@ -275,8 +275,11 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 <SubLink href="/categories?category=Uniforms" active={activeCategory === "Uniforms"}>
                   👕 Uniforms
                 </SubLink>
-                <SubLink href="/categories?category=Equipments" active={activeCategory === "Uniforms"}>
+                <SubLink href="/categories?category=Equipment" active={activeCategory === "Uniforms"}>
                   ⚙️ Equipments
+                </SubLink>
+                <SubLink href="/categories?category=Supplies" active={activeCategory === "Uniforms"}>
+                  📦 Supplies
                 </SubLink>
               </div>
             )}
