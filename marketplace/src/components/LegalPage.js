@@ -40,7 +40,7 @@ function renderContent(content) {
 
 export default function LegalPage({ content, otherHref, otherLabel }) {
     return (
-        <div className="min-h-screen bg-white text-neutral-900">
+        <div className="h-dvh overflow-y-auto bg-white text-neutral-900">
             <header className="border-b border-neutral-200">
                 <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
                     <Link href="/" className="text-sm font-bold text-neutral-950">
