@@ -177,7 +177,7 @@ export default function OrgApplyPage() {
                                     <AlertCircle size={16} /> Important Verification Requirement
                                 </div>
                                 <p className="text-muted-foreground font-medium">
-                                    To ensure institutional authenticity and protect the student body, student-led organization applications require formal endorsement. Please have your designated <strong className="text-foreground">Organization Adviser or Faculty Professor</strong> send a confirmation email to <span className="text-foreground font-bold underline">olfumarketplace@fatima.edu.ph</span>.
+                                    To ensure institutional authenticity and protect the student body, student-led organization applications require formal endorsement. Please have your designated <strong className="text-foreground">Organization Adviser or Faculty Professor</strong> send a confirmation email to <span className="text-foreground font-bold underline">olfumarketplace@google.com</span>.
                                 </p>
                                 <p className="text-muted-foreground">
                                     The email body must explicitly state the professor&apos;s endorsement of your organization and formally list authorized student representatives. Failure to complete this step will result in processing delays.
