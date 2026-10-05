@@ -381,7 +381,13 @@ export default function LandingPage() {
                     <Link className="btn ghost large" href="/marketplace">Browse listings →</Link>
                 </div>
             </div>
-            <footer>OLFU Valenzuela Marketplace — a student-to-student platform for the OLFU Valenzuela community.</footer>
+            <footer>
+                OLFU Valenzuela Marketplace — a student-to-student platform for the OLFU Valenzuela community.
+                <div style={{ marginTop: 8, display: "flex", justifyContent: "center", gap: 16 }}>
+                    <Link href="/privacy" style={{ textDecoration: "underline", color: "inherit" }}>Privacy Policy</Link>
+                    <Link href="/terms" style={{ textDecoration: "underline", color: "inherit" }}>Terms of Service</Link>
+                </div>
+            </footer>
 
             <div className={`backdrop${selected ? " open" : ""}`} onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>
                 {selected && (
