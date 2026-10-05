@@ -1,12 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import ProductReviews from "@/components/ProductReviews";
-import { Loader2, Mail, User, Package, Edit, MessageSquare, ShieldCheck, Star, X, Trophy, Shield } from "lucide-react";
+import {
+  Loader2,
+  User,
+  Package,
+  Edit,
+  MessageSquare,
+  ShieldCheck,
+  Star,
+  X,
+  Tag,
+  ShoppingBag,
+  MessagesSquare,
+} from "lucide-react";
 import { getListingState } from "@/lib/listingStatus";
 
 interface UserProfile {
@@ -36,6 +48,120 @@ interface Product {
   } | null;
 }
 
+/* ---------- small UI pieces ---------- */
+const METRIC_TONES = {
+  emerald: {
+    tile: "border-emerald-300/70 bg-emerald-950 shadow-[0_0_18px_rgba(52,211,153,0.45)]",
+    bar: "bg-emerald-400 shadow-[0_0_6px_#34d399]",
+    icon: "text-emerald-300 drop-shadow-[0_0_8px_rgba(110,231,183,0.9)]",
+    tip: "border-emerald-500/50",
+    label: "text-emerald-400",
+    value: "text-emerald-200",
+    count: "bg-emerald-300 text-emerald-950",
+  },
+  sky: {
+    tile: "border-sky-300/70 bg-sky-950 shadow-[0_0_18px_rgba(56,189,248,0.45)]",
+    bar: "bg-sky-400 shadow-[0_0_6px_#38bdf8]",
+    icon: "text-sky-300 drop-shadow-[0_0_8px_rgba(125,211,252,0.9)]",
+    tip: "border-sky-500/50",
+    label: "text-sky-400",
+    value: "text-sky-200",
+    count: "bg-sky-300 text-sky-950",
+  },
+};
+
+/* Neon achievement badge. The count is always visible (works on phones);
+   hovering or focusing shows the tooltip above the badge. */
+function MetricBadge({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  tone: "emerald" | "sky";
+}) {
+  const t = METRIC_TONES[tone];
+  return (
+    <div
+      tabIndex={0}
+      aria-label={`${label}: ${value}`}
+      className={`group relative flex cursor-pointer items-center justify-center rounded-xl border p-2.5 transition-transform hover:scale-110 focus:scale-110 focus:outline-none ${t.tile}`}
+    >
+      <div className={`absolute left-0 top-0 h-1 w-full rounded-t-xl ${t.bar}`} />
+      <span className={t.icon}>{icon}</span>
+
+      <span
+        className={`absolute -bottom-2 -right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-black ring-2 ring-white ${t.count}`}
+      >
+        {value}
+      </span>
+
+      <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden -translate-x-1/2 flex-col items-center group-hover:flex group-focus:flex">
+        <div className={`whitespace-nowrap rounded-lg border bg-neutral-900 px-2.5 py-1 text-center shadow-2xl ${t.tip}`}>
+          <span className={`block text-[8px] font-black uppercase leading-none tracking-widest ${t.label}`}>{label}</span>
+          <span className={`text-xs font-black ${t.value}`}>{value}</span>
+        </div>
+        <div className={`-mt-0.5 h-1.5 w-1.5 rotate-45 border-b border-r bg-neutral-900 ${t.tip}`} />
+      </div>
+    </div>
+  );
+}
+
+function ReviewsModal({
+  onClose,
+  reviews,
+  aiSummary,
+}: {
+  onClose: () => void;
+  reviews: any[];
+  aiSummary: any;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reviews-title"
+        className="relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-stone-300 bg-white text-neutral-900 shadow-2xl animate-in zoom-in-95 duration-200 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-stone-200 p-5 dark:border-neutral-800">
+          <h3 id="reviews-title" className="flex items-center gap-2 text-xl font-black">
+            <MessagesSquare size={20} className="text-emerald-600 dark:text-emerald-400" />
+            Community Feedback
+            <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+              {reviews.length}
+            </span>
+          </h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-stone-200 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="overflow-y-auto bg-stone-50 p-5 dark:bg-neutral-900/50">
+          <ProductReviews initialReviews={reviews} aiSummary={aiSummary} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- page ---------- */
 export default function PublicProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -160,7 +286,7 @@ export default function PublicProfilePage() {
 
       const rawProducts = (productsRes.data as unknown as Product[]) || [];
 
-      // 🔒 SECONDARY CLIENT SAFEGUARD FILTER: Double check visibility rules
+      // Secondary client safeguard: double check visibility rules
       const visibleProducts = rawProducts.filter((p: any) => {
         if (isSelf) return true;
         return p.is_available && getListingState(p) === "active";
@@ -212,185 +338,153 @@ export default function PublicProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <Loader2 className="animate-spin text-primary" size={40} />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="animate-spin text-emerald-600" size={40} />
       </div>
     );
   }
 
   const fullName = profileData?.full_name || "Marketplace User";
-  const userRole = profileData?.role || "user";
-  const isAdmin = userRole.includes("admin");
+  const isVerifiedOrg = !!profileData?.is_verified_org;
 
   const sellerReviews = reviews.filter((r) => r.role_reviewed === "seller");
   const buyerReviews = reviews.filter((r) => r.role_reviewed === "buyer");
 
-  const sellerAvg = sellerReviews.length
-    ? (sellerReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / sellerReviews.length).toFixed(1)
-    : "0.0";
-
-  const buyerAvg = buyerReviews.length
-    ? (buyerReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / buyerReviews.length).toFixed(1)
-    : "0.0";
+  const avg = (list: any[]) =>
+    list.length ? (list.reduce((sum, r) => sum + Number(r.rating || 0), 0) / list.length).toFixed(1) : null;
+  const sellerAvg = avg(sellerReviews);
+  const buyerAvg = avg(buyerReviews);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      {/* HEADER */}
-      <div className="bg-card border border-neutral-200 dark:border-neutral-800 rounded-3xl p-8 mb-12 shadow-xl flex flex-col md:flex-row items-center md:items-start gap-8">
-
-        {/* AVATAR WITH CONDITIONAL VERIFIED ORG BORDER & CHECKMARK BADGE */}
-        <div className="relative shrink-0">
-          <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl text-primary-foreground font-bold overflow-hidden shadow-lg transition-all ${profileData?.is_verified_org
-            ? "border-4 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.3)] bg-emerald-600"
-            : "border-4 border-neutral-300 dark:border-neutral-700 bg-primary"
-            }`}>
-            {profileData?.avatar_url ? (
-              <img src={profileData.avatar_url} className="w-full h-full object-cover" alt="Profile avatar" />
-            ) : (
-              <span>{fullName?.[0] || "?"}</span>
-            )}
-          </div>
-
-          {/* Floating verified check badge */}
-          {profileData?.is_verified_org && (
-            <div className="absolute bottom-1 right-1 bg-emerald-600 text-white p-1.5 rounded-full border-2 border-background shadow-md flex items-center justify-center" title="Verified Official Organization">
-              <ShieldCheck size={18} />
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 text-center md:text-left">
-          <div className="flex flex-col md:flex-row items-center gap-3 mb-3 justify-center md:justify-start flex-wrap">
-            <h1 className="text-3xl font-bold text-foreground">{fullName}</h1>
-
-
-            {/* OFFICIAL VERIFIED ORG FLOATING BADGE */}
-            {profileData?.is_verified_org && (
-              <div className="relative group flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-sm cursor-pointer transition-all hover:bg-emerald-500/30">
-                <ShieldCheck size={14} />
-                <span>{profileData?.org_name || "Official Merch Store"}</span>
-
-                {/* Floating tooltip box on hover */}
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-50">
-                  <div className="px-3 py-1.5 rounded-xl bg-neutral-900 border border-emerald-500/50 shadow-2xl text-center whitespace-nowrap">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 block leading-none mb-0.5">Verified Organization</span>
-                    <span className="text-xs font-bold text-emerald-100">{profileData?.org_name || fullName}</span>
-                  </div>
-                  <div className="w-1.5 h-1.5 bg-neutral-900 border-r border-b border-emerald-500/50 transform rotate-45 -mt-0.5" />
-                </div>
-              </div>
-            )}
-
-            {/* SOLD BADGE */}
-            <div className="relative group flex items-center justify-center p-2.5 rounded-xl bg-neutral-950 border border-emerald-500/60 shadow-[0_0_15px_rgba(16,185,129,0.2)] cursor-pointer transform hover:scale-110 transition-all">
-              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 shadow-[0_0_6px_#10b981]" />
-              <Trophy size={26} className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
-
-              <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-50">
-                <div className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-emerald-500/50 shadow-2xl text-center whitespace-nowrap">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400 block leading-none">Items Sold</span>
-                  <span className="text-xs font-black text-emerald-200">{soldCount}</span>
-                </div>
-                <div className="w-1.5 h-1.5 bg-neutral-900 border-r border-b border-emerald-500/50 transform rotate-45 -mt-0.5" />
-              </div>
-            </div>
-
-            {/* BOUGHT BADGE */}
-            <div className="relative group flex items-center justify-center p-2.5 rounded-xl bg-neutral-950 border border-sky-500/60 shadow-[0_0_15px_rgba(56,189,248,0.2)] cursor-pointer transform hover:scale-110 transition-all">
-              <div className="absolute top-0 left-0 w-full h-1 bg-sky-500 shadow-[0_0_6px_#38bdf8]" />
-              <Shield size={26} className="text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.9)]" />
-
-              <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center pointer-events-none z-50">
-                <div className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-sky-500/50 shadow-2xl text-center whitespace-nowrap">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-sky-400 block leading-none">Items Bought</span>
-                  <span className="text-xs font-black text-sky-200">{boughtCount}</span>
-                </div>
-                <div className="w-1.5 h-1.5 bg-neutral-900 border-r border-b border-sky-500/50 transform rotate-45 -mt-0.5" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center gap-4 text-muted-foreground mb-4 justify-center md:justify-start">
-            <div className="flex items-center gap-2">
-              <User size={16} />
-              <span>Account active</span>
-            </div>
-          </div>
-
-          {/* RATINGS & REVIEWS SCORES + POPUP BUTTON */}
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-6">
-            <div className="flex items-center gap-1.5 bg-neutral-800/90 border border-neutral-700 rounded-xl px-3.5 py-2 text-xs shadow-md">
-              <Star size={14} className="fill-yellow-500 text-yellow-500" />
-              <span className="font-extrabold text-white">Seller: {sellerAvg}</span>
-              <span className="text-neutral-400 font-medium">({sellerReviews.length})</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 bg-neutral-800/90 border border-neutral-700 rounded-xl px-3.5 py-2 text-xs shadow-md">
-              <Star size={14} className="fill-blue-400 text-blue-400" />
-              <span className="font-extrabold text-white">Buyer: {buyerAvg}</span>
-              <span className="text-neutral-400 font-medium">({buyerReviews.length})</span>
-            </div>
-
-            <button
-              onClick={() => setIsReviewsModalOpen(true)}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl text-xs font-bold transition-colors border border-neutral-700 cursor-pointer shadow-md"
-            >
-              View Reviews ({reviews.length})
-            </button>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start">
-            {isOwnProfile ? (
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-5 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-foreground rounded-lg transition-colors border border-neutral-300 dark:border-neutral-700 font-semibold"
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+      {/* HEADER (no overflow-hidden here, so the badge tooltips can extend past the card) */}
+      <section className="relative mb-10 rounded-3xl border border-emerald-700 bg-gradient-to-b from-emerald-800 via-emerald-600 to-emerald-400 shadow-sm dark:border-emerald-900 dark:from-emerald-950 dark:via-emerald-800 dark:to-emerald-600">
+        {/* Dot pattern: clipping lives on this layer only */}
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl opacity-20"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)",
+            backgroundSize: "18px 18px",
+          }}
+        />
+        <div className="relative px-5 py-8 sm:px-8 sm:py-10">
+          <div className="flex flex-col items-center gap-6 md:flex-row md:items-center">
+            <div className="relative shrink-0">
+              <div
+                className={`flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 text-5xl font-bold text-white shadow-lg ${isVerifiedOrg
+                  ? "border-white bg-emerald-600 ring-4 ring-emerald-200/60"
+                  : "border-white/90 bg-emerald-800"
+                  }`}
               >
-                <Edit size={16} /> Edit Profile
-              </Link>
-            ) : (
-              <button
-                onClick={handleStartChat}
-                disabled={isStartingChat}
-                className="flex items-center gap-2 px-5 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-all border border-primary/30 font-semibold disabled:opacity-50"
-              >
-                {isStartingChat ? (
-                  <Loader2 size={16} className="animate-spin" />
+                {profileData?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profileData.avatar_url} className="h-full w-full object-cover" alt="Profile avatar" />
                 ) : (
-                  <MessageSquare size={16} />
+                  <span>{fullName?.[0] || "?"}</span>
                 )}
-                Message User
-              </button>
-            )}
+              </div>
+              {isVerifiedOrg && (
+                <div
+                  className="absolute bottom-1 right-1 flex items-center justify-center rounded-full border-2 border-white bg-emerald-600 p-1.5 text-white shadow-md"
+                  title="Verified Official Organization"
+                >
+                  <ShieldCheck size={16} />
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1 text-center md:text-left">
+              <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start">
+                <h1 className="truncate text-2xl font-black text-white drop-shadow-sm sm:text-3xl">{fullName}</h1>
+                {isVerifiedOrg && (
+                  <span
+                    title="Verified Organization"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-emerald-800 shadow-sm"
+                  >
+                    <ShieldCheck size={14} />
+                    {profileData?.org_name || "Official Merch Store"}
+                  </span>
+                )}
+                <MetricBadge tone="emerald" icon={<Tag size={26} />} label="Items Sold" value={soldCount} />
+                <MetricBadge tone="sky" icon={<ShoppingBag size={26} />} label="Items Bought" value={boughtCount} />
+              </div>
+
+              <div className="mt-3 flex items-center justify-center gap-2 text-sm text-white/95 md:justify-start">
+                <User size={15} className="shrink-0" /> Account active
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5 md:justify-start">
+                <div className="flex items-center gap-1.5 rounded-xl border border-white bg-white px-3.5 py-2 text-xs shadow-sm">
+                  <Star size={14} className="fill-yellow-500 text-yellow-500" />
+                  <span className="font-extrabold text-neutral-900">Seller: {sellerAvg ?? "—"}</span>
+                  <span className="font-medium text-neutral-500">({sellerReviews.length})</span>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-xl border border-white bg-white px-3.5 py-2 text-xs shadow-sm">
+                  <Star size={14} className="fill-blue-500 text-blue-500" />
+                  <span className="font-extrabold text-neutral-900">Buyer: {buyerAvg ?? "—"}</span>
+                  <span className="font-medium text-neutral-500">({buyerReviews.length})</span>
+                </div>
+                <button
+                  onClick={() => setIsReviewsModalOpen(true)}
+                  className="cursor-pointer rounded-xl border border-emerald-950 bg-emerald-950 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-900"
+                >
+                  View Reviews ({reviews.length})
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 md:justify-start">
+                {isOwnProfile ? (
+                  <Link
+                    href="/profile"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white bg-white px-4 py-2.5 text-sm font-bold text-emerald-900 shadow-sm transition-colors hover:bg-emerald-50"
+                  >
+                    <Edit size={16} /> Edit Profile
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleStartChat}
+                    disabled={isStartingChat}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white bg-white px-4 py-2.5 text-sm font-bold text-emerald-900 shadow-sm transition-colors hover:bg-emerald-50 disabled:opacity-60"
+                  >
+                    {isStartingChat ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
+                    Message User
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* PRODUCTS */}
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-          <Package className="text-primary" /> Listings
+      {/* LISTINGS */}
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="flex items-center gap-3 text-2xl font-black text-foreground">
+          <Package className="text-emerald-600 dark:text-emerald-400" /> Listings
+          <span className="rounded-full bg-stone-200 px-2.5 py-0.5 text-sm font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+            {products.length}
+          </span>
         </h2>
       </div>
 
       {products.length === 0 ? (
-        <div className="text-center py-20 bg-card rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800">
-          <p className="text-muted-foreground mb-4">No listings yet.</p>
+        <div className="rounded-2xl border border-dashed border-stone-400 bg-stone-100 py-20 text-center dark:border-neutral-700 dark:bg-neutral-900">
+          <Package size={32} className="mx-auto mb-3 text-neutral-400" />
+          <p className="font-medium text-neutral-600 dark:text-neutral-400">No listings yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
             <Link
               href={`/products/${product.id}`}
               key={product.id}
-              className="block group transition-all duration-300 hover:-translate-y-1"
+              className="group block transition-all duration-300 hover:-translate-y-1 active:scale-95"
             >
               <ProductCard
                 title={product.title}
                 price={product.price}
                 seller={fullName}
                 orgName={profileData?.org_name}
-                isVerifiedOrg={profileData?.is_verified_org || false}
+                isVerifiedOrg={isVerifiedOrg}
                 image={product.image_urls?.[0] || "/placeholder.png"}
                 category={product.categories?.name}
                 tags={product.tags}
@@ -401,38 +495,8 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {/* REVIEWS POPUP MODAL */}
       {isReviewsModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150"
-          onClick={() => setIsReviewsModalOpen(false)}
-        >
-          <div
-            className="relative z-10 w-full max-w-2xl max-h-[85vh] bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-
-            {/* Modal Header */}
-            <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900 shrink-0">
-              <h3 className="text-xl font-bold text-neutral-900 dark:text-white">Community Feedback</h3>
-              <button
-                onClick={() => setIsReviewsModalOpen(false)}
-                className="text-neutral-400 hover:text-neutral-700 dark:hover:text-white transition-colors p-1 cursor-pointer"
-              >
-                <X size={22} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto bg-neutral-50 dark:bg-neutral-900/50">
-              <ProductReviews
-                initialReviews={reviews}
-                aiSummary={aiSummary}
-              />
-            </div>
-
-          </div>
-        </div>
+        <ReviewsModal onClose={() => setIsReviewsModalOpen(false)} reviews={reviews} aiSummary={aiSummary} />
       )}
     </div>
   );

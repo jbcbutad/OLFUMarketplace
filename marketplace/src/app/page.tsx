@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import "./landing.css";
 
@@ -183,6 +184,7 @@ function Check() {
 /* ---------- page ---------- */
 export default function LandingPage() {
     const [theme, setTheme] = useState<"light" | "dark" | undefined>(undefined);
+    const [systemDark, setSystemDark] = useState(false);
     const [wi, setWi] = useState(0);
     const [wordVisible, setWordVisible] = useState(true);
     const [selected, setSelected] = useState<Item | null>(null);
@@ -191,17 +193,24 @@ export default function LandingPage() {
     const bandRef = useRef<HTMLDivElement>(null);
     const glowRef = useRef<HTMLDivElement>(null);
 
-    // restore saved theme
+    // the saved choice wins; otherwise follow the system theme
+    const isDark = theme ? theme === "dark" : systemDark;
+
+    // restore saved theme + follow the system theme
     useEffect(() => {
         try {
             const s = localStorage.getItem("olfu-theme");
             if (s === "light" || s === "dark") setTheme(s);
         } catch { }
+        const mq = window.matchMedia("(prefers-color-scheme: dark)");
+        setSystemDark(mq.matches);
+        const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
     }, []);
 
     const toggleTheme = () => {
-        const dark = theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        const next = dark ? "light" : "dark";
+        const next = isDark ? "light" : "dark";
         setTheme(next);
         try { localStorage.setItem("olfu-theme", next); } catch { }
     };
@@ -245,8 +254,34 @@ export default function LandingPage() {
 
     return (
         <div className="olfu" data-theme={theme}>
+            {/* Phones: stack the "How it works" tiles as 01, 02, 03 (the chat tile is first in the markup for the desktop layout). */}
+            <style>{`
+        @media (max-width: 760px) {
+          .olfu .bento .t1, .olfu .bento .t2, .olfu .bento .t3,
+          .olfu .bento .t4, .olfu .bento .t5, .olfu .bento .t6 {
+            grid-area: auto; grid-row: auto; grid-column: auto;
+          }
+          .olfu .bento .t2 { order: 1; }
+          .olfu .bento .t1 { order: 2; }
+          .olfu .bento .t3 { order: 3; }
+          .olfu .bento .t4 { order: 4; }
+          .olfu .bento .t5 { order: 5; }
+          .olfu .bento .t6 { order: 6; }
+        }
+      `}</style>
             <div className="topbar">
-                <div className="brand"><span className="mark">O</span> OLFU Marketplace</div>
+                {/* The logo image already includes the "O.L.F.U Marketplace" text,
+            so we swap between the light and dark versions by theme. */}
+                <Link href="/marketplace" className="brand" aria-label="OLFU Marketplace home">
+                    <Image
+                        src={isDark ? "/olfu_logo_dark.png" : "/olfu_logo_light.png"}
+                        alt="OLFU Marketplace"
+                        width={400}
+                        height={100}
+                        priority
+                        style={{ height: "clamp(44px, 6vw, 64px)", width: "auto" }}
+                    />
+                </Link>
                 <div className="topbar-actions">
                     <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle dark mode">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

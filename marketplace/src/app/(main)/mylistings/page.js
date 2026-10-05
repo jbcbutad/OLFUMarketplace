@@ -346,12 +346,13 @@ function MyListingsContent() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b border-neutral-900 dark:border-neutral-200 pb-4 overflow-x-auto">          <button
-          onClick={() => setActiveTab("all")}
-          className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "all" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
-        >
-          All Listings ({listings.length})
-        </button>
+        <div className="flex items-center gap-2 mb-6 border-b border-neutral-900 dark:border-neutral-200 pb-4 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "all" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+          >
+            All Listings ({listings.length})
+          </button>
           <button
             onClick={() => setActiveTab("active")}
             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "active" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
@@ -392,7 +393,8 @@ function MyListingsContent() {
               if (isFlagged) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-900 dark:border-white opacity-75";
               else if (isPendingAdmin) cardBgStyles = "bg-amber-50/40 dark:bg-amber-950/20 border-neutral-900 dark:border-white shadow-sm";
               else if (isExpiredTag) cardBgStyles = "bg-red-500/10 dark:bg-red-950/30 border-red-500/40";
-              else if (isUnavailable) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-900 dark:border-white opacity-65";
+              // No card-level opacity here: it would also fade the status dropdown and trap it under the next card.
+              else if (isUnavailable) cardBgStyles = "bg-neutral-100 dark:bg-neutral-900/60 border-neutral-900 dark:border-white";
 
               let currentStatusLabel = "Available";
               let dropdownTriggerStyles = "bg-foreground text-background border-neutral-900 dark:border-white";
@@ -411,7 +413,10 @@ function MyListingsContent() {
               }
 
               return (
-                <div key={item.id} className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all ${cardBgStyles}`}>
+                <div
+                  key={item.id}
+                  className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all ${cardBgStyles} ${openDropdownId === item.id ? "relative z-20" : ""}`}
+                >
 
                   {/* FLAGGED BANNER NOTICE ON LISTING ROW IF FLAGGED */}
                   {isFlagged && (
@@ -424,7 +429,7 @@ function MyListingsContent() {
                     <Link href={`/products/${item.id}`} className="shrink-0 relative">
                       <img
                         src={item.image_urls?.[0] || "/placeholder.png"}
-                        className={`w-24 h-24 rounded-xl object-cover border border-neutral-200 dark:border-neutral-800 transition-opacity ${isUnavailable ? "grayscale" : "hover:opacity-80"}`}
+                        className={`w-24 h-24 rounded-xl object-cover border border-neutral-200 dark:border-neutral-800 transition-opacity ${isUnavailable ? "grayscale opacity-60" : "hover:opacity-80"}`}
                         alt={item.title}
                       />
                       {isFlagged && (

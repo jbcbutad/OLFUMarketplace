@@ -131,9 +131,7 @@ function CreateListingContent() {
           });
       }
 
-      if (!tags.includes("official-merch")) {
-        setTags(prev => [...prev, "official-merch"]);
-      }
+      setTags(prev => (prev.includes("official-merch") ? prev : [...prev, "official-merch"]));
     } else {
       setTags(tags.filter(t => t !== "official-merch"));
     }

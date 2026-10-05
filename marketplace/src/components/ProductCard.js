@@ -53,7 +53,7 @@ export default function ProductCard({
           <p className="text-base font-black text-foreground">
             ₱{Number(price).toLocaleString()}
             {tags?.includes("Rentals") && (
-              <span className="text-xs text-muted-foreground ml-1 font-normal">/ day</span>
+              <span className="text-xs text-muted-foreground ml-1 font-normal"> </span>
             )}
           </p>
         </div>

@@ -3,7 +3,7 @@ export default function Contact() {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Contact Us</h1>
-      <p>You can contact us at olfumarketplace@example.com</p>
+      <p>You can contact us at olfumarketplace@gmail.com</p>
     </div>
   );
 }

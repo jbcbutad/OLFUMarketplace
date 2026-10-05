@@ -13,7 +13,7 @@ const HIDDEN_TAG_KEYS = new Set(["pending", "expired"]);
 
 // "Campus Essentials", "campus-essentials", "#campusessentials" -> "campusessentials"
 const tagKey = (t) =>
-  String(t).trim().replace(/^#+/, "").toLowerCase().replace(/[\s_-]+/g, "");
+  String(t).trim().replace(/^#+/, "").toLowerCase().replace(/[\s_,-]+/g, "");
 
 const tagLabel = (t) =>
   String(t).trim().replace(/^#+/, "").toLowerCase().replace(/\s+/g, " ");
@@ -112,16 +112,39 @@ export default async function Home({ searchParams }) {
   const params = await searchParams;
   const nowIso = new Date().toISOString();
   const selectedCategory = params?.category || null;
-  const activeTag = params?.tag ? tagKey(params.tag) : null;
 
-  // Build links that keep the other filter intact
+  // ?tags=sale,books  (the old ?tag=sale still works)
+  const activeTags = [
+    ...new Set(
+      String(params?.tags ?? params?.tag ?? "")
+        .split(",")
+        .map(tagKey)
+        .filter(Boolean)
+    ),
+  ];
+
+  // Build links that keep the other filters intact
   const buildHref = (overrides = {}) => {
-    const next = { category: selectedCategory, tag: activeTag, ...overrides };
+    const next = {
+      category: selectedCategory,
+      tags: activeTags.join(",") || null,
+      ...overrides,
+    };
     const qs = new URLSearchParams();
     Object.entries(next).forEach(([k, v]) => v && qs.set(k, v));
     const s = qs.toString();
     return s ? `${BASE_PATH}?${s}` : BASE_PATH;
   };
+
+  // Clicking a tag adds it; clicking a selected tag removes it
+  const toggleTagHref = (key) =>
+    buildHref({
+      tags:
+        (activeTags.includes(key)
+          ? activeTags.filter((k) => k !== key)
+          : [...activeTags, key]
+        ).join(",") || null,
+    });
 
   // 1. Categories (Merchandise stays out of the browse bar)
   const { data: categoriesData } = await supabase
@@ -133,7 +156,7 @@ export default async function Home({ searchParams }) {
     (c) => c.name.toLowerCase() !== HIDDEN_CATEGORY
   );
 
-  // Shared base query so the product grid and the tag list always agree
+  // Base query (category-filtered)
   const buildQuery = (fields) => {
     let q = supabase
       .from("products")
@@ -155,16 +178,35 @@ export default async function Home({ searchParams }) {
         (p) => p.categories?.name?.toLowerCase() !== HIDDEN_CATEGORY
       );
 
-  // 2. Tags for the current category (ignores the tag filter so the list doesn't collapse)
-  const { data: tagRowsRaw } = await buildQuery("tags");
-  const tagRows = dropMerch(tagRowsRaw);
+  // 2. One query for the products
+  const { data: rawProducts, error } = await buildQuery(`
+    id,
+    title,
+    price,
+    image_urls,
+    created_at,
+    tags,
+    status,
+    profiles ( full_name )
+  `).order("created_at", { ascending: false });
 
+  if (error) console.error("Error fetching products:", error);
+
+  // 3. Keep only items that have EVERY selected tag
+  //    (compared with tagKey so "Books" / "books" / "#books" all match)
+  const hasAllTags = (p) => {
+    const keys = new Set((p.tags || []).map(tagKey));
+    return activeTags.every((k) => keys.has(k));
+  };
+  const products = dropMerch(rawProducts).filter(hasAllTags);
+
+  // 4. Tag list is built from the REMAINING items only
   const tagMap = new Map(); // key -> { key, label, count }
-  tagRows.forEach((row) => {
+  products.forEach((row) => {
     const seenInRow = new Set();
     (row.tags || []).forEach((raw) => {
       const key = tagKey(raw);
-      if (!key || seenInRow.has(key)) return;
+      if (!key || HIDDEN_TAG_KEYS.has(key) || seenInRow.has(key)) return;
       seenInRow.add(key);
 
       const label = tagLabel(raw);
@@ -180,56 +222,46 @@ export default async function Home({ searchParams }) {
     });
   });
 
-  const sortedTags = Array.from(tagMap.values()).sort(
-    (a, b) => b.count - a.count || a.label.localeCompare(b.label)
+  const selectedTagObjs = activeTags.map(
+    (k) => tagMap.get(k) || { key: k, label: k, count: 0 }
   );
-  const tags = activeTag
-    ? [
-      ...sortedTags.filter((t) => t.key === activeTag),
-      ...sortedTags.filter((t) => t.key !== activeTag),
-    ]
-    : sortedTags;
+  const relatedTags = Array.from(tagMap.values())
+    .filter((t) => !activeTags.includes(t.key))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+  const tags = [...selectedTagObjs, ...relatedTags]; // selected first
   const topTags = tags.slice(0, VISIBLE_TAGS);
   const moreTags = tags.slice(VISIBLE_TAGS);
-  const activeTagLabel = tagMap.get(activeTag)?.label || activeTag;
-
-  // 3. Products
-  const { data: rawProducts, error } = await buildQuery(`
-    id,
-    title,
-    price,
-    image_urls,
-    created_at,
-    tags,
-    status,
-    profiles ( full_name )
-  `).order("created_at", { ascending: false });
-
-  if (error) console.error("Error fetching products:", error);
-
-  // Tag filter in JS so "Books" / "books" / "#books" all match
-  const products = dropMerch(rawProducts).filter(
-    (p) =>
-      !activeTag || (p.tags || []).some((t) => tagKey(t) === activeTag)
-  );
 
   const pillBase =
     "shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 border";
-  const pillOn = "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 hover:border-emerald-800 dark:bg-emerald-700 dark:text-white dark:border-emerald-600 dark:hover:bg-emerald-800 dark:hover:border-emerald-500";
-  const pillOff = "bg-stone-200 text-black border-stone-800 hover:bg-emerald-50 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:hover:bg-emerald-950 dark:hover:border-emerald-700";
-  const tagPill = (t) => (
-    <Link
-      key={t.key}
-      href={buildHref({ tag: activeTag === t.key ? null : t.key })}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTag === t.key
-        ? "bg-emerald-600 text-white font-semibold border border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:hover:bg-emerald-800 dark:border-emerald-600"
-        : "bg-stone-200 text-neutral-700 border border-neutral-800 hover:bg-emerald-50 hover:text-black hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700 dark:hover:text-white"
-        }`}
-    >
-      #{t.label}
-      <span className="ml-1.5 opacity-50">{t.count}</span>
-    </Link>
-  );
+  const pillOn =
+    "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 hover:border-emerald-800 dark:bg-emerald-700 dark:text-white dark:border-emerald-600 dark:hover:bg-emerald-800 dark:hover:border-emerald-500";
+  const pillOff =
+    "bg-stone-200 text-black border-stone-800 hover:bg-emerald-50 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:hover:bg-emerald-950 dark:hover:border-emerald-700";
+
+  const tagPill = (t) => {
+    const on = activeTags.includes(t.key);
+    return (
+      <Link
+        key={t.key}
+        scroll={false}
+        href={toggleTagHref(t.key)}
+        aria-pressed={on}
+        className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${on
+          ? "bg-emerald-600 text-white font-semibold border border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:hover:bg-emerald-800 dark:border-emerald-600"
+          : "bg-stone-200 text-neutral-700 border border-neutral-800 hover:bg-emerald-50 hover:text-black hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700 dark:hover:text-white"
+          }`}
+      >
+        #{t.label}
+        {on ? (
+          <X size={12} className="ml-1.5" />
+        ) : (
+          <span className="ml-1.5 opacity-50">{t.count}</span>
+        )}
+      </Link>
+    );
+  };
 
   return (
     <div className="text-foreground w-full min-h-screen flex flex-col justify-between select-none transition-colors">
@@ -299,7 +331,8 @@ export default async function Home({ searchParams }) {
         <section className="mb-8" aria-label="Categories">
           <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
             <Link
-              href={buildHref({ category: null, tag: null })}
+              scroll={false}
+              href={buildHref({ category: null, tags: null })}
               aria-current={!selectedCategory ? "page" : undefined}
               className={`${pillBase} ${!selectedCategory ? pillOn : pillOff}`}
             >
@@ -308,7 +341,8 @@ export default async function Home({ searchParams }) {
             {categories.map((cat) => (
               <Link
                 key={cat.id}
-                href={buildHref({ category: cat.name, tag: null })}
+                scroll={false}
+                href={buildHref({ category: cat.name, tags: null })}
                 aria-current={selectedCategory === cat.name ? "page" : undefined}
                 className={`${pillBase} ${selectedCategory === cat.name ? pillOn : pillOff}`}
               >
@@ -319,14 +353,24 @@ export default async function Home({ searchParams }) {
           </div>
         </section>
 
-        {/* Tags: most-used first, long tail tucked away */}
+        {/* Tags: selected first, then only tags that exist on the remaining items */}
         {tags.length > 0 && (
           <section className="mb-8" aria-label="Tags">
             <h3 className="text-sm font-semibold text-neutral-800 mb-3 flex items-center gap-1.5 dark:text-neutral-200">
               <Tag size={14} />
-              {selectedCategory ? `Popular in ${selectedCategory}` : "Popular tags"}
+              {activeTags.length > 0
+                ? "Narrow down further"
+                : selectedCategory
+                  ? `Popular in ${selectedCategory}`
+                  : "Popular tags"}
             </h3>
             <div className="flex flex-wrap gap-2">{topTags.map(tagPill)}</div>
+
+            {activeTags.length > 0 && relatedTags.length === 0 && (
+              <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                No other tags on these items.
+              </p>
+            )}
 
             {moreTags.length > 0 && (
               <details className="group mt-3">
@@ -349,8 +393,8 @@ export default async function Home({ searchParams }) {
         )}
 
         {/* Active filters + result count */}
-        <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[28px] dark:text-neutral-200">
-          <span className="text-xs text-neutral-800 dark:text-white">
+        <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">
+          <span className="text-sm font-semibold text-foreground mr-1">
             {error
               ? ""
               : `${products.length} item${products.length === 1 ? "" : "s"}`}
@@ -358,19 +402,21 @@ export default async function Home({ searchParams }) {
           {selectedCategory && (
             <FilterChip
               label={selectedCategory}
-              href={buildHref({ category: null, tag: null })}
+              href={buildHref({ category: null, tags: null })}
             />
           )}
-          {activeTag && (
+          {selectedTagObjs.map((t) => (
             <FilterChip
-              label={`#${activeTagLabel}`}
-              href={buildHref({ tag: null })}
+              key={t.key}
+              label={`#${t.label}`}
+              href={toggleTagHref(t.key)}
             />
-          )}
-          {(selectedCategory || activeTag) && (
+          ))}
+          {(selectedCategory || activeTags.length > 0) && (
             <Link
+              scroll={false}
               href={BASE_PATH}
-              className="text-xs font-medium text-red-400 hover:underline ml-1"
+              className="ml-1 inline-flex items-center rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950 transition-colors"
             >
               Clear all
             </Link>
@@ -380,17 +426,20 @@ export default async function Home({ searchParams }) {
         {/* Product grid */}
         {error ? (
           <div className="text-center py-20 text-red-500 font-semibold">
-            Couldn't load items. Please refresh the page.
+            Couldn&apos;t load items. Please refresh the page.
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-24 bg-stone-200 rounded-3xl border border-dashed border-neutral-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
             <p className="text-neutral-800 text-base font-medium dark:text-white">
               {selectedCategory
-                ? `No items found in "${selectedCategory}"${activeTag ? ` with #${activeTagLabel}` : ""
+                ? `No items found in "${selectedCategory}"${activeTags.length
+                  ? ` with ${selectedTagObjs.map((t) => `#${t.label}`).join(" + ")}`
+                  : ""
                 }.`
                 : "No items match these filters."}
             </p>
             <Link
+              scroll={false}
               href={BASE_PATH}
               className="text-red-500 font-semibold mt-3 inline-block hover:underline text-sm"
             >
@@ -435,8 +484,9 @@ export default async function Home({ searchParams }) {
 function FilterChip({ label, href }) {
   return (
     <Link
+      scroll={false}
       href={href}
-      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-800 text-neutral-200 text-xs font-medium hover:bg-neutral-700"
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white border border-emerald-700 text-xs font-semibold hover:bg-emerald-700 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-800 transition-colors"
       aria-label={`Remove filter ${label}`}
     >
       {label}

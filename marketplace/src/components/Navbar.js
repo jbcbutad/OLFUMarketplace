@@ -19,6 +19,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import SearchBar from "@/components/SearchBar";
 import useUnreadCount from "@/lib/useUnreadCount";
 
+// Dropdown colors: explicit light/dark so the menu follows the theme
+const MENU_LINE = "border-stone-400 dark:border-neutral-700";
+const MENU_ITEM =
+  "flex items-center gap-3 px-4 py-3 text-sm text-neutral-800 dark:text-neutral-200 hover:bg-stone-200 dark:hover:bg-neutral-800 transition-colors";
+
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -76,44 +81,47 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navigation-surface h-20 border-b border-neutral-200/80 dark:border-neutral-800/80 text-foreground px-6 flex items-center justify-between sticky top-0 z-50 transition-colors">
-      <div className="flex items-center space-x-6 flex-1">
-        {/* LOGO: the image already includes the "O.L.F.U Marketplace" text,
-            so we swap between the light and dark versions by theme. */}
-        <Link href="/marketplace" className="flex items-center shrink-0" aria-label="OLFU Marketplace home">
-          <Image
-            src="/olfu_logo_light.png"
-            alt="OLFU Marketplace"
-            width={400}
-            height={100}
-            priority
-            className="block dark:hidden h-11 sm:h-16 w-auto"
-          />
-          <Image
-            src="/olfu_logo_dark.png"
-            alt="OLFU Marketplace"
-            width={400}
-            height={100}
-            priority
-            className="hidden dark:block h-11 sm:h-16 w-auto"
-          />
-        </Link>
+    // Phones (< md): two rows. Row 1 is logo + actions, row 2 is the search bar.
+    // md and up: one row, like before.
+    <nav className="navigation-surface border-b border-neutral-200/80 dark:border-neutral-800/80 text-foreground px-3 sm:px-6 py-2 md:py-0 md:h-20 flex flex-wrap md:flex-nowrap items-center gap-y-2 sticky top-0 z-50 transition-colors">
+      {/* LOGO: the image already includes the "O.L.F.U Marketplace" text,
+          so we swap between the light and dark versions by theme. */}
+      <Link href="/marketplace" className="order-1 flex items-center shrink-0" aria-label="OLFU Marketplace home">
+        <Image
+          src="/olfu_logo_light.png"
+          alt="OLFU Marketplace"
+          width={400}
+          height={100}
+          priority
+          className="block dark:hidden h-8 min-[360px]:h-9 sm:h-10 md:h-12 lg:h-16 w-auto"
+        />
+        <Image
+          src="/olfu_logo_dark.png"
+          alt="OLFU Marketplace"
+          width={400}
+          height={100}
+          priority
+          className="hidden dark:block h-8 min-[360px]:h-9 sm:h-10 md:h-12 lg:h-16 w-auto"
+        />
+      </Link>
 
-        <div className="max-w-md w-full ml-4">
-          <SearchBar />
-        </div>
+      {/* SEARCH: full-width second row on phones, beside the logo from md up */}
+      <div className="order-3 md:order-2 w-full md:w-auto md:flex-1 md:max-w-md md:ml-4 min-w-0">
+        <SearchBar />
       </div>
 
-      <div className="flex items-center gap-3 ml-4">
+      {/* ACTIONS */}
+      <div className="order-2 md:order-3 ml-auto pl-2 md:pl-4 flex items-center gap-2 sm:gap-3 shrink-0">
         <ThemeToggle />
 
         {user && (
           <>
-            {/* MESSAGES BUTTON WITH BADGE */}
+            {/* MESSAGES BUTTON WITH BADGE (phones use the menu instead, see the dot on the avatar) */}
             <Link
               href="/chat"
-              className="p-2.5 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/30 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-foreground transition-all relative cursor-pointer"
+              className="hidden sm:inline-flex p-2.5 rounded-full bg-white dark:bg-neutral-900 border border-black dark:border-white hover:bg-neutral-200 dark:hover:bg-neutral-800 text-foreground transition-all relative cursor-pointer"
               title="Messages"
+              aria-label="Messages"
             >
               <MessageSquare size={20} className="text-foreground" />
               {unreadCount > 0 && (
@@ -123,11 +131,12 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* FAVORITES BUTTON */}
+            {/* FAVORITES BUTTON (phones use the menu instead) */}
             <Link
               href="/favorites"
-              className="p-2.5 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/30 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-foreground transition-all relative cursor-pointer"
+              className="hidden sm:inline-flex p-2.5 rounded-full bg-white dark:bg-neutral-900 border border-black dark:border-white hover:bg-neutral-200 dark:hover:bg-neutral-800 text-foreground transition-all relative cursor-pointer"
               title="Saved Favorites"
+              aria-label="Saved Favorites"
             >
               <Heart size={20} className="text-rose-500 fill-rose-500/20" />
             </Link>
@@ -137,19 +146,25 @@ export default function Navbar() {
         {loading ? (
           <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
         ) : user ? (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link
               href="/create-listing"
-              className="flex items-center gap-2 px-4 py-2 border border-black/30 dark:border-white/30 bg-emerald-700 text-white hover:opacity-90 rounded-lg font-medium transition-all"
+              aria-label="Create Listing"
+              title="Create Listing"
+              className="flex items-center gap-2 px-2.5 sm:px-4 py-2 border border-black/30 dark:border-white/30 bg-emerald-700 text-white hover:opacity-90 rounded-lg font-medium transition-all"
             >
               <Plus size={18} />
-              <span className="hidden sm:inline">Create Listing</span>
+              {/* text shows on small tablets and desktops; md is icon-only to keep the search bar roomy */}
+              <span className="hidden sm:inline md:hidden lg:inline">Create Listing</span>
             </Link>
 
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 p-1 pr-3 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/30 dark:border-white/30 transition-all cursor-pointer"
+                aria-label="Account menu"
+                aria-haspopup="menu"
+                aria-expanded={dropdownOpen}
+                className="relative flex items-center gap-1.5 sm:gap-2 p-1 pr-2 sm:pr-3 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-black/30 dark:border-white/30 transition-all cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-full bg-neutral-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden shrink-0">
                   {avatarUrl ? (
@@ -163,25 +178,33 @@ export default function Navbar() {
                   )}
                 </div>
                 <ChevronDown size={16} className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+
+                {/* Unread dot for phones, where the Messages button is hidden */}
+                {unreadCount > 0 && (
+                  <span className="sm:hidden absolute -top-0.5 -right-0.5 w-3 h-3 bg-rose-600 rounded-full ring-2 ring-stone-200 dark:ring-neutral-900" />
+                )}
               </button>
 
               {dropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)}></div>
-                  <div className="absolute right-0 mt-2 w-56 bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl z-20 overflow-hidden py-1">
-                    <div className="px-4 py-3 border-b border-neutral-800">
-                      <p className="text-sm text-neutral-400">Signed in as</p>
-                      <p className="text-sm font-medium text-white truncate">{user.email}</p>
+                  <div
+                    role="menu"
+                    className={`absolute right-0 mt-2 w-60 max-w-[calc(100vw-1.5rem)] bg-stone-100 dark:bg-neutral-900 border ${MENU_LINE} rounded-xl shadow-2xl z-20 overflow-hidden py-1`}
+                  >
+                    <div className={`px-4 py-3 border-b ${MENU_LINE}`}>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400">Signed in as</p>
+                      <p className="text-sm font-medium text-neutral-900 dark:text-white truncate">{user.email}</p>
                     </div>
 
-                    <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-neutral-800" onClick={() => setDropdownOpen(false)}>
+                    <Link href="/profile" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
                       <User size={18} />
                       My Profile
                     </Link>
 
-                    <Link href="/chat" className="flex items-center justify-between px-4 py-3 text-sm text-gray-300 hover:bg-neutral-800 border-t border-neutral-800/60" onClick={() => setDropdownOpen(false)}>
+                    <Link href="/chat" role="menuitem" className={`${MENU_ITEM} justify-between`} onClick={() => setDropdownOpen(false)}>
                       <div className="flex items-center gap-3">
-                        <MessageSquare size={18} className="text-sky-400" />
+                        <MessageSquare size={18} className="text-sky-500 dark:text-sky-400" />
                         Messages
                       </div>
                       {unreadCount > 0 && (
@@ -191,22 +214,26 @@ export default function Navbar() {
                       )}
                     </Link>
 
-                    <Link href="/favorites" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-neutral-800" onClick={() => setDropdownOpen(false)}>
-                      <Heart size={18} className="text-rose-500" />
+                    <Link href="/favorites" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
+                      <Heart size={18} className="text-rose-600" />
                       Saved Favorites
                     </Link>
 
-                    <Link href="/purchase-history" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-neutral-800" onClick={() => setDropdownOpen(false)}>
-                      <ShoppingCart size={18} className="text-yellow-500" />
+                    <Link href="/purchase-history" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
+                      <ShoppingCart size={18} className="text-yellow-600 dark:text-yellow-500" />
                       Purchase History
                     </Link>
 
-                    <Link href="/sales-history" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-neutral-800" onClick={() => setDropdownOpen(false)}>
-                      <ShoppingBag size={18} className="text-yellow-500" />
+                    <Link href="/sales-history" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
+                      <ShoppingBag size={18} className="text-yellow-600 dark:text-yellow-500" />
                       Sales History
                     </Link>
 
-                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 border-t border-neutral-800 cursor-pointer">
+                    <button
+                      onClick={handleLogout}
+                      role="menuitem"
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 dark:text-red-400 hover:bg-red-500/10 border-t ${MENU_LINE} cursor-pointer`}
+                    >
                       <LogOut size={18} />
                       Logout
                     </button>
@@ -217,7 +244,7 @@ export default function Navbar() {
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <Link href="/login" className="px-4 py-2 font-medium border border-black/30 dark:border-white/30 hover:opacity-80 text-sm font-semibold rounded-lg">Log in</Link>
+            <Link href="/login" className="px-4 py-2 border border-black/30 dark:border-white/30 hover:opacity-80 text-sm font-semibold rounded-lg">Log in</Link>
           </div>
         )}
       </div>
