@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
+import RentalsClawBanner from "@/components/RentalsClawBanner";
 import { X, Tag, Search, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -201,13 +202,7 @@ export default async function RentalsPage({ searchParams }) {
     return (
         <div className="text-foreground w-full min-h-screen flex flex-col justify-between transition-colors">
             <div className="max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow">
-                {/* Header */}
-                <div className="mb-8">
-                    <h2 className="text-3xl font-extrabold text-foreground">Rentals</h2>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-                        Borrow textbooks, equipment and gear from fellow OLFU students.
-                    </p>
-                </div>
+                <RentalsClawBanner />
 
                 {/* Search (keeps the category and tag filters) */}
                 <form action={BASE_PATH} method="get" className="mb-8 flex gap-2">
