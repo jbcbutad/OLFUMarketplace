@@ -71,12 +71,11 @@ export async function proxy(request: NextRequest) {
   // ---------------------------------------------------------
   // AUTHENTICATION
   // ---------------------------------------------------------
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub ?? null;
 
   // Only protected routes should redirect unauthenticated users.
-  if ((isProtectedAdmin || isProtectedDashboard) && !user) {
+  if ((isProtectedAdmin || isProtectedDashboard) && !userId) {
     url.pathname = "/login";
 
     return NextResponse.redirect(url);
@@ -87,11 +86,11 @@ export async function proxy(request: NextRequest) {
   let role = "buyer";
   let isBanned = false;
 
-  if (user && (isProtectedAdmin || isProtectedDashboard)) {
+  if (userId && (isProtectedAdmin || isProtectedDashboard)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, is_banned")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle();
 
     role = profile?.role || "buyer";
