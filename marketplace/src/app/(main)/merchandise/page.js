@@ -55,6 +55,7 @@ function MerchandiseContent() {
   const searchParams = useSearchParams();
 
   const selectedOrg = searchParams.get("org") || null;
+  const selectedCategory = searchParams.get("category") || null;
   const term = (searchParams.get("q") || "").trim();
 
   // ?tags=tees,black  (the old ?tag=tees still works)
@@ -68,6 +69,7 @@ function MerchandiseContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [isVerifiedOrg, setIsVerifiedOrg] = useState(false);
+
 
   useEffect(() => {
     fetchMerchandise();
@@ -118,7 +120,7 @@ function MerchandiseContent() {
           stock_quantity,
           expires_at,
           profiles!inner ( full_name, org_name, is_verified_org ),
-          categories ( name )
+          categories ( name, icon )
         `)
         .eq("is_available", true)
         .eq("status", "active")
@@ -146,6 +148,7 @@ function MerchandiseContent() {
   const buildHref = (overrides = {}) => {
     const next = {
       org: selectedOrg,
+      category: selectedCategory,
       tags: activeTags.join(",") || null,
       q: term || null,
       ...overrides,
@@ -181,9 +184,24 @@ function MerchandiseContent() {
   );
 
   const inOrg = useMemo(
-    () => (selectedOrg ? products.filter((p) => orgOf(p) === selectedOrg) : products),
-    [products, selectedOrg]
+    () =>
+      products.filter(
+        (p) =>
+          (!selectedOrg || orgOf(p) === selectedOrg) &&
+          (!selectedCategory || p.categories?.name === selectedCategory)
+      ),
+    [products, selectedOrg, selectedCategory]
   );
+
+  // Only categories that have merch listed, so there are no empty clicks
+  const categories = useMemo(() => {
+    const map = new Map();
+    products.forEach((p) => {
+      const name = p.categories?.name;
+      if (name && !map.has(name)) map.set(name, { name, icon: p.categories?.icon || null });
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
 
   // Items that match the search AND every selected tag
   // (compared with tagKey so "Tees" / "tees" / "#tees" all match)
@@ -242,7 +260,7 @@ function MerchandiseContent() {
   const topTags = tags.slice(0, VISIBLE_TAGS);
   const moreTags = tags.slice(VISIBLE_TAGS);
 
-  const hasFilters = !!(selectedOrg || activeTags.length > 0 || term);
+  const hasFilters = !!(selectedOrg || selectedCategory || activeTags.length > 0 || term);
 
   const tagPill = (t) => {
     const on = activeTags.includes(t.key);
@@ -337,6 +355,34 @@ function MerchandiseContent() {
               </button>
             </form>
 
+            {/* Categories: one scrollable row on mobile, wraps on larger screens */}
+            {categories.length > 0 && (
+              <section className="mb-8" aria-label="Categories">
+                <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
+                  <Link
+                    scroll={false}
+                    href={buildHref({ category: null, tags: null })}
+                    aria-current={!selectedCategory ? "page" : undefined}
+                    className={`${pillBase} ${!selectedCategory ? pillOn : pillOff}`}
+                  >
+                    All
+                  </Link>
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat.name}
+                      scroll={false}
+                      href={buildHref({ category: cat.name, tags: null })}
+                      aria-current={selectedCategory === cat.name ? "page" : undefined}
+                      className={`${pillBase} ${selectedCategory === cat.name ? pillOn : pillOff}`}
+                    >
+                      <span aria-hidden="true">{cat.icon || "🏷️"}</span>
+                      <span>{cat.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Organizations: one scrollable row on mobile, wraps on larger screens */}
             {orgs.length > 1 && (
               <section className="mb-8" aria-label="Organizations">
@@ -414,6 +460,12 @@ function MerchandiseContent() {
                   <FilterChip
                     label={selectedOrg}
                     href={buildHref({ org: null, tags: null })}
+                  />
+                )}
+                {selectedCategory && (
+                  <FilterChip
+                    label={selectedCategory}
+                    href={buildHref({ category: null, tags: null })}
                   />
                 )}
                 {selectedTagObjs.map((t) => (
