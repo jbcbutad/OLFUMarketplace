@@ -256,6 +256,18 @@ export default function LandingPage() {
         <div className="olfu" data-theme={theme}>
             {/* Phones: stack the "How it works" tiles as 01, 02, 03 (the chat tile is first in the markup for the desktop layout). */}
             <style>{`
+        .olfu .bento .t2 {
+          background: #F3E3C4 !important;
+        }
+        .olfu .bento .t2 h3 {
+          color: #1f2430 !important;
+        }
+        .olfu .bento .t2 p {
+          color: #4a4f5c !important;
+        }
+        .olfu .bento .t2 .num {
+          color: #8a6a1f !important;
+        }
         @media (max-width: 760px) {
           .olfu .bento .t1, .olfu .bento .t2, .olfu .bento .t3,
           .olfu .bento .t4, .olfu .bento .t5, .olfu .bento .t6 {
@@ -355,12 +367,12 @@ export default function LandingPage() {
                     </Reveal>
                     <Reveal className="bento">
                         <div className="tile t1">
-                            <h3>Chat that keeps itself clean</h3>
-                            <p>Message buyers and sellers in-app. AI moderation flags anything harmful or inappropriate before it becomes a problem.</p>
+                            <h3>Chat, make an offer, done</h3>
+                            <p>Message the seller from any listing and send an offer in a couple of taps. Every item gets its own chat, so nothing gets mixed up.</p>
                             <div className="chatdemo">
                                 <div className="bubble a">Hi! Is the Nursing Book 2 still available?</div>
                                 <div className="bubble b">Yes! Can meet at the library, 3 PM.</div>
-                                <div className="bubble warn">🛡️ AI moderation active on this chat</div>
+                                <div className="bubble warn">💸 Offer sent: ₱450</div>
                             </div>
                             <span className="num">02</span>
                         </div>
@@ -401,7 +413,7 @@ export default function LandingPage() {
                         </div>
                         <div className="badge-list">
                             <div className="badge"><Check />OLFU-credential login &amp; email verification</div>
-                            <div className="badge"><Check />AI moderation on buyer–seller messages</div>
+                            <div className="badge"><Check />Block users and report listings that don't belong</div>
                             <div className="badge"><Check />Only approved partners sell official merchandise</div>
                         </div>
                     </Reveal>
