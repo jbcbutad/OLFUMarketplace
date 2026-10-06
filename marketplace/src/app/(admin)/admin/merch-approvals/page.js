@@ -4,6 +4,7 @@ import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { isMerch } from "@/lib/merch";
 import { Loader2, CheckCircle2, XCircle, ShieldCheck, Layers, Calendar, PhilippinePeso } from "lucide-react";
 import { ui, btn } from "../ui";
 
@@ -25,13 +26,12 @@ export default function AdminMerchApprovals() {
                 .select(`
           *,
           profiles(full_name, org_name),
-          categories!inner(name)
+          categories(name)
         `)
                 .eq("status", "pending")
-                .eq("categories.name", "Merchandise")
                 .order("created_at", { ascending: false });
 
-            if (!error) setPendingItems(data || []);
+            if (!error) setPendingItems((data || []).filter((p) => isMerch(p)));
         } catch (err) {
             console.error(err);
         } finally {

@@ -1,0 +1,16 @@
+src\app\(admin)\admin\flagged\page.js:79: const isMerch = Array.isArray(group.product?.tags) && group.product.tags.includes("official-merch");
+src\app\(admin)\admin\flagged\page.js:82: ? { status: isMerch ? "pending" : "active", is_published: true, is_available: true }
+src\app\(admin)\admin\merch-approvals\page.js:44: const { error } = await supabase.rpc("approve_merch_drop", {
+src\app\(admin)\admin\organizations\page.js:66: ? { ...item, status: newStatus, profiles: { ...item.profiles, is_verified_org: isApproved } }
+src\app\(main)\chat\[roomId]\ChatProductBanner.jsx:7: import { getListingState, isMerch } from "@/lib/listingStatus";
+src\app\(main)\chat\[roomId]\ChatProductBanner.jsx:69: const merch = isMerch(product);
+src\app\(main)\chat\[roomId]\page.js:326: .upsert(
+src\app\(main)\chat\page.js:368: .upsert(
+src\app\(main)\marketplace\page.js:81: const MERCH_BOXES = [
+src\app\(main)\marketplace\page.js:278: {MERCH_BOXES.map(({ badge, title, sub, Art, bg, glow, tilt }) => (
+src\app\(main)\mylistings\page.js:123: const { data: fee, error } = await supabase.rpc("request_merch_renewal", {
+src\app\(main)\mylistings\page.js:297: setListings(listings.map(item => item.id === activeItem.id ? { ...item, ...updatePayload, price: parseFloat(editForm.price) } : item));
+src\app\(main)\search\page.js:94: return { ...product, relevanceScore: score };
+src\components\SellerControls.js:174: let updatedTags = Array.isArray(product.tags) ? [...product.tags] : [];
+src\lib\listingStatus.js:5: export const MERCH_CATEGORY = "Merchandise";
+src\lib\listingStatus.js:7: export const isMerch = (product) => product?.categories?.name === MERCH_CATEGORY;

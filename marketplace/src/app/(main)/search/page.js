@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
-
+import { isMerch } from "@/lib/merch";
 export const dynamic = "force-dynamic";
 
 export default async function SearchPage({ searchParams }) {
@@ -61,6 +61,7 @@ export default async function SearchPage({ searchParams }) {
           First_Name,
           Last_Name
         ),
+        profiles ( full_name, org_name, is_verified_org ),
         categories (
           name
         )
@@ -74,25 +75,27 @@ export default async function SearchPage({ searchParams }) {
       const lowerQuery = sanitizedQuery.toLowerCase();
 
       // Score items to bring exact matches to top, followed by related items
-      products = res.data.map((product) => {
-        let score = 0;
-        const title = (product.title || "").toLowerCase();
-        const desc = (product.description || "").toLowerCase();
-        const productTags = (product.tags || []).map((t) => t.toLowerCase());
+      products = res.data
+        .filter((product) => !isMerch(product) || product.profiles?.is_verified_org)
+        .map((product) => {
+          let score = 0;
+          const title = (product.title || "").toLowerCase();
+          const desc = (product.description || "").toLowerCase();
+          const productTags = (product.tags || []).map((t) => t.toLowerCase());
 
-        // Exact phrase match gets highest priority
-        if (title.includes(lowerQuery)) score += 10;
-        if (productTags.includes(lowerQuery)) score += 8;
+          // Exact phrase match gets highest priority
+          if (title.includes(lowerQuery)) score += 10;
+          if (productTags.includes(lowerQuery)) score += 8;
 
-        // Individual word matches get partial scoring
-        words.forEach((word) => {
-          if (title.includes(word)) score += 4;
-          if (productTags.includes(word)) score += 3;
-          if (desc.includes(word)) score += 1;
+          // Individual word matches get partial scoring
+          words.forEach((word) => {
+            if (title.includes(word)) score += 4;
+            if (productTags.includes(word)) score += 3;
+            if (desc.includes(word)) score += 1;
+          });
+
+          return { ...product, relevanceScore: score };
         });
-
-        return { ...product, relevanceScore: score };
-      });
 
       // Sort by relevance score first, then newest first
       products.sort((a, b) => b.relevanceScore - a.relevanceScore || new Date(b.created_at) - new Date(a.created_at));
@@ -154,6 +157,8 @@ export default async function SearchPage({ searchParams }) {
                     image={coverImage}
                     category={product.categories?.name}
                     tags={product.tags}
+                    orgName={product.profiles?.org_name}
+                    isVerifiedOrg={product.profiles?.is_verified_org}
                     priority={index < 4}
                   />
                 </Link>

@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import { isMerch } from "@/lib/merch";
 import { ShieldCheck } from "lucide-react";
 
 export default function ProductCard({
@@ -14,7 +15,7 @@ export default function ProductCard({
   orgName = null,
   stockQuantity = null,
 }) {
-  const isMerchandiseCategory = category === "Merchandise";
+  const isMerchListing = isMerch({ tags, categories: { name: category } });
 
   return (
     <div className="bg-white dark:bg-neutral-900 border border-border rounded-xl shadow-sm hover:shadow-md transition p-3 group relative flex flex-col justify-between">
@@ -31,14 +32,14 @@ export default function ProductCard({
           />
 
           {/* 👉 Floating Category Badge: Hidden for Merchandise to prevent overlap with the Official Merch badge */}
-          {category && !isMerchandiseCategory && (
+          {category && !isMerchListing && (
             <div className="absolute top-2 left-2 bg-emerald-100 backdrop-blur-md border border-emerald-700 text-[11px] font-semibold text-foreground px-2 py-0.5 rounded-md shadow-sm z-10 dark:text-black">
               {category}
             </div>
           )}
 
           {/* PRODUCT BADGE: Only shown if Category is "Merchandise" AND Seller is Verified */}
-          {isMerchandiseCategory && isVerifiedOrg && (
+          {isMerchListing && isVerifiedOrg && (
             <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-md shadow-md z-10 flex items-center gap-1">
               <ShieldCheck size={12} /> Official Merch
             </div>

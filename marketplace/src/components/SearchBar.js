@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { Search, Loader2, Mic, Camera, X } from "lucide-react";
+import { Search, Loader2, Mic, Camera, X, ShieldCheck } from "lucide-react";
+import { isMerch } from "@/lib/merch";
 
 export default function SearchBar() {
   const [query, setQuery] = useState("");
@@ -40,14 +41,21 @@ export default function SearchBar() {
 
       setIsLoading(true);
 
+      const nowIso = new Date().toISOString();
+
       const { data, error } = await supabase
         .from("products")
-        .select("id, title")
+        .select("id, title, tags, categories ( name ), profiles ( is_verified_org )")
         .ilike("title", `%${query}%`)
+        .eq("is_available", true)
+        .eq("status", "active")
+        .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
         .limit(5);
 
       if (!error && data) {
-        setSuggestions(data);
+        setSuggestions(
+          data.filter((p) => !isMerch(p) || p.profiles?.is_verified_org)
+        );
         setShowDropdown(true);
       }
       setIsLoading(false);
@@ -235,8 +243,8 @@ export default function SearchBar() {
             onClick={handleVoiceSearch}
             title={isListening ? "Listening..." : "Search with voice"}
             className={`p-1.5 rounded-full transition-all flex items-center justify-center ${isListening
-                ? "text-red-500 bg-red-500/20 animate-pulse ring-1 ring-red-500"
-                : "text-neutral-500 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              ? "text-red-500 bg-red-500/20 animate-pulse ring-1 ring-red-500"
+              : "text-neutral-500 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800"
               }`}
           >
             <Mic size={18} />
@@ -273,8 +281,13 @@ export default function SearchBar() {
                 onClick={() => handleSuggestionClick(item)}
                 className="px-4 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-foreground cursor-pointer transition-colors border-b border-neutral-200 dark:border-neutral-800/50 last:border-0 flex items-center gap-2 text-sm"
               >
-                <Search size={14} className="text-neutral-400" />
-                {item.title}
+                <Search size={14} className="text-neutral-400 shrink-0" />
+                <span className="flex-1 truncate">{item.title}</span>
+                {isMerch(item) && (
+                  <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                    <ShieldCheck size={10} /> Official Merch
+                  </span>
+                )}
               </li>
             ))}
           </ul>

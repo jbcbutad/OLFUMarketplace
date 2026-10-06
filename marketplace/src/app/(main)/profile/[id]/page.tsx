@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
+import { isMerch } from "@/lib/merch";
 import ProductReviews from "@/components/ProductReviews";
 import {
   Loader2,
@@ -289,6 +290,7 @@ export default function PublicProfilePage() {
       // Secondary client safeguard: double check visibility rules
       const visibleProducts = rawProducts.filter((p: any) => {
         if (isSelf) return true;
+        if (isMerch(p)) return false; // merch lives on /merchandise
         return p.is_available && getListingState(p) === "active";
       });
 

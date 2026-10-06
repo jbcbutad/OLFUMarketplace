@@ -31,7 +31,7 @@ export default function MarkAsTransactedButton({
             const updatedTags = tags.filter((t) => t !== "Pending");
             const { error } = await supabase
                 .from("products")
-                .update({ is_available: true, tags: updatedTags })
+                .update({ is_available: true, status: "active", tags: updatedTags })
                 .eq("id", productId);
 
             if (error) throw error;

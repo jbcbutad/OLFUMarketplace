@@ -1,0 +1,81 @@
+src\app\(admin)\admin\analytics\AnalyticsContent.tsx:48: .from('products')
+src\app\(admin)\admin\analytics\AnalyticsContent.tsx:74: .from('products')
+src\app\(admin)\admin\analytics\AnalyticsContent.tsx:134: const { data: allProducts } = await supabase.from('products').select('category_id, is_available, price_type, price, tags');
+src\app\(admin)\admin\analytics\AnalyticsContent.tsx:249: .from("products")
+src\app\(admin)\admin\analytics\AnalyticsContent.tsx:272: .from("products")
+src\app\(admin)\admin\categories\actions.ts:140: const { data, error: dbError } = await supabase.rpc("admin_remove_tag", { p_tag: tag });
+src\app\(admin)\admin\categories\page.tsx:22: supabase.rpc("admin_category_usage"),
+src\app\(admin)\admin\categories\page.tsx:24: supabase.rpc("admin_list_tags"),
+src\app\(admin)\admin\flagged\page.js:86: .from("products")
+src\app\(admin)\admin\merch-approvals\page.js:24: .from("products")
+src\app\(admin)\admin\merch-approvals\page.js:44: const { error } = await supabase.rpc("approve_merch_drop", {
+src\app\(admin)\admin\merch-approvals\page.js:67: .from("products")
+src\app\(admin)\admin\reports\actions.ts:8: const { error } = await supabase.rpc("moderate_ban_user", {
+src\app\(admin)\admin\reports\actions.ts:22: const { error } = await supabase.rpc("moderate_unban_user", { p_user_id: userId });
+src\app\(admin)\admin\reports\page.tsx:67: .from('products')
+src\app\(admin)\admin\reports\page.tsx:121: const handleResolve = (id) => runAction(id, () => supabase.rpc('moderate_resolve_report', { p_report_id: id }), 'Failed to resolve');
+src\app\(admin)\admin\reports\page.tsx:122: const handleDismiss = (id) => runAction(id, () => supabase.rpc('moderate_dismiss_report', { p_report_id: id }), 'Failed to dismiss');
+src\app\(admin)\admin\reports\page.tsx:123: const handleReopen = (id) => runAction(id, () => supabase.rpc('moderate_reopen_report', { p_report_id: id }), 'Failed to re-open');
+src\app\(admin)\admin\reports\page.tsx:137: () => supabase.rpc('moderate_remove_listing', {
+src\app\(admin)\admin\users\page.tsx:55: const { data: reasonRows, error: reasonErr } = await supabase.rpc("admin_get_ban_reasons", {
+src\app\(admin)\admin\page.tsx:13: supabase.from("products").select("*", { count: "exact", head: true }),
+src\app\(main)\categories\page.tsx:74: .from("products")
+src\app\(main)\chat\[roomId]\ChatInput.js:60: .rpc("get_or_create_direct_room", { p_other_user: sellerId });
+src\app\(main)\chat\[roomId]\page.js:110: const { data: existingRoomId, error: rpcErr } = await supabase.rpc(
+src\app\(main)\chat\[roomId]\page.js:168: const { error: readErr } = await supabase.rpc("mark_room_read", {
+src\app\(main)\chat\[roomId]\page.js:193: const { data: rels } = await supabase.rpc("get_my_block_relations");
+src\app\(main)\chat\[roomId]\page.js:232: supabase.rpc("mark_room_read", { p_room: activeRoomId }).then(({ error }) => {
+src\app\(main)\chat\[roomId]\page.js:366: const { error } = await supabase.rpc(
+src\app\(main)\chat\[roomId]\page.js:388: const { error } = await supabase.rpc("mark_room_unread", { p_room: activeRoomId });
+src\app\(main)\chat\[roomId]\page.js:401: const { error } = await supabase.rpc("delete_direct_room", { p_room: activeRoomId });
+src\app\(main)\chat\page.js:253: const { data: lastMsgs, error: lastErr } = await supabase.rpc(
+src\app\(main)\chat\page.js:285: const { data: rels } = await supabase.rpc("get_my_block_relations");
+src\app\(main)\chat\page.js:320: const { error } = await supabase.rpc(read ? "mark_room_read" : "mark_room_unread", {
+src\app\(main)\chat\page.js:347: const { error } = await supabase.rpc(
+src\app\(main)\chat\page.js:413: const { error } = await supabase.rpc("delete_direct_room", { p_room: room.id });
+src\app\(main)\chat\page.js:496: const { data: roomId, error } = await supabase.rpc("get_or_create_direct_room", {
+src\app\(main)\create-listing\page.js:449: .from("products")
+src\app\(main)\marketplace\page.js:162: .from("products")
+src\app\(main)\merchandise\page.js:107: .from("products")
+src\app\(main)\mylistings\page.js:101: .from("products")
+src\app\(main)\mylistings\page.js:123: const { data: fee, error } = await supabase.rpc("request_merch_renewal", {
+src\app\(main)\mylistings\page.js:178: .from("products")
+src\app\(main)\mylistings\page.js:268: .from("products")
+src\app\(main)\mylistings\page.js:310: const { error } = await supabase.from("products").delete().eq("id", activeItem.id);
+src\app\(main)\products\[id]\page.js:68: .from("products")
+src\app\(main)\products\[id]\page.js:153: const { error } = await supabase.rpc("moderate_remove_listing", {
+src\app\(main)\products\page.js:68: .from("products")
+src\app\(main)\products\page.js:153: const { error } = await supabase.rpc("moderate_remove_listing", {
+src\app\(main)\profile\[id]\page.tsx:202: .from("products")
+src\app\(main)\profile\[id]\page.tsx:263: supabase.rpc("count_completed_transactions", { p_user_id: viewedUserId, p_role: "seller" }),
+src\app\(main)\profile\[id]\page.tsx:264: supabase.rpc("count_completed_transactions", { p_user_id: viewedUserId, p_role: "buyer" }),
+src\app\(main)\profile\[id]\page.tsx:326: const { data: roomId, error } = await supabase.rpc("get_or_create_direct_room", {
+src\app\(main)\profile\page.tsx:190: .from("products")
+src\app\(main)\profile\page.tsx:218: supabase.rpc("count_completed_transactions", { p_user_id: userId, p_role: "seller" }),
+src\app\(main)\profile\page.tsx:219: supabase.rpc("count_completed_transactions", { p_user_id: userId, p_role: "buyer" }),
+src\app\(main)\recent\page.tsx:52: .from("products")
+src\app\(main)\rentals\page.jsx:74: .from("products")
+src\app\(main)\search\page.js:50: .from("products")
+src\app\api\direct-rooms\route.ts:15: const { data: roomId, error: rpcError } = await supabase.rpc('get_or_create_direct_room', {
+src\app\api\suggestions\route.js:25: .from("products")
+src\app\api\suggestions\route.js:34: .from("products")
+src\components\MakeOffer.tsx:46: const { data: roomId, error: roomError } = await supabase.rpc("get_or_create_product_room", {
+src\components\MarkAsTransactedButton.js:33: .from("products")
+src\components\MarkAsTransactedModal.js:91: const { data: transactionId, error: rpcError } = await supabase.rpc(
+src\components\MarkAsTransactedModal.js:111: .from("products")
+src\components\MarkAsTransactedModal.js:157: .from("products")
+src\components\ProductActions.js:40: const { data: roomId } = await supabase.rpc("find_product_room", { p_product_id: product.id });
+src\components\ProductActions.js:83: const { data: roomId, error } = await supabase.rpc("get_or_create_product_room", {
+src\components\RelistButton.jsx:21: const { error } = await supabase.rpc("relist_product", {
+src\components\RequestToBorrow.tsx:47: const { data: roomId, error: roomError } = await supabase.rpc("get_or_create_product_room", {
+src\components\SearchBar.js:44: .from("products")
+src\components\SellerControls.js:81: const { error } = await supabase.rpc("relist_product", { p_product_id: product.id });
+src\components\SellerControls.js:98: .from("products")
+src\components\SellerControls.js:111: await supabase.from("products").update({ is_available: true, status: "active", tags: updatedTags }).eq("id", product.id);
+src\components\SellerControls.js:136: .from("products")
+src\components\SellerControls.js:186: .from("products")
+src\components\SellerControls.js:211: const { error } = await supabase.from("products").delete().eq("id", product.id);
+src\components\SendMessageToSeller.tsx:70: ? await supabase.rpc("get_or_create_product_room", { p_product_id: productId })
+src\components\SendMessageToSeller.tsx:71: : await supabase.rpc("get_or_create_direct_room", { p_other_user: sellerId });
+src\lib\audit.ts:16: const { error } = await createAdminClient().rpc("audit_write", {
+src\lib\useUnreadCount.js:70: const { data, error } = await supabase.rpc("get_unread_conversation_count");

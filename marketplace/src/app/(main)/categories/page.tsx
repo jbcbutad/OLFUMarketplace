@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
+import { isMerch } from "@/lib/merch";
 import { LayoutGrid, Search, Tag, ChevronDown, X } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -103,7 +104,7 @@ export default async function CategoriesPage({
         console.error("Categories fetch error:", error);
     }
 
-    const products: any[] = data || [];
+    const products: any[] = (data || []).filter((p: any) => !isMerch(p));
 
     // Build links that keep the other filters intact
     const buildHref = (overrides: Record<string, string | null> = {}) => {

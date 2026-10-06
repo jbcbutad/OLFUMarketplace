@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import OlfuMerchBanner from "@/components/OlfuMerchBanner";
 import Link from "next/link";
+import { isMerch } from "@/lib/merch";
 import { X, Tag, Sparkles, ArrowRight, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -171,12 +172,7 @@ export default async function Home({ searchParams }) {
   };
 
   // General feed hides merchandise (it lives on /merchandise)
-  const dropMerch = (rows) =>
-    selectedCategory
-      ? rows || []
-      : (rows || []).filter(
-        (p) => p.categories?.name?.toLowerCase() !== HIDDEN_CATEGORY
-      );
+  const dropMerch = (rows) => (rows || []).filter((p) => !isMerch(p));
 
   // 2. One query for the products
   const { data: rawProducts, error } = await buildQuery(`

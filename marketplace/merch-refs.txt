@@ -1,0 +1,159 @@
+src\app\(admin)\admin\categories\actions.ts:56: if (clean.toLowerCase() === "merchandise") return { error: "Merchandise is a reserved category." };
+src\app\(admin)\admin\categories\CategoriesManager.tsx:130: const locked = c.name.toLowerCase() === "merchandise";
+src\app\(admin)\admin\categories\CategoriesManager.tsx:135: ? "Merchandise is locked"
+src\app\(admin)\admin\flagged\page.js:79: const isMerch = Array.isArray(group.product?.tags) && group.product.tags.includes("official-merch");
+src\app\(admin)\admin\merch-approvals\page.js:31: .eq("categories.name", "Merchandise")
+src\app\(admin)\admin\merch-approvals\page.js:59: title: "Reject this merchandise?",
+src\app\(admin)\admin\merch-approvals\page.js:94: <ShieldCheck className={ui.titleIcon} size={28} /> Merchandise Approvals
+src\app\(admin)\admin\merch-approvals\page.js:108: No pending merchandise drops awaiting payment review.
+src\app\(admin)\admin\merch-approvals\page.js:168: title="Reject merchandise"
+src\app\(main)\categories\page.tsx:18: // Same palette as the merchandise page
+src\app\(main)\categories\page.tsx:62: // 1. Categories for the pill row (Merchandise has its own page)
+src\app\(main)\categories\page.tsx:69: (cat) => cat.name.toLowerCase() !== "merchandise"
+src\app\(main)\categories\page.tsx:96: // Keep merchandise out of the general categories grid
+src\app\(main)\categories\page.tsx:97: query = query.neq("categories.name", "Merchandise");
+src\app\(main)\chat\[roomId]\ChatProductBanner.jsx:72: // Merchandise keeps its own order flow, so the banner doesn't track a sale for it.
+src\app\(main)\chat\[roomId]\ChatProductBanner.jsx:237: isMerchandise={false}
+src\app\(main)\create-listing\page.js:69: const RESERVED_TAGS = ["official-merch", "flagged", "pending", "expired"];
+src\app\(main)\create-listing\page.js:120: const merchCategory = categories.find(c => c.name.toLowerCase() === "merchandise");
+src\app\(main)\create-listing\page.js:127: .ilike("name", "merchandise")
+src\app\(main)\create-listing\page.js:134: setTags(prev => (prev.includes("official-merch") ? prev : [...prev, "official-merch"]));
+src\app\(main)\create-listing\page.js:136: setTags(tags.filter(t => t !== "official-merch"));
+src\app\(main)\create-listing\page.js:169: const merchCat = catData.find(c => c.name.toLowerCase() === "merchandise");
+src\app\(main)\create-listing\page.js:366: // If it's official org merch, we prioritize the "pending" merchandise status
+src\app\(main)\create-listing\page.js:399: const merchCat = categories.find(c => c.name.toLowerCase() === "merchandise");
+src\app\(main)\create-listing\page.js:403: if (!finalTags.includes("official-merch")) {
+src\app\(main)\create-listing\page.js:404: finalTags.push("official-merch");
+src\app\(main)\create-listing\page.js:411: (c) => c.name.toLowerCase() === "merchandise"
+src\app\(main)\create-listing\page.js:419: throw new Error("Only verified organizations can create merchandise listings.");
+src\app\(main)\create-listing\page.js:557: Enable this to list official organization merchandise requiring stock tracking and admin payment verification.
+src\app\(main)\create-listing\page.js:693: cat.name.toLowerCase() !== "merchandise"
+src\app\(main)\create-listing\page.js:799: `Submit Merchandise (Fee: ₱${calculatedFee.toFixed(2)})`
+src\app\(main)\create-listing\page.js:819: <p className="text-xs text-neutral-500">Merchandise Drop Verification</p>
+src\app\(main)\marketplace\page.js:10: const HIDDEN_CATEGORY = "merchandise";
+src\app\(main)\marketplace\page.js:149: // 1. Categories (Merchandise stays out of the browse bar)
+src\app\(main)\marketplace\page.js:173: // General feed hides merchandise (it lives on /merchandise)
+src\app\(main)\marketplace\page.js:269: {/* Merchandise banners */}
+src\app\(main)\marketplace\page.js:274: merchUrl="/merchandise"
+src\app\(main)\marketplace\page.js:281: href="/merchandise"
+src\app\(main)\merchandise\page.js:11: const BASE_PATH = "/merchandise";
+src\app\(main)\merchandise\page.js:22: const COMMON_TAG_KEYS = new Set(["officialmerch", "merch", "merchandise"]);
+src\app\(main)\merchandise\page.js:25: // (every item is in the Merchandise category, so a category filter would only
+src\app\(main)\merchandise\page.js:53: function MerchandiseContent() {
+src\app\(main)\merchandise\page.js:73: fetchMerchandise();
+src\app\(main)\merchandise\page.js:96: const fetchMerchandise = async () => {
+src\app\(main)\merchandise\page.js:125: .eq("categories.name", "Merchandise")
+src\app\(main)\merchandise\page.js:131: console.error("Merchandise fetch error with inner join:", error);
+src\app\(main)\merchandise\page.js:138: console.error("Error fetching merchandise:", err);
+src\app\(main)\merchandise\page.js:278: <ShoppingBag className="text-amber-500" size={32} /> Official Merchandise
+src\app\(main)\merchandise\page.js:311: Couldn&apos;t load merchandise. Please refresh the page.
+src\app\(main)\merchandise\page.js:328: aria-label="Search merchandise"
+src\app\(main)\merchandise\page.js:442: ? "No merchandise products listed yet."
+src\app\(main)\merchandise\page.js:443: : "No merchandise matches these filters."}
+src\app\(main)\merchandise\page.js:486: export default function MerchandisePage() {
+src\app\(main)\merchandise\page.js:495: <MerchandiseContent />
+src\app\(main)\mylistings\page.js:154: const isMerchandise = item.categories?.name === "Merchandise";
+src\app\(main)\mylistings\page.js:163: isMerchandise
+src\app\(main)\mylistings\page.js:164: ? "This merchandise drop has expired. Please use 'Renew Listing' to update stock, duration, and pay the renewal fee."
+src\app\(main)\mylistings\page.js:387: const isMerchandise = item.categories?.name === "Merchandise";
+src\app\(main)\mylistings\page.js:451: {isExpiredTag && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">{isMerchandise ? "Duration Expired" : "Listing Expired"}</span>}
+src\app\(main)\mylistings\page.js:465: isMerchandise ? (
+src\app\(main)\mylistings\page.js:567: Renew Merchandise Drop
+src\app\(main)\mylistings\page.js:639: <p className="text-xs text-neutral-500">Merchandise Drop Verification</p>
+src\app\(main)\org-apply\page.js:22: const [showMerchTerms, setShowMerchTerms] = useState(false); // Controls the merchandise terms modal state
+src\app\(main)\org-apply\page.js:86: toast.error("You must agree to the Official Merchandise Terms and Conditions before submitting your application.");
+src\app\(main)\org-apply\page.js:137: href="/categories?category=Merchandise"
+src\app\(main)\org-apply\page.js:140: <ArrowLeft size={16} /> Back to Merchandise
+src\app\(main)\org-apply\page.js:150: Your account is verified as an official organization seller. All your merchandise listings will feature the official badge.
+src\app\(main)\org-apply\page.js:156: Post Merchandise Listing
+src\app\(main)\org-apply\page.js:178: Register your club, council, or department for official merchandise selling rights
+src\app\(main)\org-apply\page.js:267: placeholder="Describe your organization and the merchandise you intend to sell..."
+src\app\(main)\org-apply\page.js:290: Official OLFU Merchandise Terms &amp; Conditions
+src\app\(main)\org-apply\page.js:292: for official merchandise sellers, and I confirm that all details provided are true and authorized by the institution.
+src\app\(main)\org-apply\page.js:314: {/* Merchandise terms modal popup */}
+src\app\(main)\products\[id]\page.js:262: // Check if product is categorized as Merchandise
+src\app\(main)\products\[id]\page.js:263: const isMerchandiseCategory = product.categories?.name === "Merchandise";
+src\app\(main)\products\[id]\page.js:398: {/* ONLY SHOWN IF CATEGORY IS MERCHANDISE AND SELLER IS VERIFIED */}
+src\app\(main)\products\[id]\page.js:399: {isMerchandiseCategory && isVerifiedOrg && (
+src\app\(main)\products\page.js:262: // Check if product is categorized as Merchandise
+src\app\(main)\products\page.js:263: const isMerchandiseCategory = product.categories?.name === "Merchandise";
+src\app\(main)\products\page.js:398: {/* ONLY SHOWN IF CATEGORY IS MERCHANDISE AND SELLER IS VERIFIED */}
+src\app\(main)\products\page.js:399: {isMerchandiseCategory && isVerifiedOrg && (
+src\app\(main)\recent\page.tsx:48: // Newest 24 active listings. Merchandise is excluded in the query itself
+src\app\(main)\recent\page.tsx:50: // only appears on the /merchandise page.
+src\app\(main)\recent\page.tsx:66: .neq("categories.name", "Merchandise")
+src\app\(main)\rentals\page.jsx:10: const HIDDEN_CATEGORY = "merchandise";
+src\app\(main)\rentals\page.jsx:99: // Merchandise lives on /merchandise
+src\app\api\ai-chat\route.js:38: - Listings can be sold, rented, or posted as official organization merchandise.
+src\app\api\ai-chat\route.js:40: - Merchandise drops from verified organizations need admin approval before going live. An expired merch drop is renewed from My Listings for a fee based on the number of days, and goes live again after an admin approves the payment.
+src\app\api\moderate-image\route.js:12: Students sell books, uniforms, electronics, and student organization merchandise.
+src\app\api\moderate-listing\route.js:21: - student organization merchandise
+src\app\page.tsx:23: { cls: "fc4", title: "OLFU Varsity Jacket", price: "₱899", seller: "OLFU Supply Office", cat: "Merchandise", bg: "#E8DFF0", cover: "Official Merch", tag: "Merch" },
+src\app\page.tsx:30: { href: "/merchandise", bg: "#E8DFF0", ico: "🎓", name: "Merchandise", sub: "Official OLFU items" },
+src\app\page.tsx:58: /** Newest official-merch listings (skips flagged ones). */
+src\app\page.tsx:62: .contains("tags", ["official-merch"])
+src\app\page.tsx:73: cat: "Merchandise",
+src\app\page.tsx:102: cat === "Merchandise" ? "/merchandise" : `/marketplace?category=${encodeURIComponent(cat)}`;
+src\app\page.tsx:405: <div className="badge"><Check />Only approved partners sell official merchandise</div>
+src\components\MarkAsTransactedModal.js:12: isMerchandise = false,
+src\components\MarkAsTransactedModal.js:77: const qtyNum = isMerchandise ? parseInt(deductQty) || 1 : 1;
+src\components\MarkAsTransactedModal.js:78: if (isMerchandise && (qtyNum <= 0 || qtyNum > maxStock)) {
+src\components\MarkAsTransactedModal.js:86: // Merchandise, "Set as Pending" and "sold elsewhere" keep the original steps below.
+src\components\MarkAsTransactedModal.js:88: !isMerchandise && !isExternalClose && targetStatus === "completed";
+src\components\MarkAsTransactedModal.js:140: // 3. Handle stock calculation for merchandise vs regular items
+src\components\MarkAsTransactedModal.js:144: if (isMerchandise) {
+src\components\MarkAsTransactedModal.js:241: {isMerchandise && (
+src\components\MerchTermsModal.js:40: Official OLFU Merchandise Terms & Conditions
+src\components\MerchTermsModal.js:42: <p className="text-xs text-neutral-500 dark:text-neutral-400">Student Merchandise Listing Guidelines</p>
+src\components\MerchTermsModal.js:59: Students wishing to post and sell Official OLFU Merchandise must read and comply with the following policies.
+src\components\MerchTermsModal.js:69: Approval Required for Student Merchandise Listings
+src\components\MerchTermsModal.js:72: A student who wishes to post Official OLFU Merchandise must first submit the listing for approval before it can be made available on the marketplace.
+src\components\MerchTermsModal.js:82: The student's organization adviser or faculty member must verify that the student and merchandise are legitimately connected to the organization. The faculty member or adviser must contact marketplace administrators through official channels to confirm authorization.
+src\components\MerchTermsModal.js:92: The Official OLFU Merchandise listing will only become available after required verification has been received and the listing has been approved by the marketplace Administrator.
+src\components\MerchTermsModal.js:102: Each approved Official OLFU Merchandise listing costs ₱1.00 per day while active. This listing fee applies exclusively to Official OLFU Merchandise and does not affect regular preloved-item listings.
+src\components\MerchTermsModal.js:109: Accurate Merchandise Information & Authenticity
+src\components\MerchTermsModal.js:112: Students must provide accurate data (name, description, pricing, quantity, variations, images). Only authorized merchandise may be posted; counterfeit products or falsely represented items are strictly prohibited.
+src\components\MerchTermsModal.js:122: Administrators may review, approve, reject, or remove non-compliant listings. Users may also report unauthorized, misleading, or counterfeit merchandise for administrative investigation.
+src\components\OlfuMerchBanner.jsx:35: merchUrl = "/merchandise",
+src\components\OlfuMerchBanner.jsx:62: aria-label="OLFU merchandise"
+src\components\OrgBanner.js:21: Register your organization to get an <span className="text-amber-300 font-bold">Official Merchandise Badge</span>, sell campus merchandise, and build your brand identity across OLFU!
+src\components\ProductActions.js:63: const isMerchandise = product.categories?.name === "Merchandise";
+src\components\ProductActions.js:68: // 👉 Handle Merchandise Inquiry & Messaging Flow
+src\components\ProductActions.js:69: const handleInquireMerchandise = async () => {
+src\components\ProductActions.js:176: {/* 👉 MERCHANDISE QUANTITY & MESSAGING / INQUIRY FLOW */}
+src\components\ProductActions.js:177: {isMerchandise ? (
+src\components\ProductActions.js:195: onClick={handleInquireMerchandise}
+src\components\ProductActions.js:217: {isRentalOrBorrow && !isMerchandise && (
+src\components\ProductCard.js:17: const isMerchandiseCategory = category === "Merchandise";
+src\components\ProductCard.js:33: {/* 👉 Floating Category Badge: Hidden for Merchandise to prevent overlap with the Official Merch badge */}
+src\components\ProductCard.js:34: {category && !isMerchandiseCategory && (
+src\components\ProductCard.js:40: {/* PRODUCT BADGE: Only shown if Category is "Merchandise" AND Seller is Verified */}
+src\components\ProductCard.js:41: {isMerchandiseCategory && isVerifiedOrg && (
+src\components\SellerControls.js:25: // Strict Merchandise Check
+src\components\SellerControls.js:26: const isMerchandise = product.categories?.name === "Merchandise";
+src\components\SellerControls.js:53: statusLabel = isMerchandise ? "Expired Drop" : "Expired";
+src\components\SellerControls.js:77: if (isMerchandise) {
+src\components\SellerControls.js:87: if (isMerchandise) {
+src\components\SellerControls.js:122: toast.error("Cannot restock an expired merchandise drop. Please renew your listing.");
+src\components\SellerControls.js:176: const updatedStock = isMerchandise ? parseInt(editForm.stock_quantity) || 0 : currentStock;
+src\components\SellerControls.js:178: const shouldBeAvailable = isMerchandise ? updatedStock > 0 && canBeLive : product.is_available;
+src\components\SellerControls.js:258: {isMerchandise && (
+src\components\SellerControls.js:307: {isMerchandise
+src\components\SellerControls.js:316: (isMerchandise ? (
+src\components\SellerControls.js:345: {/* Merchandise Quantity Deduction Box */}
+src\components\SellerControls.js:346: {isMerchandise && product.is_available && currentStock > 0 && !isExpiredTag && (
+src\components\SellerControls.js:389: This merchandise item is currently sold out (<strong className="text-foreground">0 units left</strong>). Enter how many new stock units are available to bring your drop back live:
+src\components\SellerControls.js:436: isMerchandise={isMerchandise}
+src\components\SellerControls.js:438: deductAmount={isMerchandise ? parseInt(deductQty) || 1 : 1}
+src\components\SellerControls.js:493: {isMerchandise && (
+src\components\Sidebar.js:207: const categoryGroupActive = pathname.startsWith("/categories") && activeCategory !== "Merchandise";
+src\components\Sidebar.js:289: href="/merchandise"
+src\components\Sidebar.js:290: label="Merchandise"
+src\components\Sidebar.js:293: active={pathname.startsWith("/merchandise") || activeCategory === "Merchandise"}
+src\components\TermsModal.js:19: "11. Official OLFU Merchandise",
+src\lib\listingStatus.js:5: export const MERCH_CATEGORY = "Merchandise";
+src\lib\privacyContent.js:12: The Marketplace is a web platform for the OLFU community to browse, list, and arrange transactions for items such as books, school supplies, uniforms, gadgets, and official OLFU merchandise.
+src\lib\termsContent.js:75: Administrators may review, approve, remove, or restrict listings when necessary. Authorized merchandise sellers may submit official OLFU merchandise for approval.
+src\lib\termsContent.js:144: ## 11. Official OLFU Merchandise
+src\lib\termsContent.js:146: Official OLFU merchandise may only be listed through the authorized merchandise seller process.
+src\lib\termsContent.js:148: Listings for official merchandise may require administrator approval before becoming visible on the Marketplace.
