@@ -65,18 +65,28 @@ Price must be a realistic number in Philippine Pesos (PHP). Do not wrap in backt
       }
     }
 
-    const response = await generateWithRetry(() =>
+    const run = (model: string) =>
       ai.models.generateContent({
-        model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
+        model,
         contents,
         config: { responseMimeType: "application/json" },
-      })
-    );
+      });
 
+    const response = await generateWithRetry(
+      () => run(process.env.GEMINI_MODEL || "gemini-3.6-flash"),
+      { fallbackFn: () => run(process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash") }
+    );
     const parsed: ListingOutput = JSON.parse(response.text);
     return NextResponse.json({ success: true, listing: parsed, provider: "gemini" });
   } catch (error: any) {
     console.error("Listing generation error:", error);
-    return NextResponse.json({ error: error?.message || "Internal server error" }, { status: 500 });
+    const msg = String(error?.message || "");
+    const busy =
+      error?.status === 503 || error?.status === 429 ||
+      /UNAVAILABLE|high demand|RESOURCE_EXHAUSTED/i.test(msg);
+    return NextResponse.json(
+      { error: busy ? "The AI is busy right now. Please try again in a minute." : "Couldn't generate details. Please try again." },
+      { status: busy ? 503 : 500 }
+    );
   }
 }

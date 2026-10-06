@@ -2,9 +2,9 @@
 // Every page (details, My Listings, profiles, banners) should use this
 // instead of doing its own date math.
 
-export const MERCH_CATEGORY = "Merchandise";
 
-export const isMerch = (product) => product?.categories?.name === MERCH_CATEGORY;
+
+
 
 /**
  * Returns one of:

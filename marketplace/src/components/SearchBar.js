@@ -43,21 +43,32 @@ export default function SearchBar() {
 
       const nowIso = new Date().toISOString();
 
+      // Strip characters that would break the filter string
+      const term = query.trim().replace(/[,%()"]/g, " ");
+      // Typing "merch" should also match items tagged official-merch
+      const matchFilter = /merch/i.test(term)
+        ? `title.ilike.%${term}%,is_merch.eq.true`
+        : `title.ilike.%${term}%`;
+
       const { data, error } = await supabase
         .from("products")
         .select("id, title, tags, categories ( name ), profiles ( is_verified_org )")
-        .ilike("title", `%${query}%`)
+        .or(matchFilter)
         .eq("is_available", true)
         .eq("status", "active")
         .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-        .limit(5);
+        .limit(15);
 
       if (!error && data) {
         setSuggestions(
-          data.filter((p) => !isMerch(p) || p.profiles?.is_verified_org)
+          data
+            .filter((p) => !isMerch(p) || p.profiles?.is_verified_org)
+            .slice(0, 5)
         );
         setShowDropdown(true);
       }
+
+
       setIsLoading(false);
     };
 

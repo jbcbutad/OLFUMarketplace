@@ -113,29 +113,7 @@ function CreateListingContent() {
   // ₱1.00 per item per day calculation formula
   const calculatedFee = isOfficialOrgMerch ? totalDays * 1 : 0;
 
-  // Declared function handler for the official org merch checkbox toggle
-  const handleOfficialOrgMerchToggle = (checked) => {
-    setIsOfficialOrgMerch(checked);
-    if (checked) {
-      const merchCategory = categories.find(c => c.name.toLowerCase() === "merchandise");
-      if (merchCategory) {
-        setCategoryId(merchCategory.id);
-      } else {
-        supabase
-          .from("categories")
-          .select("id")
-          .ilike("name", "merchandise")
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data) setCategoryId(data.id);
-          });
-      }
-
-      setTags(prev => (prev.includes("official-merch") ? prev : [...prev, "official-merch"]));
-    } else {
-      setTags(tags.filter(t => t !== "official-merch"));
-    }
-  };
+  const handleOfficialOrgMerchToggle = (checked) => setIsOfficialOrgMerch(checked);
 
   useEffect(() => {
     const initializeForm = async () => {
@@ -163,13 +141,7 @@ function CreateListingContent() {
       }
 
       const { data: catData } = await supabase.from("categories").select("id, name").order("name");
-      if (catData) {
-        setCategories(catData);
-        if (isMerchParam && profileData?.is_verified_org) {
-          const merchCat = catData.find(c => c.name.toLowerCase() === "merchandise");
-          if (merchCat) setCategoryId(merchCat.id);
-        }
-      }
+      if (catData) setCategories(catData);
     };
 
     initializeForm();
@@ -368,13 +340,14 @@ function CreateListingContent() {
       const isActuallyFlagged = moderation.verdict === "flagged" && !isOfficialOrgMerch;
 
       const uploadPromises = images.map(async (image) => {
-        const fileExt = image.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        // Re-encode to JPEG so AVIF/HEIC/etc. never hit the bucket's MIME limits
+        const jpeg = await compressToBlob(image, 1600, 0.85);
+        const fileName = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`;
         const filePath = `listings/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('product-images')
-          .upload(filePath, image);
+          .upload(filePath, jpeg, { contentType: "image/jpeg" });
 
         if (uploadError) throw uploadError;
 
@@ -396,28 +369,13 @@ function CreateListingContent() {
       ];
 
       if (isOfficialOrgMerch) {
-        const merchCat = categories.find(c => c.name.toLowerCase() === "merchandise");
-        if (merchCat) {
-          finalCategoryId = merchCat.id;
+        if (!isVerifiedOrg) {
+          throw new Error("Only verified organizations can create merchandise listings.");
         }
-        if (!finalTags.includes("official-merch")) {
-          finalTags.push("official-merch");
-        }
+        finalTags.push("official-merch"); // the tag makes it merch; category is the seller's choice
       }
 
       const productId = crypto.randomUUID();
-
-      const merchCategory = categories.find(
-        (c) => c.name.toLowerCase() === "merchandise"
-      );
-
-      if (
-        merchCategory &&
-        finalCategoryId === merchCategory.id &&
-        !isVerifiedOrg
-      ) {
-        throw new Error("Only verified organizations can create merchandise listings.");
-      }
 
       // 2. Determine correct status: Official merch defaults to "pending" for payment verification.
       let finalStatus = "active";
@@ -440,7 +398,7 @@ function CreateListingContent() {
         is_available: !isActuallyFlagged && !isOfficialOrgMerch,
         is_published: !isActuallyFlagged && !isOfficialOrgMerch,
         status: finalStatus,
-        stock_quantity: parsedStock,
+        stock_quantity: isOfficialOrgMerch ? parsedStock : null,
         listing_duration: isOfficialOrgMerch ? listingDuration.trim() : null,
         listing_fee: calculatedFee
       };
@@ -688,10 +646,6 @@ function CreateListingContent() {
               >
                 <option value="" className="bg-background text-foreground">Select Category</option>
                 {categories
-                  .filter(cat =>
-                    isVerifiedOrg ||
-                    cat.name.toLowerCase() !== "merchandise"
-                  )
                   .map((cat) => (
                     <option
                       key={cat.id}
@@ -734,6 +688,11 @@ function CreateListingContent() {
               </div>
 
               <div className="flex flex-wrap gap-2 p-3 min-h-[58px] bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl focus-within:ring-2 focus-within:ring-foreground transition-all">
+                {isOfficialOrgMerch && (
+                  <span className="flex items-center gap-1 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-600">
+                    <ShieldCheck size={12} /> #official-merch
+                  </span>
+                )}
                 {tags.map((tag, idx) => (
                   <span key={idx} className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 text-foreground px-3 py-1 rounded-lg text-xs font-bold border border-neutral-300 dark:border-neutral-700">
                     #{tag}
@@ -833,8 +792,8 @@ function CreateListingContent() {
 
                 <div className="p-3 bg-neutral-100 dark:bg-neutral-900 rounded-xl space-y-1 border border-neutral-200 dark:border-neutral-800">
                   <p className="font-bold text-foreground">GCash Account:</p>
-                  <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">0912 345 6789</p>
-                  <p className="text-[11px] text-neutral-500">Account Name: OLFU Marketplace Admin</p>
+                  <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">09277549105</p>
+                  <p className="text-[11px] text-neutral-500">OLFU Marketplace Admin</p>
                 </div>
 
                 <div className="space-y-1.5 text-neutral-600 dark:text-neutral-300">

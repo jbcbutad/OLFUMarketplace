@@ -8,7 +8,6 @@ import { X, Tag, Sparkles, ArrowRight, ChevronDown } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 const BASE_PATH = "/marketplace";
-const HIDDEN_CATEGORY = "merchandise";
 const VISIBLE_TAGS = 12; // tags shown before "Show more"
 const HIDDEN_TAG_KEYS = new Set(["pending", "expired"]);
 
@@ -153,9 +152,7 @@ export default async function Home({ searchParams }) {
     .select("id, name, icon")
     .order("name", { ascending: true });
 
-  const categories = (categoriesData || []).filter(
-    (c) => c.name.toLowerCase() !== HIDDEN_CATEGORY
-  );
+  const categories = categoriesData || [];
 
   // Base query (category-filtered)
   const buildQuery = (fields) => {

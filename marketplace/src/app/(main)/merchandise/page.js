@@ -118,11 +118,11 @@ function MerchandiseContent() {
           stock_quantity,
           expires_at,
           profiles!inner ( full_name, org_name, is_verified_org ),
-          categories!inner ( name )
+          categories ( name )
         `)
         .eq("is_available", true)
         .eq("status", "active")
-        .eq("categories.name", "Merchandise")
+        .eq("is_merch", true)
         .eq("profiles.is_verified_org", true) // 👈 Automatically hides items if organization verification is revoked
         .or(`expires_at.is.null,expires_at.gt.${nowIso}`) // 👈 Hides drops that expired but the hourly job hasn't flipped yet
         .order("created_at", { ascending: false });
@@ -253,8 +253,8 @@ function MerchandiseContent() {
         href={toggleTagHref(t.key)}
         aria-pressed={on}
         className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${on
-            ? "bg-emerald-600 text-white font-semibold border border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:hover:bg-emerald-800 dark:border-emerald-600"
-            : "bg-stone-200 text-neutral-700 border border-neutral-800 hover:bg-emerald-50 hover:text-black hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700 dark:hover:text-white"
+          ? "bg-emerald-600 text-white font-semibold border border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:hover:bg-emerald-800 dark:border-emerald-600"
+          : "bg-stone-200 text-neutral-700 border border-neutral-800 hover:bg-emerald-50 hover:text-black hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700 dark:hover:text-white"
           }`}
       >
         #{t.label}

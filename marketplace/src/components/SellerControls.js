@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase/client";
 import { Edit3, Trash2, ChevronDown, AlertTriangle, Loader2, X, Layers, CheckCircle, Tag, PhilippinePeso, FileText, PlusCircle, RefreshCcw } from "lucide-react";
 import MarkAsTransactedModal from "@/components/MarkAsTransactedModal";
 import RelistButton from "@/components/RelistButton";
+import { isMerch } from "@/lib/merch";
+import EditListingModal from "@/components/EditListingModal";
 import { getListingState } from "@/lib/listingStatus";
 
 export default function SellerControls({ product, currentUserId }) {
@@ -23,24 +25,18 @@ export default function SellerControls({ product, currentUserId }) {
     const [restockQtyInput, setRestockQtyInput] = useState("10");
 
     // Strict Merchandise Check
-    const isMerchandise = product.categories?.name === "Merchandise";
+    const isMerchandise = isMerch(product);
     const currentStock = product.stock_quantity ?? 0;
     const [deductQty, setDeductQty] = useState(1);
 
     const listingState = getListingState(product);
     const isActuallyExpired = listingState === "expired";
 
-    const [editForm, setEditForm] = useState({
-        title: product.title,
-        price: product.price,
-        description: product.description || "",
-        condition: product.condition || "Good",
-        course_code: product.course_code || "",
-        stock_quantity: currentStock,
-    });
+
 
     const isFlagged = product.status === "flagged";
     const isPendingAdmin = product.status === "pending";
+    const isRejected = product.status === "rejected";
     const isExpiredTag = isActuallyExpired;
     const isUnavailable = !product.is_available || isExpiredTag;
 
@@ -168,43 +164,7 @@ export default function SellerControls({ product, currentUserId }) {
         setIsTransactOpen(true);
     };
 
-    const confirmUpdate = async (e) => {
-        e.preventDefault();
-        setIsProcessing(true);
-        let updatedTags = Array.isArray(product.tags) ? [...product.tags] : [];
 
-        const updatedStock = isMerchandise ? parseInt(editForm.stock_quantity) || 0 : currentStock;
-        const canBeLive = !isActuallyExpired && !!product.expires_at && ["active", "unavailable"].includes(product.status);
-        const shouldBeAvailable = isMerchandise ? updatedStock > 0 && canBeLive : product.is_available;
-        const nextStatus = shouldBeAvailable
-            ? "active"
-            : isActuallyExpired || product.status === "expired"
-                ? "expired"
-                : "unavailable";
-
-        const { error } = await supabase
-            .from("products")
-            .update({
-                title: editForm.title.trim(),
-                price: parseFloat(editForm.price),
-                description: editForm.description.trim(),
-                condition: editForm.condition,
-                course_code: editForm.course_code,
-                stock_quantity: updatedStock,
-                is_available: shouldBeAvailable,
-                status: nextStatus,
-                tags: updatedTags,
-            })
-            .eq("id", product.id);
-
-        setIsProcessing(false);
-        if (!error) {
-            setIsEditOpen(false);
-            router.refresh();
-        } else {
-            toast.error("Failed to update: " + error.message);
-        }
-    };
 
     const confirmDelete = async () => {
         setIsProcessing(true);
@@ -245,6 +205,22 @@ export default function SellerControls({ product, currentUserId }) {
                 <span className="px-3 py-1 bg-amber-500 text-black text-[10px] font-black uppercase tracking-widest rounded-lg">
                     Pending
                 </span>
+            </div>
+        );
+    }
+
+    if (product.status === "rejected") {
+        return (
+            <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl my-4 flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                    This listing was rejected by an admin and can't be edited.
+                </span>
+                <button
+                    onClick={() => setIsDeleteOpen(true)}
+                    className="px-3.5 py-2 text-red-600 border border-red-500/40 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-red-500/10"
+                >
+                    Delete
+                </button>
             </div>
         );
     }
@@ -328,12 +304,14 @@ export default function SellerControls({ product, currentUserId }) {
                         />
                     ))}
 
-                <button
-                    onClick={() => setIsEditOpen(true)}
-                    className="px-3.5 py-2 bg-transparent text-foreground border border-[var(--line)] rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:bg-muted transition-colors cursor-pointer"
-                >
-                    <Edit3 size={13} /> Edit
-                </button>
+                {!isRejected && (
+                    <button
+                        onClick={() => setIsEditOpen(true)}
+                        className="px-3.5 py-2 bg-transparent text-foreground border border-[var(--line)] rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:bg-muted transition-colors cursor-pointer"
+                    >
+                        <Edit3 size={13} /> Edit
+                    </button>
+                )}
                 <button
                     onClick={() => setIsDeleteOpen(true)}
                     className="px-3.5 py-2 bg-transparent text-red-600 dark:text-red-400 border border-red-500/40 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:bg-red-500/10 transition-colors cursor-pointer"
@@ -444,102 +422,12 @@ export default function SellerControls({ product, currentUserId }) {
                 />
             )}
 
-            {/* Edit Product Modal */}
             {isEditOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-background border border-border w-full max-w-lg rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
-                        <div className="flex justify-between items-center border-b border-border pb-4">
-                            <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2.5 text-foreground">
-                                <div className="p-2 bg-foreground/10 text-foreground rounded-xl">
-                                    <Edit3 size={18} />
-                                </div>
-                                Edit Product Details
-                            </h3>
-                            <button onClick={() => setIsEditOpen(false)} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={confirmUpdate} className="space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                                    <Tag size={14} /> Product Title
-                                </label>
-                                <input
-                                    required
-                                    className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
-                                    value={editForm.title}
-                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                                    placeholder="Enter product title..."
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                                        <PhilippinePeso size={14} /> Price (₱)
-                                    </label>
-                                    <input
-                                        required
-                                        type="number"
-                                        step="0.01"
-                                        className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
-                                        value={editForm.price}
-                                        onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-
-                                {isMerchandise && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                            <Layers size={14} /> Total Stock Units Left
-                                        </label>
-                                        <input
-                                            required
-                                            type="number"
-                                            min="0"
-                                            className="w-full bg-muted/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                                            value={editForm.stock_quantity}
-                                            onChange={(e) => setEditForm({ ...editForm, stock_quantity: e.target.value })}
-                                            placeholder="Enter total stock..."
-                                        />
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-muted-foreground flex items-center gap-1">
-                                    <FileText size={14} /> Description
-                                </label>
-                                <textarea
-                                    rows="4"
-                                    className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none"
-                                    value={editForm.description}
-                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                    placeholder="Provide details about your listing..."
-                                />
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditOpen(false)}
-                                    className="flex-1 py-3 bg-muted text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isProcessing}
-                                    className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity shadow-md flex items-center justify-center gap-2"
-                                >
-                                    {isProcessing ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                <EditListingModal
+                    product={product}
+                    onClose={() => setIsEditOpen(false)}
+                    onSaved={() => { setIsEditOpen(false); router.refresh(); }}
+                />
             )}
 
             {/* Delete Modal */}

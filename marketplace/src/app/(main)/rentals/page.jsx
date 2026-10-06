@@ -2,12 +2,12 @@ import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
 import RentalsClawBanner from "@/components/RentalsClawBanner";
+import { isMerch } from "@/lib/merch";
 import { X, Tag, Search, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 const BASE_PATH = "/rentals";
-const HIDDEN_CATEGORY = "merchandise";
 const VISIBLE_TAGS = 12; // tags shown before "Show more"
 
 // The tags ProductActions treats as rental/borrow listings. They're compared
@@ -99,14 +99,14 @@ export default async function RentalsPage({ searchParams }) {
     // Merchandise lives on /merchandise
     const rentals = (productsRes.data || []).filter(
         (p) =>
-            p.categories?.name?.toLowerCase() !== HIDDEN_CATEGORY &&
+            !isMerch(p) &&
             (p.tags || []).some((t) => RENTAL_KEYS.has(tagKey(t)))
     );
 
     // Only categories that actually have rentals, so there are no empty clicks
     const rentalCategoryNames = new Set(rentals.map((p) => p.categories?.name).filter(Boolean));
     const categories = (categoriesRes.data || []).filter(
-        (c) => c.name.toLowerCase() !== HIDDEN_CATEGORY && rentalCategoryNames.has(c.name)
+        (c) => rentalCategoryNames.has(c.name)
     );
 
     const inCategory = selectedCategory

@@ -204,7 +204,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
   const allowedAdminRoles = ["super_admin", "superadmin", "admin", "moderator"];
   const isAdminUser = role && allowedAdminRoles.includes(role);
 
-  const categoryGroupActive = pathname.startsWith("/categories") && activeCategory !== "Merchandise";
+  const categoryGroupActive = pathname.startsWith("/categories");
   const transactionGroupActive = pathname === "/purchase-history" || pathname === "/sales-history";
 
   return (
@@ -290,7 +290,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
             label="Merchandise"
             icon={ShoppingBag}
             iconClassName="text-amber-500"
-            active={pathname.startsWith("/merchandise") || activeCategory === "Merchandise"}
+            active={pathname.startsWith("/merchandise")}
             isOpen={isOpen}
           />
 

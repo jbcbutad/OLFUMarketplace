@@ -9,6 +9,7 @@ import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Heart, ShieldCheck, Trash
 import ProductReviews from "@/components/ProductReviews";
 import ProductActions from "@/components/ProductActions";
 import OwnerBanner from "@/components/OwnerBanner";
+import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 
 // `border-border` is too light to see against stone-200, so every outline uses
@@ -260,7 +261,7 @@ export default function ProductDetailPage({ params }) {
   const sellerName = profile?.full_name || (derivedFullName.length > 0 ? derivedFullName : null) || "Unknown Seller";
 
   // Check if product is categorized as Merchandise
-  const isMerchandiseCategory = product.categories?.name === "Merchandise";
+  const isMerchandiseCategory = isMerch(product);
   const images = product.image_urls?.length > 0 ? product.image_urls : ["/placeholder.png"];
   const mainImage = images[activeImage] ?? images[0];
 

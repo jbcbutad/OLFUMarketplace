@@ -3,6 +3,7 @@ import Image from "next/image";
 import { isMerch } from "@/lib/merch";
 import { ShieldCheck } from "lucide-react";
 
+
 export default function ProductCard({
   title,
   price,
@@ -16,6 +17,9 @@ export default function ProductCard({
   stockQuantity = null,
 }) {
   const isMerchListing = isMerch({ tags, categories: { name: category } });
+  const isRental = (tags || []).some((t) =>
+    ["rentals", "rental"].includes(String(t).toLowerCase().replace(/[\s_#-]+/g, ""))
+  );
 
   return (
     <div className="bg-white dark:bg-neutral-900 border border-border rounded-xl shadow-sm hover:shadow-md transition p-3 group relative flex flex-col justify-between">
@@ -38,7 +42,7 @@ export default function ProductCard({
             </div>
           )}
 
-          {/* PRODUCT BADGE: Only shown if Category is "Merchandise" AND Seller is Verified */}
+          {/* PRODUCT BADGE: Only shown for official merch from a verified seller */}
           {isMerchListing && isVerifiedOrg && (
             <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-md shadow-md z-10 flex items-center gap-1">
               <ShieldCheck size={12} /> Official Merch
@@ -53,8 +57,8 @@ export default function ProductCard({
           </h3>
           <p className="text-base font-black text-foreground">
             ₱{Number(price).toLocaleString()}
-            {tags?.includes("Rentals") && (
-              <span className="text-xs text-muted-foreground ml-1 font-normal"> </span>
+            {isRental && (
+              <span className="text-xs text-muted-foreground ml-1 font-normal">/ day</span>
             )}
           </p>
         </div>

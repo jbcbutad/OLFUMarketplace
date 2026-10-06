@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Star, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { getListingState, isMerch } from "@/lib/listingStatus";
+import { getListingState } from "@/lib/listingStatus";
+import { isMerch } from "@/lib/merch";
 import MarkAsTransactedModal from "@/components/MarkAsTransactedModal";
 import ReviewModal from "@/components/ReviewModal";
 

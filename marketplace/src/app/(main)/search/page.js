@@ -29,6 +29,8 @@ export default async function SearchPage({ searchParams }) {
     const rules = [];
 
     // Full query matches
+    // "merch" should also find anything tagged official-merch
+    if (/merch/i.test(sanitizedQuery)) rules.push("is_merch.eq.true");
     rules.push(`title.ilike.%${sanitizedQuery}%`);
     rules.push(`description.ilike.%${sanitizedQuery}%`);
 
@@ -84,6 +86,8 @@ export default async function SearchPage({ searchParams }) {
           const productTags = (product.tags || []).map((t) => t.toLowerCase());
 
           // Exact phrase match gets highest priority
+          // Official merch ranks high when someone searches "merch"
+          if (/merch/i.test(lowerQuery) && isMerch(product)) score += 6;
           if (title.includes(lowerQuery)) score += 10;
           if (productTags.includes(lowerQuery)) score += 8;
 

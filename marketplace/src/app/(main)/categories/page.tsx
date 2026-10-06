@@ -66,9 +66,7 @@ export default async function CategoriesPage({
         .select("id, name, icon")
         .order("name", { ascending: true });
 
-    const categoriesData = (rawCategoriesData || []).filter(
-        (cat) => cat.name.toLowerCase() !== "merchandise"
-    );
+    const categoriesData = rawCategoriesData || [];
 
     // 2. Products (active, available, not expired)
     let query = supabase
@@ -93,9 +91,6 @@ export default async function CategoriesPage({
 
     if (activeCategory) {
         query = query.eq("categories.name", activeCategory);
-    } else {
-        // Keep merchandise out of the general categories grid
-        query = query.neq("categories.name", "Merchandise");
     }
 
     const { data, error } = await query;

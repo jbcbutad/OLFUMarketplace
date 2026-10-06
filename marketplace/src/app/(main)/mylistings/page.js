@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import MarkAsTransactedModal from "@/components/MarkAsTransactedModal";
 import RelistButton from "@/components/RelistButton";
+import EditListingModal from "@/components/EditListingModal";
+import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 
 function MyListingsContent() {
@@ -33,10 +35,6 @@ function MyListingsContent() {
 
   const [targetStatus, setTargetStatus] = useState("unavailable");
   const [activeItem, setActiveItem] = useState(null);
-
-  const [editForm, setEditForm] = useState({
-    title: "", price: "", description: "", condition: "Good", course_code: "", isRental: false
-  });
 
   const [renewForm, setRenewForm] = useState({
     stock_quantity: "50",
@@ -151,7 +149,7 @@ function MyListingsContent() {
         return;
       }
 
-      const isMerchandise = item.categories?.name === "Merchandise";
+      const isMerchandise = isMerch(item);
 
       if (item.status === "rejected") {
         toast.error("This listing was rejected by an admin.");
@@ -188,119 +186,6 @@ function MyListingsContent() {
       setActiveItem(item);
       setTargetStatus("unavailable");
       setIsTransactModalOpen(true);
-    }
-  };
-
-  const openEditModal = (item) => {
-    setActiveItem(item);
-    setEditForm({
-      title: item.title,
-      price: item.price,
-      description: item.description || "",
-      condition: item.condition || "Good",
-      course_code: item.course_code || "",
-      isRental: item.tags?.includes("Rentals") || false
-    });
-    setIsEditModalOpen(true);
-  };
-
-  const confirmUpdate = async (e) => {
-    e.preventDefault();
-    if (!activeItem) return;
-    setIsProcessing(true);
-
-    try {
-      const moderationForm = new FormData();
-      moderationForm.append("title", editForm.title.trim());
-      moderationForm.append("description", editForm.description.trim());
-
-      if (activeItem.image_urls && activeItem.image_urls.length > 0) {
-        try {
-          const imgRes = await fetch(activeItem.image_urls[0]);
-          const blob = await imgRes.blob();
-          moderationForm.append("images", blob, "existing-photo.jpg");
-        } catch (imgErr) {
-          console.warn("Could not fetch existing image for re-moderation:", imgErr);
-        }
-      }
-
-      const modRes = await fetch("/api/moderate-listing", {
-        method: "POST",
-        body: moderationForm,
-      });
-
-      if (modRes.status === 401) {
-        throw new Error("Your session expired. Please log in again.");
-      }
-
-      const moderation = await modRes.json();
-
-      if (moderation.verdict === "rejected") {
-        toast.error(`Listing update blocked: ${moderation.reason || "it violates our posting guidelines."}`, { duration: 8000 });
-        setIsProcessing(false);
-        return;
-      }
-
-      const needsReview = moderation.verdict === "flagged";
-      let updatedTags = Array.isArray(activeItem.tags) ? [...activeItem.tags] : [];
-
-      if (editForm.isRental && !updatedTags.includes("Rentals")) updatedTags.push("Rentals");
-      if (!editForm.isRental) updatedTags = updatedTags.filter(t => t !== "Rentals");
-
-      if (needsReview) {
-        if (!updatedTags.includes("Flagged")) updatedTags.push("Flagged");
-      } else {
-        updatedTags = updatedTags.filter(t => t !== "Flagged");
-      }
-
-      const updatePayload = {
-        title: editForm.title.trim(),
-        price: parseFloat(editForm.price),
-        description: editForm.description.trim(),
-        condition: editForm.condition,
-        course_code: editForm.course_code,
-        tags: updatedTags,
-        is_available: !needsReview && activeItem.is_available,
-        status: needsReview ? "flagged" : activeItem.status === "flagged" ? "active" : activeItem.status
-      };
-
-      const { error } = await supabase
-        .from("products")
-        .update(updatePayload)
-        .eq("id", activeItem.id);
-
-      if (error) throw error;
-
-      if (needsReview) {
-        await supabase.from("moderation_flags").insert([
-          {
-            user_id: currentUserId,
-            product_id: activeItem.id,
-            image_url: activeItem.image_urls?.[0] || null,
-            verdict: "flagged",
-            categories: moderation.categories || [],
-            reason: moderation.reason || "Flagged during edit update",
-          },
-        ]);
-
-        toast.warning("Safety review required", {
-          description:
-            "Your recent edits triggered our automated content check. " +
-            "Your listing has been set to unavailable and sent to the admin queue for manual review. " +
-            "It will become active again once approved by a moderator.",
-          duration: 10000,
-        });
-      } else {
-        toast.success("Your listing updates were successfully saved and approved!");
-      }
-
-      setListings(listings.map(item => item.id === activeItem.id ? { ...item, ...updatePayload, price: parseFloat(editForm.price) } : item));
-      setIsEditModalOpen(false);
-    } catch (err) {
-      console.error("Update error:", err);
-      toast.error("Failed to update listing: " + (err.message || "Unknown error"));
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -384,8 +269,12 @@ function MyListingsContent() {
             filteredListings.map((item) => {
               const isPendingAdmin = item.status === "pending";
               const isFlagged = item.status === "flagged";
-              const isMerchandise = item.categories?.name === "Merchandise";
+              const isRejected = item.status === "rejected";
+              const isMerchandise = isMerch(item);
               const isExpiredTag = getListingState(item) === "expired";
+
+              // Pending, flagged and rejected listings cannot be edited
+              const editLocked = isPendingAdmin || isFlagged || isRejected;
 
               const isUnavailable = !item.is_available || isExpiredTag;
 
@@ -519,7 +408,20 @@ function MyListingsContent() {
                         </div>
                       )}
 
-                      <button onClick={() => openEditModal(item)} className="p-2.5 bg-background border border-foreground rounded-xl text-foreground hover:opacity-80 transition-all active:scale-95"><Edit3 size={16} /></button>
+                      {/* EDIT: disabled for pending / flagged / rejected */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (editLocked) return;
+                          setActiveItem(item);
+                          setIsEditModalOpen(true);
+                        }}
+                        disabled={editLocked}
+                        title={editLocked ? "Listings that are pending, flagged or rejected can't be edited" : "Edit listing"}
+                        className={`p-2.5 bg-background border border-foreground rounded-xl text-foreground transition-all ${editLocked ? "opacity-40 cursor-not-allowed" : "hover:opacity-80 active:scale-95"}`}
+                      >
+                        <Edit3 size={16} />
+                      </button>
                       <button onClick={() => { setActiveItem(item); setIsDeleteModalOpen(true); }} className="p-2.5 bg-red-50 dark:bg-red-950/30 border border-red-400 dark:border-red-800 rounded-xl text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95"><Trash2 size={16} /></button>
                     </div>
                   </div>
@@ -653,8 +555,8 @@ function MyListingsContent() {
 
               <div className="p-3 bg-neutral-100 dark:bg-neutral-900 rounded-xl space-y-1 border border-neutral-200 dark:border-neutral-800">
                 <p className="font-bold text-foreground">GCash Account:</p>
-                <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">0912 345 6789</p>
-                <p className="text-[11px] text-neutral-500">Account Name: OLFU Marketplace Admin</p>
+                <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">09277549105</p>
+                <p className="text-[11px] text-neutral-500">OLFU Marketplace Admin</p>
               </div>
 
               <div className="space-y-1.5 text-neutral-600 dark:text-neutral-300">
@@ -683,40 +585,16 @@ function MyListingsContent() {
         </div>
       )}
 
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-background border border-neutral-200 dark:border-neutral-800 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <form onSubmit={confirmUpdate} className="flex flex-col h-full">
-              <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-900/50">
-                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2 text-foreground"><Edit3 size={18} /> Edit Listing</h3>
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="text-neutral-400 hover:text-foreground transition-colors"><X size={22} /></button>
-              </div>
-
-              <div className="p-8 space-y-5 overflow-y-auto">
-                <div className="relative">
-                  <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
-                  <input required className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-3.5 pl-12 text-foreground outline-none focus:ring-2 focus:ring-foreground text-xs font-semibold placeholder:text-neutral-400"
-                    value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="Title" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-xs">₱</span>
-                    <input required type="number" className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-3.5 pl-9 text-foreground outline-none focus:ring-2 focus:ring-foreground text-xs font-semibold placeholder:text-neutral-400"
-                      value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} placeholder="Price" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-neutral-200 dark:border-neutral-800 flex gap-3 bg-neutral-50/50 dark:bg-neutral-900/50">
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3 bg-neutral-200 dark:bg-neutral-800 text-foreground text-xs font-black uppercase tracking-wider rounded-xl">Cancel</button>
-                <button type="submit" disabled={isProcessing} className="flex-1 py-3 bg-foreground text-background text-xs font-black uppercase tracking-wider rounded-xl">
-                  {isProcessing ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Save Changes"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {isEditModalOpen && activeItem && (
+        <EditListingModal
+          product={activeItem}
+          onClose={() => { setIsEditModalOpen(false); setActiveItem(null); }}
+          onSaved={(changes) => {
+            setListings((prev) => prev.map((l) => (l.id === activeItem.id ? { ...l, ...changes } : l)));
+            setIsEditModalOpen(false);
+            setActiveItem(null);
+          }}
+        />
       )}
 
       {isDeleteModalOpen && (

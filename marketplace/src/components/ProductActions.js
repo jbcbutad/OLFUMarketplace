@@ -11,6 +11,7 @@ import RequestToBorrow from "@/components/RequestToBorrow";
 import SendMessageToSeller from "@/components/SendMessageToSeller";
 import { Mail, Loader2, Building2, MessageSquare, ShieldCheck } from "lucide-react";
 import { getListingState } from "@/lib/listingStatus";
+import { isMerch } from "@/lib/merch";
 
 // `border-border` is too light to see against stone-200, so every divider and
 // outline uses these instead. Change them here to restyle all lines at once.
@@ -60,7 +61,7 @@ export default function ProductActions({
     return <SellerControls product={product} currentUserId={currentUserId} />;
   }
 
-  const isMerchandise = product.categories?.name === "Merchandise";
+  const isMerchandise = isMerch(product);
   const stockAvailable = product.stock_quantity ?? 1;
   const listingState = getListingState(product);
   const canBuy = listingState === "active";

@@ -64,7 +64,6 @@ export default async function RecentListingsPage() {
         .eq("is_available", true)
         .eq("status", "active")
         .eq("is_merch", false)
-        .neq("categories.name", "Merchandise") // PHASE 2: remove
         .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
         .order("created_at", { ascending: false })
         .limit(LIMIT);
