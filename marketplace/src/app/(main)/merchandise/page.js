@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import OrgBanner from "@/components/OrgBanner";
+import SortSelect from "@/components/SortSelect";
+import { SORT_OPTIONS, parseSort, sortProducts } from "@/lib/sort";
 import { Loader2, ShoppingBag, Plus, Search, Tag, ChevronDown, X, Building2 } from "lucide-react";
 
 const BASE_PATH = "/merchandise";
@@ -57,6 +59,7 @@ function MerchandiseContent() {
   const selectedOrg = searchParams.get("org") || null;
   const selectedCategory = searchParams.get("category") || null;
   const term = (searchParams.get("q") || "").trim();
+  const sort = parseSort(searchParams.get("sort"));
 
   // ?tags=tees,black  (the old ?tag=tees still works)
   const tagsParam = searchParams.get("tags") ?? searchParams.get("tag") ?? "";
@@ -151,6 +154,7 @@ function MerchandiseContent() {
       category: selectedCategory,
       tags: activeTags.join(",") || null,
       q: term || null,
+      sort: sort === "newest" ? null : sort,
       ...overrides,
     };
     const qs = new URLSearchParams();
@@ -171,6 +175,13 @@ function MerchandiseContent() {
         ).join(",") || null,
     });
 
+  const sortHrefs = Object.fromEntries(
+    SORT_OPTIONS.map((o) => [
+      o.value,
+      buildHref({ sort: o.value === "newest" ? null : o.value }),
+    ])
+  );
+
   const handleSearch = (e) => {
     e.preventDefault();
     const value = String(new FormData(e.currentTarget).get("q") || "").trim();
@@ -185,12 +196,15 @@ function MerchandiseContent() {
 
   const inOrg = useMemo(
     () =>
-      products.filter(
-        (p) =>
-          (!selectedOrg || orgOf(p) === selectedOrg) &&
-          (!selectedCategory || p.categories?.name === selectedCategory)
+      sortProducts(
+        products.filter(
+          (p) =>
+            (!selectedOrg || orgOf(p) === selectedOrg) &&
+            (!selectedCategory || p.categories?.name === selectedCategory)
+        ),
+        sort
       ),
-    [products, selectedOrg, selectedCategory]
+    [products, selectedOrg, selectedCategory, sort]
   );
 
   // Only categories that have merch listed, so there are no empty clicks
@@ -451,11 +465,19 @@ function MerchandiseContent() {
             )}
 
             {/* Active filters + result count */}
-            {hasFilters && (
+            {(hasFilters || visible.length > 0) && (
               <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">
                 <span className="text-sm font-semibold text-foreground mr-1">
                   {visible.length} item{visible.length === 1 ? "" : "s"}
                 </span>
+
+                {visible.length > 1 && (
+                  <>
+                    <span className="h-4 w-px bg-stone-400 dark:bg-neutral-700" aria-hidden="true" />
+                    <SortSelect value={sort} hrefs={sortHrefs} />
+                  </>
+                )}
+
                 {selectedOrg && (
                   <FilterChip
                     label={selectedOrg}
@@ -476,15 +498,19 @@ function MerchandiseContent() {
                   />
                 ))}
                 {term && <FilterChip label={`"${term}"`} href={buildHref({ q: null })} />}
-                <Link
-                  scroll={false}
-                  href={BASE_PATH}
-                  className="ml-1 inline-flex items-center rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950 transition-colors"
-                >
-                  Clear all
-                </Link>
+                {hasFilters && (
+                  <Link
+                    scroll={false}
+                    href={BASE_PATH}
+                    className="ml-1 inline-flex items-center rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950 transition-colors"
+                  >
+                    Clear all
+                  </Link>
+                )}
               </div>
             )}
+
+
 
             {/* PRODUCT GRID */}
             {visible.length === 0 ? (

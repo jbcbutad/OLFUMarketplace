@@ -3,6 +3,8 @@ import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
 import RentalsClawBanner from "@/components/RentalsClawBanner";
 import { isMerch } from "@/lib/merch";
+import SortSelect from "@/components/SortSelect";
+import { SORT_OPTIONS, parseSort, sortProducts } from "@/lib/sort";
 import { X, Tag, Search, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,7 @@ export default async function RentalsPage({ searchParams }) {
     const nowIso = new Date().toISOString();
     const selectedCategory = params?.category || null;
     const term = String(params?.q || "").trim();
+    const sort = parseSort(params?.sort);
 
     // ?tags=books,nursing  (the old ?tag=books still works)
     const activeTags = [
@@ -46,6 +49,7 @@ export default async function RentalsPage({ searchParams }) {
             category: selectedCategory,
             tags: activeTags.join(",") || null,
             q: term || null,
+            sort: sort === "newest" ? null : sort,
             ...overrides,
         };
         const qs = new URLSearchParams();
@@ -65,6 +69,13 @@ export default async function RentalsPage({ searchParams }) {
                     : [...activeTags, key]
                 ).join(",") || null,
         });
+
+    const sortHrefs = Object.fromEntries(
+        SORT_OPTIONS.map((o) => [
+            o.value,
+            buildHref({ sort: o.value === "newest" ? null : o.value }),
+        ])
+    );
 
     // One query for every active, available listing (same rules as the marketplace).
     // Rentals are picked out in JS (like the marketplace does for tags), so spelling
@@ -109,9 +120,12 @@ export default async function RentalsPage({ searchParams }) {
         (c) => rentalCategoryNames.has(c.name)
     );
 
-    const inCategory = selectedCategory
-        ? rentals.filter((p) => p.categories?.name === selectedCategory)
-        : rentals;
+    const inCategory = sortProducts(
+        selectedCategory
+            ? rentals.filter((p) => p.categories?.name === selectedCategory)
+            : rentals,
+        sort
+    );
 
     // Items that match the search AND every selected tag
     // (compared with tagKey so "Books" / "books" / "#books" all match)
@@ -304,6 +318,14 @@ export default async function RentalsPage({ searchParams }) {
                             ? ""
                             : `${products.length} rental${products.length === 1 ? "" : "s"}`}
                     </span>
+
+                    {!error && products.length > 1 && (
+                        <>
+                            <span className="h-4 w-px bg-stone-400 dark:bg-neutral-700" aria-hidden="true" />
+                            <SortSelect value={sort} hrefs={sortHrefs} />
+                        </>
+                    )}
+
                     {selectedCategory && (
                         <FilterChip
                             label={selectedCategory}
@@ -328,6 +350,8 @@ export default async function RentalsPage({ searchParams }) {
                         </Link>
                     )}
                 </div>
+
+
 
                 {/* Product grid */}
                 {error ? (

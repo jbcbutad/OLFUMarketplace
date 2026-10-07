@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
 import { isMerch } from "@/lib/merch";
+import SortSelect from "@/components/SortSelect";
+import { SORT_OPTIONS, parseSort, sortProducts } from "@/lib/sort";
 import { LayoutGrid, Search, Tag, ChevronDown, X } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +55,7 @@ export default async function CategoriesPage({
     const resolvedParams = (await searchParams) || {};
     const activeCategory = first(resolvedParams.category) || null;
     const term = (first(resolvedParams.q) || "").trim();
+    const sort = parseSort(first(resolvedParams.sort));
 
     // ?tags=tees,black  (the old ?tag=tees still works)
     const tagsParam = first(resolvedParams.tags) ?? first(resolvedParams.tag) ?? "";
@@ -99,7 +102,7 @@ export default async function CategoriesPage({
         console.error("Categories fetch error:", error);
     }
 
-    const products: any[] = (data || []).filter((p: any) => !isMerch(p));
+    const products: any[] = sortProducts((data || []).filter((p: any) => !isMerch(p)), sort);
 
     // Build links that keep the other filters intact
     const buildHref = (overrides: Record<string, string | null> = {}) => {
@@ -107,6 +110,7 @@ export default async function CategoriesPage({
             category: activeCategory,
             tags: activeTags.join(",") || null,
             q: term || null,
+            sort: sort === "newest" ? null : sort,
             ...overrides,
         };
         const qs = new URLSearchParams();
@@ -126,6 +130,13 @@ export default async function CategoriesPage({
                     : [...activeTags, key]
                 ).join(",") || null,
         });
+
+    const sortHrefs = Object.fromEntries(
+        SORT_OPTIONS.map((o) => [
+            o.value,
+            buildHref({ sort: o.value === "newest" ? null : o.value }),
+        ])
+    );
 
     // Items that match the search AND every selected tag
     // (compared with tagKey so "Tees" / "tees" / "#tees" all match)
@@ -332,11 +343,17 @@ export default async function CategoriesPage({
                         )}
 
                         {/* Active filters + result count */}
-                        {hasFilters && (
+                        {(hasFilters || visible.length > 0) && (
                             <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">
                                 <span className="text-sm font-semibold text-foreground mr-1">
                                     {visible.length} item{visible.length === 1 ? "" : "s"}
                                 </span>
+                                {visible.length > 1 && (
+                                    <>
+                                        <span className="h-4 w-px bg-stone-400 dark:bg-neutral-700" aria-hidden="true" />
+                                        <SortSelect value={sort} hrefs={sortHrefs} />
+                                    </>
+                                )}
                                 {activeCategory && (
                                     <FilterChip
                                         label={activeCategory}
@@ -351,15 +368,19 @@ export default async function CategoriesPage({
                                     />
                                 ))}
                                 {term && <FilterChip label={`"${term}"`} href={buildHref({ q: null })} />}
-                                <Link
-                                    scroll={false}
-                                    href={BASE_PATH}
-                                    className="ml-1 inline-flex items-center rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950 transition-colors"
-                                >
-                                    Clear all
-                                </Link>
+                                {hasFilters && (
+                                    <Link
+                                        scroll={false}
+                                        href={BASE_PATH}
+                                        className="ml-1 inline-flex items-center rounded-full border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950 transition-colors"
+                                    >
+                                        Clear all
+                                    </Link>
+                                )}
                             </div>
                         )}
+
+
 
                         {/* PRODUCT GRID */}
                         {visible.length === 0 ? (

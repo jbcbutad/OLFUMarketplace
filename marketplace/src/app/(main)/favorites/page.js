@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { Heart, Loader2, ArrowLeft } from "lucide-react";
 export default function FavoritesPage() {
     const [favorites, setFavorites] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [sort, setSort] = useState("recent");
 
     useEffect(() => {
         async function fetchFavorites() {
@@ -44,6 +45,19 @@ export default function FavoritesPage() {
         fetchFavorites();
     }, []);
 
+    const sorted = useMemo(() => {
+        const list = favorites.filter((f) => f.products);
+        const price = (f) => Number(f.products.price) || 0;
+        if (sort === "price-asc") return [...list].sort((a, b) => price(a) - price(b));
+        if (sort === "price-desc") return [...list].sort((a, b) => price(b) - price(a));
+        if (sort === "title") {
+            return [...list].sort((a, b) =>
+                (a.products.title || "").localeCompare(b.products.title || "")
+            );
+        }
+        return list; // "recent": the query already returns newest-saved first
+    }, [favorites, sort]);
+
     if (loading) {
         return (
             <div className="text-foreground min-h-screen flex items-center justify-center">
@@ -72,25 +86,46 @@ export default function FavoritesPage() {
                         You haven't favorited any listings yet.
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {favorites.map((fav) => {
-                            const product = fav.products;
-                            if (!product) return null;
+                    <>
+                        <div className="mb-6 flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold">
+                                {sorted.length} saved item{sorted.length === 1 ? "" : "s"}
+                            </span>
+                            <label className="flex items-center gap-2 text-xs font-medium text-neutral-600 dark:text-neutral-300">
+                                Sort by
+                                <select
+                                    value={sort}
+                                    onChange={(e) => setSort(e.target.value)}
+                                    aria-label="Sort favorites"
+                                    className="bg-stone-100 border border-stone-800 rounded-full px-3 py-1.5 text-xs font-medium text-neutral-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 cursor-pointer dark:bg-neutral-800 dark:text-white dark:border-neutral-700"
+                                >
+                                    <option value="recent">Recently saved</option>
+                                    <option value="price-asc">Price: low to high</option>
+                                    <option value="price-desc">Price: high to low</option>
+                                    <option value="title">Name: A to Z</option>
+                                </select>
+                            </label>
+                        </div>
 
-                            return (
-                                <Link key={fav.id} href={`/products/${product.id}`} className="block group">
-                                    <ProductCard
-                                        title={product.title}
-                                        price={product.price}
-                                        seller={product.profiles?.full_name || "Seller"}
-                                        image={product.image_urls?.[0] || "/placeholder.png"}
-                                        category={product.categories?.name}
-                                        tags={product.tags}
-                                    />
-                                </Link>
-                            );
-                        })}
-                    </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {sorted.map((fav) => {
+                                const product = fav.products;
+
+                                return (
+                                    <Link key={fav.id} href={`/products/${product.id}`} className="block group">
+                                        <ProductCard
+                                            title={product.title}
+                                            price={product.price}
+                                            seller={product.profiles?.full_name || "Seller"}
+                                            image={product.image_urls?.[0] || "/placeholder.png"}
+                                            category={product.categories?.name}
+                                            tags={product.tags}
+                                        />
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </>
                 )}
             </div>
         </div>

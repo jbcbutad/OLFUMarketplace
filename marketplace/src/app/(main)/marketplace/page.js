@@ -3,6 +3,8 @@ import ProductCard from "@/components/ProductCard";
 import OlfuMerchBanner from "@/components/OlfuMerchBanner";
 import Link from "next/link";
 import { isMerch } from "@/lib/merch";
+import SortSelect from "@/components/SortSelect";
+import { SORT_OPTIONS, parseSort, sortProducts } from "@/lib/sort";
 import { X, Tag, Sparkles, ArrowRight, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -112,6 +114,7 @@ export default async function Home({ searchParams }) {
   const params = await searchParams;
   const nowIso = new Date().toISOString();
   const selectedCategory = params?.category || null;
+  const sort = parseSort(params?.sort);
 
   // ?tags=sale,books  (the old ?tag=sale still works)
   const activeTags = [
@@ -128,6 +131,7 @@ export default async function Home({ searchParams }) {
     const next = {
       category: selectedCategory,
       tags: activeTags.join(",") || null,
+      sort: sort === "newest" ? null : sort,
       ...overrides,
     };
     const qs = new URLSearchParams();
@@ -146,6 +150,12 @@ export default async function Home({ searchParams }) {
         ).join(",") || null,
     });
 
+  const sortHrefs = Object.fromEntries(
+    SORT_OPTIONS.map((o) => [
+      o.value,
+      buildHref({ sort: o.value === "newest" ? null : o.value }),
+    ])
+  );
   // 1. Categories (Merchandise stays out of the browse bar)
   const { data: categoriesData } = await supabase
     .from("categories")
@@ -191,7 +201,7 @@ export default async function Home({ searchParams }) {
     const keys = new Set((p.tags || []).map(tagKey));
     return activeTags.every((k) => keys.has(k));
   };
-  const products = dropMerch(rawProducts).filter(hasAllTags);
+  const products = sortProducts(dropMerch(rawProducts).filter(hasAllTags), sort);
 
   // 4. Tag list is built from the REMAINING items only
   const tagMap = new Map(); // key -> { key, label, count }
@@ -392,6 +402,15 @@ export default async function Home({ searchParams }) {
               ? ""
               : `${products.length} item${products.length === 1 ? "" : "s"}`}
           </span>
+
+
+          {!error && products.length > 1 && (
+            <>
+              <span className="h-4 w-px bg-stone-400 dark:bg-neutral-700" aria-hidden="true" />
+              <SortSelect value={sort} hrefs={sortHrefs} />
+            </>
+          )}
+
           {selectedCategory && (
             <FilterChip
               label={selectedCategory}
@@ -415,6 +434,8 @@ export default async function Home({ searchParams }) {
             </Link>
           )}
         </div>
+
+
 
         {/* Product grid */}
         {error ? (
