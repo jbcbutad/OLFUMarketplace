@@ -5,7 +5,7 @@ import RoleSelect from "../RoleSelect";
 import UnbanButton from "./UnbanButton";
 import BanButton from "./BanButton";
 import { ui, btn, pillTone, roleStyle, roleLabel } from "../ui";
-import { Users, ShieldAlert, UserCheck, Search, Ban, Lock } from "lucide-react";
+import { Users, ShieldAlert, Search, Ban, Lock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +85,7 @@ export default async function UsersAdminPage({
   const tabHref = (t: string) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
-    if (sort !== "name_asc") params.set("sort", sort);   // ← add this line
+    if (sort !== "name_asc") params.set("sort", sort);
     if (roleFilter !== "all") params.set("role", roleFilter);
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (t !== "all") params.set("type", t);
@@ -104,14 +104,6 @@ export default async function UsersAdminPage({
     return u.full_name || (derived.length > 0 ? derived : null) || u.email || "Unnamed Account";
   };
 
-  const { data: meRow } = await supabase
-    .from("profiles")
-    .select('full_name, avatar_url, email, "First_Name", "Last_Name"')
-    .eq("id", currentUserId)
-    .maybeSingle();
-  const loggedInDisplayName = meRow ? resolveDisplayName(meRow) : user.email || "Unknown User";
-  const loggedInAvatarUrl = meRow?.avatar_url;
-
   const inputCls = `${ui.input} text-xs font-semibold`;
   const hasFilters =
     q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" || sort !== "name_asc";
@@ -129,21 +121,6 @@ export default async function UsersAdminPage({
           </p>
         </div>
 
-        <div className={`${ui.card} flex items-center gap-3 px-4 py-2.5`}>
-          <div className="w-9 h-9 rounded-full bg-tint border border-line flex items-center justify-center font-bold text-xs text-brand-deep shrink-0 overflow-hidden">
-            {loggedInAvatarUrl ? (
-              <img src={loggedInAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              loggedInDisplayName.charAt(0).toUpperCase()
-            )}
-          </div>
-          <div className="text-left overflow-hidden">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink-soft flex items-center gap-1">
-              <UserCheck size={12} className="text-brand" /> Signed in as
-            </p>
-            <p className="text-xs font-bold text-foreground truncate max-w-[200px]">{loggedInDisplayName}</p>
-          </div>
-        </div>
       </div>
 
       {/* FILTER BAR: account type tabs + search (plain GET form, no client JS) */}
