@@ -353,13 +353,26 @@ export default function ProfilePage() {
                                         {userRole.replace("_", " ")}
                                     </span>
                                     {isVerifiedOrg && (
-                                        <span
-                                            title="Verified Organization"
-                                            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-emerald-800 shadow-sm"
+                                        <div
+                                            tabIndex={0}
+                                            aria-label={`Verified Organization: ${profileData?.org_name || "Official Merch Store"}`}
+                                            className="group relative inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-emerald-800 shadow-sm transition-transform hover:scale-105 focus:scale-105 focus:outline-none"
                                         >
                                             <ShieldCheck size={14} />
                                             {profileData?.org_name || "Official Merch Store"}
-                                        </span>
+
+                                            <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden -translate-x-1/2 flex-col items-center group-hover:flex group-focus:flex">
+                                                <div className="whitespace-nowrap rounded-lg border border-emerald-500/50 bg-neutral-900 px-2.5 py-1 text-center normal-case tracking-normal shadow-2xl">
+                                                    <span className="block text-[8px] font-black uppercase leading-none tracking-widest text-emerald-400">
+                                                        Verified Organization
+                                                    </span>
+                                                    <span className="text-xs font-black text-emerald-200">
+                                                        {profileData?.org_name || "Official Merch Store"}
+                                                    </span>
+                                                </div>
+                                                <div className="-mt-0.5 h-1.5 w-1.5 rotate-45 border-b border-r border-emerald-500/50 bg-neutral-900" />
+                                            </div>
+                                        </div>
                                     )}
                                     <MetricBadge tone="emerald" icon={<Tag size={26} />} label="Items Sold" value={soldCount} />
                                     <MetricBadge tone="sky" icon={<ShoppingBag size={26} />} label="Items Bought" value={boughtCount} />
