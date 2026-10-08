@@ -15,7 +15,7 @@ const STAFF_ROLES = ["super_admin", "superadmin", "admin", "moderator"];
 export default async function UsersAdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; role?: string; status?: string; type?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; role?: string; status?: string; type?: string; page?: string; sort?: string }>;
 }) {
   const { user, role: viewerRole } = await requireRole(["admin", "super_admin", "superadmin"]);
   const canChangeRoles = viewerRole === "super_admin" || viewerRole === "superadmin";
@@ -28,12 +28,19 @@ export default async function UsersAdminPage({
   const typeFilter = sp.type === "student" || sp.type === "faculty" ? sp.type : "all";
   const page = Math.max(1, Number(sp.page) || 1);
 
+  const SORTS: Record<string, { col: string; asc: boolean }> = {
+    name_asc: { col: "full_name", asc: true },
+    name_desc: { col: "full_name", asc: false },
+  };
+  const sort = sp.sort && SORTS[sp.sort] ? sp.sort : "name_asc";
+
   const supabase = await createClient();
 
   let query = supabase
     .from("profiles")
     .select('id, full_name, email, role, avatar_url, "First_Name", "Last_Name", is_banned', { count: "exact" })
-    .order("email", { ascending: true })
+    .order(SORTS[sort].col, { ascending: SORTS[sort].asc, nullsFirst: false })
+    .order("id", { ascending: true }) // keeps pagination stable
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
   if (q) {
@@ -66,6 +73,7 @@ export default async function UsersAdminPage({
   const buildHref = (p: number) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
+    if (sort !== "name_asc") params.set("sort", sort);
     if (roleFilter !== "all") params.set("role", roleFilter);
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (typeFilter !== "all") params.set("type", typeFilter);
@@ -77,6 +85,7 @@ export default async function UsersAdminPage({
   const tabHref = (t: string) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
+    if (sort !== "name_asc") params.set("sort", sort);   // ← add this line
     if (roleFilter !== "all") params.set("role", roleFilter);
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (t !== "all") params.set("type", t);
@@ -104,7 +113,8 @@ export default async function UsersAdminPage({
   const loggedInAvatarUrl = meRow?.avatar_url;
 
   const inputCls = `${ui.input} text-xs font-semibold`;
-  const hasFilters = q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all";
+  const hasFilters =
+    q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" || sort !== "name_asc";
 
   return (
     <div className={ui.page}>
@@ -178,6 +188,10 @@ export default async function UsersAdminPage({
           <select name="status" defaultValue={statusFilter} className={inputCls}>
             <option value="all">All accounts</option>
             <option value="banned">Banned only</option>
+          </select>
+          <select name="sort" defaultValue={sort} className={inputCls}>
+            <option value="name_asc">Name A–Z</option>
+            <option value="name_desc">Name Z–A</option>
           </select>
           <button type="submit" className={btn("primary", "sm")}>
             Apply
