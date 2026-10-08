@@ -228,7 +228,7 @@ export default function PublicProfilePage() {
       const [profileRes, legacyUserRes, productsRes, reviewsRes, summaryRes, soldRes, boughtRes] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, avatar_url, role, ai_summary, is_verified_org, org_name")
+          .select("id, full_name, avatar_url, ai_summary, is_verified_org, org_name")
           .eq("id", viewedUserId)
           .maybeSingle(),
         supabase

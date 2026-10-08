@@ -1,0 +1,654 @@
+
+> src\app\(admin)\admin\analytics\AnalyticsContent.tsx:16:        total[7mUsers:[0m 0,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:17:        activeProducts: 0,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:18:        totalTransactions: 0,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:19:        totalRevenue: 0,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:20:    });
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:21:
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:22:
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:23:    const [trendChartData, setTrendChartData] = useState([]);
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:24:    const [categoryChartData, setCategoryChartData] = useState([]);
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:25:    const [pricingChartData, setPricingChartData] = useState([]);
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:26:    const [topUsersData, setTopUsersData] = useState([]);
+> src\app\(admin)\admin\analytics\AnalyticsContent.tsx:43:                    .from([7m'profiles'[0m)
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:44:                    .select('id', { count: 'exact', head: true })
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:45:
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:46:                // 2. Active products
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:47:                const { count: activeCount } = await supabase
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:48:                    .from('products')
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:49:                    .select('*', { count: 'exact', head: true })
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:50:                    .eq('is_available', true);
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:51:
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:52:                // 3. Transactions query
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:53:                let txQuery = supabase
+> src\app\(admin)\admin\analytics\AnalyticsContent.tsx:105:                const { data: profilesData } = await supabase.from([7m'profiles'[0m).select('id, First_Name, Last_Name, email');
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:106:                if (profilesData) {
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:107:                    const profileMap = {};
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:108:                    profilesData.forEach((p) => {
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:109:                        const name = p.First_Name ? `${p.First_Name} ${p.Last_Name || ''}` : p.email?.split('@')[0] || 'User';
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:110:                        profileMap[p.id] = name.trim();
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:111:                    });
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:112:
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:113:                    const userActivityMap = {};
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:114:                    Object.entries(sellerCounts).forEach(([id, count]) => {
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:115:                        userActivityMap[id] = (userActivityMap[id] || 0) + Number(count);
+> src\app\(admin)\admin\analytics\AnalyticsContent.tsx:198:                    total[7mUsers:[0m userCount || 0,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:199:                    activeProducts: activeCount || 0,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:200:                    totalTransactions: txCount,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:201:                    totalRevenue: revenueSum,
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:202:                });
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:203:            } catch (err) {
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:204:                console.error('Error compiling analytics:', err);
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:205:            } finally {
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:206:                setLoading(false);
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:207:            }
+  src\app\(admin)\admin\analytics\AnalyticsContent.tsx:208:        }
+> src\app\(admin)\admin\audit-logs\page.jsx:21:    { value: 'user', label: '[7mUsers ([0mroles, bans)' },
+  src\app\(admin)\admin\audit-logs\page.jsx:22:    { value: 'listing', label: 'Listings' },
+  src\app\(admin)\admin\audit-logs\page.jsx:23:    { value: 'report', label: 'Reports' },
+  src\app\(admin)\admin\audit-logs\page.jsx:24:    { value: 'moderation', label: 'AI moderation' },
+  src\app\(admin)\admin\audit-logs\page.jsx:25:    { value: 'org', label: 'Organizations' },
+  src\app\(admin)\admin\audit-logs\page.jsx:26:    { value: 'system', label: 'System errors' },
+  src\app\(admin)\admin\audit-logs\page.jsx:27:];
+  src\app\(admin)\admin\audit-logs\page.jsx:28:
+  src\app\(admin)\admin\audit-logs\page.jsx:29:const SEVERITY_STYLES = {
+  src\app\(admin)\admin\audit-logs\page.jsx:30:    info: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  src\app\(admin)\admin\audit-logs\page.jsx:31:    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+> src\app\(admin)\admin\audit-logs\page.jsx:70:                .from([7m'profiles'[0m)
+  src\app\(admin)\admin\audit-logs\page.jsx:71:                .select('role')
+  src\app\(admin)\admin\audit-logs\page.jsx:72:                .eq('id', session.user.id)
+  src\app\(admin)\admin\audit-logs\page.jsx:73:                .maybeSingle();
+  src\app\(admin)\admin\audit-logs\page.jsx:74:            setRole(profile?.role || 'none');
+  src\app\(admin)\admin\audit-logs\page.jsx:75:        })();
+  src\app\(admin)\admin\audit-logs\page.jsx:76:    }, []);
+  src\app\(admin)\admin\audit-logs\page.jsx:77:
+  src\app\(admin)\admin\audit-logs\page.jsx:78:    // Debounce the search box
+  src\app\(admin)\admin\audit-logs\page.jsx:79:    useEffect(() => {
+  src\app\(admin)\admin\audit-logs\page.jsx:80:        const t = setTimeout(() => {
+> src\app\(admin)\admin\categories\actions.ts:28:        .from([7m"profiles"[0m).select("role").eq("id", user.id).maybeSingle();
+  src\app\(admin)\admin\categories\actions.ts:29:
+  src\app\(admin)\admin\categories\actions.ts:30:    if (!profile?.role || !allowed.includes(profile.role)) {
+  src\app\(admin)\admin\categories\actions.ts:31:        return { supabase, error: "You don't have permission to do that." };
+  src\app\(admin)\admin\categories\actions.ts:32:    }
+  src\app\(admin)\admin\categories\actions.ts:33:    return { supabase, error: null as string | null };
+  src\app\(admin)\admin\categories\actions.ts:34:}
+  src\app\(admin)\admin\categories\actions.ts:35:
+  src\app\(admin)\admin\categories\actions.ts:36:function friendly(err: { code?: string; message: string }): string {
+  src\app\(admin)\admin\categories\actions.ts:37:    if (err.code === "23505") return "That already exists.";
+  src\app\(admin)\admin\categories\actions.ts:38:    if (err.code === "23503") return "Listings still use this. Move or remove them first.";
+> src\app\(admin)\admin\categories\page.tsx:16:        .from([7m"profiles"[0m).select("role").eq("id", user.id).maybeSingle();
+  src\app\(admin)\admin\categories\page.tsx:17:    const role = profile?.role ?? "user";
+  src\app\(admin)\admin\categories\page.tsx:18:    if (!STAFF.includes(role)) redirect("/marketplace");
+  src\app\(admin)\admin\categories\page.tsx:19:
+  src\app\(admin)\admin\categories\page.tsx:20:    const [cats, usage, suggested, tagList] = await Promise.all([
+  src\app\(admin)\admin\categories\page.tsx:21:        supabase.from("categories").select("id, name, icon").order("name"),
+  src\app\(admin)\admin\categories\page.tsx:22:        supabase.rpc("admin_category_usage"),
+  src\app\(admin)\admin\categories\page.tsx:23:        supabase.from("suggested_tags").select("id, name").order("sort_order").order("name"),
+  src\app\(admin)\admin\categories\page.tsx:24:        supabase.rpc("admin_list_tags"),
+  src\app\(admin)\admin\categories\page.tsx:25:    ]);
+  src\app\(admin)\admin\categories\page.tsx:26:
+> src\app\(admin)\admin\flagged\page.js:33:          products ( id, title, price, tags, status, [7mprofiles ([0m full_name, email ) )
+  src\app\(admin)\admin\flagged\page.js:34:        `)
+  src\app\(admin)\admin\flagged\page.js:35:                .eq("status", "pending")
+  src\app\(admin)\admin\flagged\page.js:36:                .order("created_at", { ascending: false });
+  src\app\(admin)\admin\flagged\page.js:37:
+  src\app\(admin)\admin\flagged\page.js:38:            if (error) throw error;
+  src\app\(admin)\admin\flagged\page.js:39:
+  src\app\(admin)\admin\flagged\page.js:40:            // One card per listing, even if several of its photos were flagged
+  src\app\(admin)\admin\flagged\page.js:41:            const byProduct = new Map();
+  src\app\(admin)\admin\flagged\page.js:42:            for (const flag of data || []) {
+  src\app\(admin)\admin\flagged\page.js:43:                if (!byProduct.has(flag.product_id)) {
+> src\app\(admin)\admin\merch-approvals\page.js:28:          [7mprofiles([0mfull_name, org_name),
+  src\app\(admin)\admin\merch-approvals\page.js:29:          categories(name)
+  src\app\(admin)\admin\merch-approvals\page.js:30:        `)
+  src\app\(admin)\admin\merch-approvals\page.js:31:                .eq("status", "pending")
+  src\app\(admin)\admin\merch-approvals\page.js:32:                .order("created_at", { ascending: false });
+  src\app\(admin)\admin\merch-approvals\page.js:33:
+  src\app\(admin)\admin\merch-approvals\page.js:34:            if (!error) setPendingItems((data || []).filter((p) => isMerch(p)));
+  src\app\(admin)\admin\merch-approvals\page.js:35:        } catch (err) {
+  src\app\(admin)\admin\merch-approvals\page.js:36:            console.error(err);
+  src\app\(admin)\admin\merch-approvals\page.js:37:        } finally {
+  src\app\(admin)\admin\merch-approvals\page.js:38:            setLoading(false);
+> src\app\(admin)\admin\organizations\page.js:27:          [7mprofiles ([0m full_name, is_verified_org )
+  src\app\(admin)\admin\organizations\page.js:28:        `)
+  src\app\(admin)\admin\organizations\page.js:29:                .order("created_at", { ascending: false });
+  src\app\(admin)\admin\organizations\page.js:30:
+  src\app\(admin)\admin\organizations\page.js:31:            if (error) throw error;
+  src\app\(admin)\admin\organizations\page.js:32:            setApps(data || []);
+  src\app\(admin)\admin\organizations\page.js:33:        } catch (err) {
+  src\app\(admin)\admin\organizations\page.js:34:            console.error("Error loading applications:", err);
+  src\app\(admin)\admin\organizations\page.js:35:        } finally {
+  src\app\(admin)\admin\organizations\page.js:36:            setLoading(false);
+  src\app\(admin)\admin\organizations\page.js:37:        }
+> src\app\(admin)\admin\organizations\page.js:54:                .from([7m"profiles"[0m)
+  src\app\(admin)\admin\organizations\page.js:55:                .update({
+  src\app\(admin)\admin\organizations\page.js:56:                    is_verified_org: isApproved,
+  src\app\(admin)\admin\organizations\page.js:57:                    org_name: isApproved ? app.org_name : null,
+  src\app\(admin)\admin\organizations\page.js:58:                })
+  src\app\(admin)\admin\organizations\page.js:59:                .eq("id", app.user_id);
+  src\app\(admin)\admin\organizations\page.js:60:
+  src\app\(admin)\admin\organizations\page.js:61:            if (profileErr) throw profileErr;
+  src\app\(admin)\admin\organizations\page.js:62:
+  src\app\(admin)\admin\organizations\page.js:63:            setApps((prev) =>
+  src\app\(admin)\admin\organizations\page.js:64:                prev.map((item) =>
+> src\app\(admin)\admin\organizations\page.js:66:                        ? { ...item, status: newStatus, [7mprofiles:[0m { ...item.profiles, is_verified_org: isApproved } }
+  src\app\(admin)\admin\organizations\page.js:67:                        : item
+  src\app\(admin)\admin\organizations\page.js:68:                )
+  src\app\(admin)\admin\organizations\page.js:69:            );
+  src\app\(admin)\admin\organizations\page.js:70:        } catch (err) {
+  src\app\(admin)\admin\organizations\page.js:71:            toast.error("Error updating status: " + err.message);
+  src\app\(admin)\admin\organizations\page.js:72:        } finally {
+  src\app\(admin)\admin\organizations\page.js:73:            setProcessingId(null);
+  src\app\(admin)\admin\organizations\page.js:74:        }
+  src\app\(admin)\admin\organizations\page.js:75:    };
+  src\app\(admin)\admin\organizations\page.js:76:
+> src\app\(admin)\admin\users\page.tsx:34:    .from([7m"profiles"[0m)
+  src\app\(admin)\admin\users\page.tsx:35:    .select('id, full_name, email, role, avatar_url, "First_Name", "Last_Name", is_banned', { count: "exact" })
+  src\app\(admin)\admin\users\page.tsx:36:    .order("email", { ascending: true })
+  src\app\(admin)\admin\users\page.tsx:37:    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  src\app\(admin)\admin\users\page.tsx:38:
+  src\app\(admin)\admin\users\page.tsx:39:  if (q) {
+  src\app\(admin)\admin\users\page.tsx:40:    query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%,First_Name.ilike.%${q}%,Last_Name.ilike.%${q}%`);
+  src\app\(admin)\admin\users\page.tsx:41:  }
+  src\app\(admin)\admin\users\page.tsx:42:  if (roleFilter === "super_admin") query = query.in("role", ["super_admin", "superadmin"]);
+  src\app\(admin)\admin\users\page.tsx:43:  else if (roleFilter === "user") query = query.or("role.is.null,role.eq.user");
+  src\app\(admin)\admin\users\page.tsx:44:  else if (roleFilter !== "all") query = query.eq("role", roleFilter);
+> src\app\(admin)\admin\users\page.tsx:99:    .from([7m"profiles"[0m)
+  src\app\(admin)\admin\users\page.tsx:100:    .select('full_name, avatar_url, email, "First_Name", "Last_Name"')
+  src\app\(admin)\admin\users\page.tsx:101:    .eq("id", currentUserId)
+  src\app\(admin)\admin\users\page.tsx:102:    .maybeSingle();
+  src\app\(admin)\admin\users\page.tsx:103:  const loggedInDisplayName = meRow ? resolveDisplayName(meRow) : user.email || "Unknown User";
+  src\app\(admin)\admin\users\page.tsx:104:  const loggedInAvatarUrl = meRow?.avatar_url;
+  src\app\(admin)\admin\users\page.tsx:105:
+  src\app\(admin)\admin\users\page.tsx:106:  const inputCls = `${ui.input} text-xs font-semibold`;
+  src\app\(admin)\admin\users\page.tsx:107:  const hasFilters = q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all";
+  src\app\(admin)\admin\users\page.tsx:108:
+  src\app\(admin)\admin\users\page.tsx:109:  return (
+> src\app\(admin)\admin\actions.ts:31:    .from([7m"profiles"[0m)
+  src\app\(admin)\admin\actions.ts:32:    .select("role")
+  src\app\(admin)\admin\actions.ts:33:    .eq("id", user.id)
+  src\app\(admin)\admin\actions.ts:34:    .single();
+  src\app\(admin)\admin\actions.ts:35:
+  src\app\(admin)\admin\actions.ts:36:  const requesterRole = requesterProfile?.role || "user";
+  src\app\(admin)\admin\actions.ts:37:  const isRequesterSuperAdmin = requesterRole === "super_admin" || requesterRole === "superadmin";
+  src\app\(admin)\admin\actions.ts:38:
+  src\app\(admin)\admin\actions.ts:39:  const { data: targetProfile } = await supabase
+> src\app\(admin)\admin\actions.ts:40:    .from([7m"profiles"[0m)
+  src\app\(admin)\admin\actions.ts:41:    .select("role")
+  src\app\(admin)\admin\actions.ts:42:    .eq("id", targetUserId)
+  src\app\(admin)\admin\actions.ts:43:    .single();
+  src\app\(admin)\admin\actions.ts:44:
+  src\app\(admin)\admin\actions.ts:45:  const targetRole = targetProfile?.role || "user";
+  src\app\(admin)\admin\actions.ts:46:  const isTargetSuperAdmin = targetRole === "super_admin" || targetRole === "superadmin";
+  src\app\(admin)\admin\actions.ts:47:
+  src\app\(admin)\admin\actions.ts:48:  if (isTargetSuperAdmin && !isRequesterSuperAdmin) {
+  src\app\(admin)\admin\actions.ts:49:    throw new Error("Forbidden: Admins cannot alter Superadmin permissions.");
+  src\app\(admin)\admin\actions.ts:50:  }
+> src\app\(admin)\admin\actions.ts:62:    .from([7m"profiles"[0m)
+  src\app\(admin)\admin\actions.ts:63:    .update({ role: newRole })
+  src\app\(admin)\admin\actions.ts:64:    .eq("id", targetUserId);
+  src\app\(admin)\admin\actions.ts:65:
+  src\app\(admin)\admin\actions.ts:66:  if (error) throw new Error(error.message);
+  src\app\(admin)\admin\actions.ts:67:
+  src\app\(admin)\admin\actions.ts:68:  // Revalidate cache for admin user directory
+  src\app\(admin)\admin\actions.ts:69:  revalidatePath("/admin/users");
+  src\app\(admin)\admin\actions.ts:70:
+  src\app\(admin)\admin\actions.ts:71:  return { success: true };
+  src\app\(admin)\admin\actions.ts:72:}
+> src\app\(admin)\admin\AdminUserCard.js:30:                .from([7m'profiles'[0m)
+  src\app\(admin)\admin\AdminUserCard.js:31:                .select('role, full_name, avatar_url, "First_Name", "Last_Name"')
+  src\app\(admin)\admin\AdminUserCard.js:32:                .eq('id', user.id)
+  src\app\(admin)\admin\AdminUserCard.js:33:                .maybeSingle();
+  src\app\(admin)\admin\AdminUserCard.js:34:
+  src\app\(admin)\admin\AdminUserCard.js:35:            const derived = `${profile?.First_Name || ''} ${profile?.Last_Name || ''}`.trim();
+  src\app\(admin)\admin\AdminUserCard.js:36:            if (active) {
+  src\app\(admin)\admin\AdminUserCard.js:37:                setMe({
+  src\app\(admin)\admin\AdminUserCard.js:38:                    name: profile?.full_name || (derived.length > 0 ? derived : null) || user.email || 'User',
+  src\app\(admin)\admin\AdminUserCard.js:39:                    avatar: profile?.avatar_url || null,
+  src\app\(admin)\admin\AdminUserCard.js:40:                    role: ROLE_LABELS[profile?.role] || 'Staff',
+> src\app\(admin)\admin\page.tsx:12:    supabase.from([7m"profiles"[0m).select("id", { count: "exact", head: true }),
+  src\app\(admin)\admin\page.tsx:13:    supabase.from("products").select("*", { count: "exact", head: true }),
+  src\app\(admin)\admin\page.tsx:14:    supabase.from("reports").select("*", { count: "exact", head: true }),
+  src\app\(admin)\admin\page.tsx:15:  ]);
+  src\app\(admin)\admin\page.tsx:16:
+  src\app\(admin)\admin\page.tsx:17:  // Fetch recent reports for quick action
+  src\app\(admin)\admin\page.tsx:18:  const { data: recentReports } = await supabase
+  src\app\(admin)\admin\page.tsx:19:    .from("reports")
+> src\app\(admin)\admin\page.tsx:20:    .select("*, [7mprofiles![0mreports_reported_id_fkey(full_name, email)")
+  src\app\(admin)\admin\page.tsx:21:    .order("created_at", { ascending: false })
+  src\app\(admin)\admin\page.tsx:22:    .limit(5);
+  src\app\(admin)\admin\page.tsx:23:
+  src\app\(admin)\admin\page.tsx:24:  return (
+  src\app\(admin)\admin\page.tsx:25:    <div className={ui.page}>
+  src\app\(admin)\admin\page.tsx:26:      <div>
+  src\app\(admin)\admin\page.tsx:27:        <h1 className={ui.title}>
+  src\app\(admin)\admin\page.tsx:28:          <LayoutDashboard className={ui.titleIcon} size={28} /> System Telemetry
+  src\app\(admin)\admin\page.tsx:29:        </h1>
+  src\app\(admin)\admin\page.tsx:30:        <p className={ui.subtitle}>
+> src\app\(admin)\admin\RoleSelect.tsx:43:          .from([7m"profiles"[0m)
+  src\app\(admin)\admin\RoleSelect.tsx:44:          .select("role")
+  src\app\(admin)\admin\RoleSelect.tsx:45:          .eq("id", session.user.id)
+  src\app\(admin)\admin\RoleSelect.tsx:46:          .single();
+  src\app\(admin)\admin\RoleSelect.tsx:47:        if (profile?.role) setCurrentUserRole(profile.role);
+  src\app\(admin)\admin\RoleSelect.tsx:48:      }
+  src\app\(admin)\admin\RoleSelect.tsx:49:    }
+  src\app\(admin)\admin\RoleSelect.tsx:50:
+  src\app\(admin)\admin\RoleSelect.tsx:51:    fetchCurrentRole();
+  src\app\(admin)\admin\RoleSelect.tsx:52:
+  src\app\(admin)\admin\RoleSelect.tsx:53:    // Dynamically update requester permission state across all rows when self-role changes
+> src\app\(auth)\callback\route.ts:66:            .from([7m"profiles"[0m)
+  src\app\(auth)\callback\route.ts:67:            .select("is_banned")
+  src\app\(auth)\callback\route.ts:68:            .eq("id", userId)
+  src\app\(auth)\callback\route.ts:69:            .maybeSingle();
+  src\app\(auth)\callback\route.ts:70:
+  src\app\(auth)\callback\route.ts:71:        if (profile?.is_banned) {
+  src\app\(auth)\callback\route.ts:72:            await supabase.auth.signOut();
+  src\app\(auth)\callback\route.ts:73:            return bannedRedirect();
+  src\app\(auth)\callback\route.ts:74:        }
+  src\app\(auth)\callback\route.ts:75:    }
+  src\app\(auth)\callback\route.ts:76:
+> src\app\(main)\categories\page.tsx:87:      [7mprofiles ([0m full_name, org_name, is_verified_org ),
+  src\app\(main)\categories\page.tsx:88:      categories!inner ( name )
+  src\app\(main)\categories\page.tsx:89:    `)
+  src\app\(main)\categories\page.tsx:90:        .eq("is_available", true)
+  src\app\(main)\categories\page.tsx:91:        .eq("status", "active")
+  src\app\(main)\categories\page.tsx:92:        .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+  src\app\(main)\categories\page.tsx:93:        .order("created_at", { ascending: false });
+  src\app\(main)\categories\page.tsx:94:
+  src\app\(main)\categories\page.tsx:95:    if (activeCategory) {
+  src\app\(main)\categories\page.tsx:96:        query = query.eq("categories.name", activeCategory);
+  src\app\(main)\categories\page.tsx:97:    }
+> src\app\(main)\chat\[roomId]\page.js:186:          .from([7m"profiles"[0m)
+  src\app\(main)\chat\[roomId]\page.js:187:          .select('id, full_name, avatar_url, email, "First_Name", "Last_Name"')
+  src\app\(main)\chat\[roomId]\page.js:188:          .eq("id", targetUserId)
+  src\app\(main)\chat\[roomId]\page.js:189:          .maybeSingle();
+  src\app\(main)\chat\[roomId]\page.js:190:
+  src\app\(main)\chat\[roomId]\page.js:191:        setOtherUser(profile);
+  src\app\(main)\chat\[roomId]\page.js:192:
+  src\app\(main)\chat\[roomId]\page.js:193:        const { data: rels } = await supabase.rpc("get_my_block_relations");
+  src\app\(main)\chat\[roomId]\page.js:194:        const rel = (rels || []).find((r) => r.other_id === targetUserId);
+  src\app\(main)\chat\[roomId]\page.js:195:        setIBlocked(!!rel?.i_blocked);
+  src\app\(main)\chat\[roomId]\page.js:196:        setBlockedMe(!!rel?.blocked_me);
+> src\app\(main)\chat\page.js:210:        .from([7m"users"[0m)
+  src\app\(main)\chat\page.js:211:        .select('id, "First_Name", "Last_Name", avatar_url')
+  src\app\(main)\chat\page.js:212:        .in("id", otherUserIds);
+  src\app\(main)\chat\page.js:213:
+  src\app\(main)\chat\page.js:214:      if (usersErr) {
+  src\app\(main)\chat\page.js:215:        console.error("Users error:", usersErr);
+  src\app\(main)\chat\page.js:216:      }
+  src\app\(main)\chat\page.js:217:
+  src\app\(main)\chat\page.js:218:      for (const u of otherUsers || []) {
+  src\app\(main)\chat\page.js:219:        otherUsersById[u.id] = u;
+  src\app\(main)\chat\page.js:220:      }
+> src\app\(main)\chat\page.js:462:      .from([7m"users"[0m)
+  src\app\(main)\chat\page.js:463:      .select('id, "First_Name", "Last_Name", avatar_url')
+  src\app\(main)\chat\page.js:464:      .neq("id", currentUser.id)
+  src\app\(main)\chat\page.js:465:      .or(`"First_Name".ilike.%${query}%, "Last_Name".ilike.%${query}%`)
+  src\app\(main)\chat\page.js:466:      .limit(5);
+  src\app\(main)\chat\page.js:467:
+  src\app\(main)\chat\page.js:468:    if (error) {
+  src\app\(main)\chat\page.js:469:      console.error("Search error:", error);
+  src\app\(main)\chat\page.js:470:      setSearchResults([]);
+  src\app\(main)\chat\page.js:471:      return;
+  src\app\(main)\chat\page.js:472:    }
+> src\app\(main)\create-listing\page.js:129:        .from([7m"profiles"[0m)
+  src\app\(main)\create-listing\page.js:130:        .select("is_verified_org, org_name")
+  src\app\(main)\create-listing\page.js:131:        .eq("id", session.user.id)
+  src\app\(main)\create-listing\page.js:132:        .maybeSingle();
+  src\app\(main)\create-listing\page.js:133:
+  src\app\(main)\create-listing\page.js:134:      if (profileData?.is_verified_org) {
+  src\app\(main)\create-listing\page.js:135:        setIsVerifiedOrg(true);
+  src\app\(main)\create-listing\page.js:136:        setOrgName(profileData.org_name || "Organization");
+  src\app\(main)\create-listing\page.js:137:
+  src\app\(main)\create-listing\page.js:138:        if (isMerchParam) {
+  src\app\(main)\create-listing\page.js:139:          handleOfficialOrgMerchToggle(true);
+> src\app\(main)\favorites\page.js:34:            [7mprofiles:[0mseller_id ( full_name )
+  src\app\(main)\favorites\page.js:35:          )
+  src\app\(main)\favorites\page.js:36:        `)
+  src\app\(main)\favorites\page.js:37:                .eq("user_id", user.id)
+  src\app\(main)\favorites\page.js:38:                .order("created_at", { ascending: false });
+  src\app\(main)\favorites\page.js:39:
+  src\app\(main)\favorites\page.js:40:            if (error) console.error("Error fetching favorites:", error);
+  src\app\(main)\favorites\page.js:41:            setFavorites(data || []);
+  src\app\(main)\favorites\page.js:42:            setLoading(false);
+  src\app\(main)\favorites\page.js:43:        }
+  src\app\(main)\favorites\page.js:44:
+> src\app\(main)\marketplace\page.js:193:    [7mprofiles ([0m full_name )
+  src\app\(main)\marketplace\page.js:194:  `).order("created_at", { ascending: false });
+  src\app\(main)\marketplace\page.js:195:
+  src\app\(main)\marketplace\page.js:196:  if (error) console.error("Error fetching products:", error);
+  src\app\(main)\marketplace\page.js:197:
+  src\app\(main)\marketplace\page.js:198:  // 3. Keep only items that have EVERY selected tag
+  src\app\(main)\marketplace\page.js:199:  //    (compared with tagKey so "Books" / "books" / "#books" all match)
+  src\app\(main)\marketplace\page.js:200:  const hasAllTags = (p) => {
+  src\app\(main)\marketplace\page.js:201:    const keys = new Set((p.tags || []).map(tagKey));
+  src\app\(main)\marketplace\page.js:202:    return activeTags.every((k) => keys.has(k));
+  src\app\(main)\marketplace\page.js:203:  };
+> src\app\(main)\merchandise\page.js:88:        .from([7m"profiles"[0m)
+  src\app\(main)\merchandise\page.js:89:        .select("is_verified_org")
+  src\app\(main)\merchandise\page.js:90:        .eq("id", session.user.id)
+  src\app\(main)\merchandise\page.js:91:        .maybeSingle();
+  src\app\(main)\merchandise\page.js:92:
+  src\app\(main)\merchandise\page.js:93:      if (profile?.is_verified_org) {
+  src\app\(main)\merchandise\page.js:94:        setIsVerifiedOrg(true);
+  src\app\(main)\merchandise\page.js:95:      }
+  src\app\(main)\merchandise\page.js:96:    } catch (err) {
+  src\app\(main)\merchandise\page.js:97:      console.error("Error checking org verification:", err);
+  src\app\(main)\merchandise\page.js:98:    }
+> src\app\(main)\merchandise\page.js:125:          [7mprofiles![0minner ( full_name, org_name, is_verified_org ),
+  src\app\(main)\merchandise\page.js:126:          categories ( name, icon )
+  src\app\(main)\merchandise\page.js:127:        `)
+  src\app\(main)\merchandise\page.js:128:        .eq("is_available", true)
+  src\app\(main)\merchandise\page.js:129:        .eq("status", "active")
+  src\app\(main)\merchandise\page.js:130:        .eq("is_merch", true)
+  src\app\(main)\merchandise\page.js:131:        .eq("profiles.is_verified_org", true) // 👈 Automatically hides items if organization verification is revoked
+  src\app\(main)\merchandise\page.js:132:        .or(`expires_at.is.null,expires_at.gt.${nowIso}`) // 👈 Hides drops that expired but the hourly job hasn't flipped yet
+  src\app\(main)\merchandise\page.js:133:        .order("created_at", { ascending: false });
+  src\app\(main)\merchandise\page.js:134:
+  src\app\(main)\merchandise\page.js:135:      if (error) {
+> src\app\(main)\org-apply\page.js:41:                .from([7m"profiles"[0m)
+  src\app\(main)\org-apply\page.js:42:                .select("is_verified_org, org_name, role")
+  src\app\(main)\org-apply\page.js:43:                .eq("id", user.id)
+  src\app\(main)\org-apply\page.js:44:                .single();
+  src\app\(main)\org-apply\page.js:45:
+  src\app\(main)\org-apply\page.js:46:            if (profile?.is_verified_org) {
+  src\app\(main)\org-apply\page.js:47:                setIsVerified(true);
+  src\app\(main)\org-apply\page.js:48:            }
+  src\app\(main)\org-apply\page.js:49:
+  src\app\(main)\org-apply\page.js:50:            // Check if user is faculty based on email domain or profile role
+  src\app\(main)\org-apply\page.js:51:            const userEmail = user.email || "";
+> src\app\(main)\products\[id]\page.js:63:        const { data: me } = await supabase.from([7m"profiles"[0m).select("role").eq("id", user.id).maybeSingle();
+  src\app\(main)\products\[id]\page.js:64:        setViewerRole(me?.role || null);
+  src\app\(main)\products\[id]\page.js:65:      }
+  src\app\(main)\products\[id]\page.js:66:
+  src\app\(main)\products\[id]\page.js:67:      // Fetch Product Details
+  src\app\(main)\products\[id]\page.js:68:      const { data: prodData, error } = await supabase
+  src\app\(main)\products\[id]\page.js:69:        .from("products")
+  src\app\(main)\products\[id]\page.js:70:        .select(`
+  src\app\(main)\products\[id]\page.js:71:          id,
+  src\app\(main)\products\[id]\page.js:72:          title,
+  src\app\(main)\products\[id]\page.js:73:          description,
+> src\app\(main)\products\[id]\page.js:87:          [7mprofiles![0mproducts_seller_id_fkey (
+  src\app\(main)\products\[id]\page.js:88:            id,
+  src\app\(main)\products\[id]\page.js:89:            full_name,
+  src\app\(main)\products\[id]\page.js:90:            avatar_url,
+  src\app\(main)\products\[id]\page.js:91:            "First_Name",
+  src\app\(main)\products\[id]\page.js:92:            "Last_Name",
+  src\app\(main)\products\[id]\page.js:93:            ai_summary,
+  src\app\(main)\products\[id]\page.js:94:            is_verified_org,
+  src\app\(main)\products\[id]\page.js:95:            org_name
+  src\app\(main)\products\[id]\page.js:96:          ),
+  src\app\(main)\products\[id]\page.js:97:          categories ( name )
+> src\app\(main)\products\[id]\page.js:117:            [7mprofiles:[0mreviewer_id (
+  src\app\(main)\products\[id]\page.js:118:              full_name,
+  src\app\(main)\products\[id]\page.js:119:              "First_Name",
+  src\app\(main)\products\[id]\page.js:120:              "Last_Name",
+  src\app\(main)\products\[id]\page.js:121:              avatar_url
+  src\app\(main)\products\[id]\page.js:122:            )
+  src\app\(main)\products\[id]\page.js:123:          `)
+  src\app\(main)\products\[id]\page.js:124:          .eq("reviewee_id", prodData.seller_id)
+  src\app\(main)\products\[id]\page.js:125:          .order("created_at", { ascending: false });
+  src\app\(main)\products\[id]\page.js:126:
+  src\app\(main)\products\[id]\page.js:127:        setAllReviews(revData || []);
+> src\app\(main)\products\page.js:18:      [7musers ([0m First_Name, Last_Name ),
+  src\app\(main)\products\page.js:19:      categories ( name )
+  src\app\(main)\products\page.js:20:    `)
+  src\app\(main)\products\page.js:21:    .eq("is_available", true)
+  src\app\(main)\products\page.js:22:    .eq("status", "active")
+  src\app\(main)\products\page.js:23:    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+  src\app\(main)\products\page.js:24:    .order("created_at", { ascending: false });
+  src\app\(main)\products\page.js:25:
+  src\app\(main)\products\page.js:26:  return (
+  src\app\(main)\products\page.js:27:    <div className="text-foreground min-h-screen p-6 md:p-10 transition-colors">
+  src\app\(main)\products\page.js:28:      <div className="max-w-screen-2xl mx-auto">
+> src\app\(main)\profile\[id]\page.tsx:230:          .from([7m"profiles"[0m)
+  src\app\(main)\profile\[id]\page.tsx:231:          .select("id, full_name, avatar_url, role, ai_summary, is_verified_org, org_name")
+  src\app\(main)\profile\[id]\page.tsx:232:          .eq("id", viewedUserId)
+  src\app\(main)\profile\[id]\page.tsx:233:          .maybeSingle(),
+  src\app\(main)\profile\[id]\page.tsx:234:        supabase
+> src\app\(main)\profile\[id]\page.tsx:235:          .from([7m"users"[0m)
+  src\app\(main)\profile\[id]\page.tsx:236:          .select("id, First_Name, Last_Name, avatar_url")
+  src\app\(main)\profile\[id]\page.tsx:237:          .eq("id", viewedUserId)
+  src\app\(main)\profile\[id]\page.tsx:238:          .maybeSingle(),
+  src\app\(main)\profile\[id]\page.tsx:239:        productsQuery,
+  src\app\(main)\profile\[id]\page.tsx:240:        supabase
+  src\app\(main)\profile\[id]\page.tsx:241:          .from("reviews")
+  src\app\(main)\profile\[id]\page.tsx:242:          .select(`
+  src\app\(main)\profile\[id]\page.tsx:243:            id,
+  src\app\(main)\profile\[id]\page.tsx:244:            rating,
+  src\app\(main)\profile\[id]\page.tsx:245:            comment,
+> src\app\(main)\profile\[id]\page.tsx:250:            [7mprofiles:[0mreviewer_id (
+  src\app\(main)\profile\[id]\page.tsx:251:              full_name,
+  src\app\(main)\profile\[id]\page.tsx:252:              "First_Name",
+  src\app\(main)\profile\[id]\page.tsx:253:              "Last_Name",
+  src\app\(main)\profile\[id]\page.tsx:254:              avatar_url
+  src\app\(main)\profile\[id]\page.tsx:255:            )
+  src\app\(main)\profile\[id]\page.tsx:256:          `)
+  src\app\(main)\profile\[id]\page.tsx:257:          .eq("reviewee_id", viewedUserId)
+  src\app\(main)\profile\[id]\page.tsx:258:          .order("created_at", { ascending: false }),
+  src\app\(main)\profile\[id]\page.tsx:259:        supabase
+> src\app\(main)\profile\[id]\page.tsx:260:          .from([7m"profiles"[0m)
+  src\app\(main)\profile\[id]\page.tsx:261:          .select("ai_summary")
+  src\app\(main)\profile\[id]\page.tsx:262:          .eq("id", viewedUserId)
+  src\app\(main)\profile\[id]\page.tsx:263:          .maybeSingle(),
+  src\app\(main)\profile\[id]\page.tsx:264:        supabase.rpc("count_completed_transactions", { p_user_id: viewedUserId, p_role: "seller" }),
+  src\app\(main)\profile\[id]\page.tsx:265:        supabase.rpc("count_completed_transactions", { p_user_id: viewedUserId, p_role: "buyer" }),
+  src\app\(main)\profile\[id]\page.tsx:266:      ]);
+  src\app\(main)\profile\[id]\page.tsx:267:
+  src\app\(main)\profile\[id]\page.tsx:268:      const primaryProfile: any = profileRes.data || {};
+  src\app\(main)\profile\[id]\page.tsx:269:      const legacy: any = legacyUserRes.data || {};
+  src\app\(main)\profile\[id]\page.tsx:270:
+> src\app\(main)\profile\page.tsx:180:                    .from([7m"profiles"[0m)
+  src\app\(main)\profile\page.tsx:181:                    .select("id, full_name, avatar_url, role, is_verified_org, org_name")
+  src\app\(main)\profile\page.tsx:182:                    .eq("id", userId)
+  src\app\(main)\profile\page.tsx:183:                    .maybeSingle(),
+  src\app\(main)\profile\page.tsx:184:                supabase
+> src\app\(main)\profile\page.tsx:185:                    .from([7m"users"[0m)
+  src\app\(main)\profile\page.tsx:186:                    .select("id, First_Name, Last_Name, Middle_Name, avatar_url")
+  src\app\(main)\profile\page.tsx:187:                    .eq("id", userId)
+  src\app\(main)\profile\page.tsx:188:                    .maybeSingle(),
+  src\app\(main)\profile\page.tsx:189:                supabase
+  src\app\(main)\profile\page.tsx:190:                    .from("products")
+  src\app\(main)\profile\page.tsx:191:                    .select("id, title, price, image_urls, created_at, tags, is_available, status, stock_quantity, expires_at, categories(name)")
+  src\app\(main)\profile\page.tsx:192:                    .eq("seller_id", userId)
+  src\app\(main)\profile\page.tsx:193:                    .order("created_at", { ascending: false }),
+  src\app\(main)\profile\page.tsx:194:                supabase
+  src\app\(main)\profile\page.tsx:195:                    .from("reviews")
+> src\app\(main)\profile\page.tsx:204:            [7mprofiles:[0mreviewer_id (
+  src\app\(main)\profile\page.tsx:205:              full_name,
+  src\app\(main)\profile\page.tsx:206:              "First_Name",
+  src\app\(main)\profile\page.tsx:207:              "Last_Name",
+  src\app\(main)\profile\page.tsx:208:              avatar_url
+  src\app\(main)\profile\page.tsx:209:            )
+  src\app\(main)\profile\page.tsx:210:          `)
+  src\app\(main)\profile\page.tsx:211:                    .eq("reviewee_id", userId)
+  src\app\(main)\profile\page.tsx:212:                    .order("created_at", { ascending: false }),
+  src\app\(main)\profile\page.tsx:213:                supabase
+> src\app\(main)\profile\page.tsx:214:                    .from([7m"profiles"[0m)
+  src\app\(main)\profile\page.tsx:215:                    .select("ai_summary")
+  src\app\(main)\profile\page.tsx:216:                    .eq("id", userId)
+  src\app\(main)\profile\page.tsx:217:                    .maybeSingle(),
+  src\app\(main)\profile\page.tsx:218:                supabase.rpc("count_completed_transactions", { p_user_id: userId, p_role: "seller" }),
+  src\app\(main)\profile\page.tsx:219:                supabase.rpc("count_completed_transactions", { p_user_id: userId, p_role: "buyer" }),
+  src\app\(main)\profile\page.tsx:220:            ]);
+  src\app\(main)\profile\page.tsx:221:
+  src\app\(main)\profile\page.tsx:222:            const profileRole = profileRes.data?.role || "user";
+  src\app\(main)\profile\page.tsx:223:            const legacy: any = userRes.data || {};
+  src\app\(main)\profile\page.tsx:224:            const primaryProfile: any = profileRes.data || {};
+> src\app\(main)\purchase-history\page.js:44:                  [7mprofiles:[0mseller_id ( id, full_name, "First_Name", "Last_Name", email, avatar_url )
+  src\app\(main)\purchase-history\page.js:45:                `)
+  src\app\(main)\purchase-history\page.js:46:                .eq("buyer_id", user.id)
+  src\app\(main)\purchase-history\page.js:47:                .eq("status", "completed")
+  src\app\(main)\purchase-history\page.js:48:                .order("created_at", { ascending: false });
+  src\app\(main)\purchase-history\page.js:49:
+  src\app\(main)\purchase-history\page.js:50:            if (txError) throw txError;
+  src\app\(main)\purchase-history\page.js:51:            setPurchases(transactions || []);
+  src\app\(main)\purchase-history\page.js:52:
+  src\app\(main)\purchase-history\page.js:53:            const { data: myReviews } = await supabase
+  src\app\(main)\purchase-history\page.js:54:                .from("reviews")
+> src\app\(main)\recent\page.tsx:61:      [7mprofiles ([0m full_name ),
+  src\app\(main)\recent\page.tsx:62:      categories!inner ( name )
+  src\app\(main)\recent\page.tsx:63:    `)
+  src\app\(main)\recent\page.tsx:64:        .eq("is_available", true)
+  src\app\(main)\recent\page.tsx:65:        .eq("status", "active")
+  src\app\(main)\recent\page.tsx:66:        .eq("is_merch", false)
+  src\app\(main)\recent\page.tsx:67:        .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+  src\app\(main)\recent\page.tsx:68:        .order("created_at", { ascending: false })
+  src\app\(main)\recent\page.tsx:69:        .limit(LIMIT);
+  src\app\(main)\recent\page.tsx:70:
+  src\app\(main)\recent\page.tsx:71:    if (error) {
+> src\app\(main)\rentals\page.jsx:95:        [7mprofiles ([0m full_name ),
+  src\app\(main)\rentals\page.jsx:96:        categories ( name )
+  src\app\(main)\rentals\page.jsx:97:      `
+  src\app\(main)\rentals\page.jsx:98:            )
+  src\app\(main)\rentals\page.jsx:99:            .eq("status", "active")
+  src\app\(main)\rentals\page.jsx:100:            .eq("is_available", true)
+  src\app\(main)\rentals\page.jsx:101:            .not("is_published", "is", false)
+  src\app\(main)\rentals\page.jsx:102:            .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+  src\app\(main)\rentals\page.jsx:103:            .order("created_at", { ascending: false }),
+  src\app\(main)\rentals\page.jsx:104:        supabase.from("categories").select("id, name, icon").order("name", { ascending: true }),
+  src\app\(main)\rentals\page.jsx:105:    ]);
+> src\app\(main)\sales-history\page.js:54:                  [7mprofiles:[0mbuyer_id ( id, full_name, "First_Name", "Last_Name", email, avatar_url )
+  src\app\(main)\sales-history\page.js:55:                `)
+  src\app\(main)\sales-history\page.js:56:                .eq("seller_id", user.id)
+  src\app\(main)\sales-history\page.js:57:                .eq("status", "completed")
+  src\app\(main)\sales-history\page.js:58:                .order("created_at", { ascending: false });
+  src\app\(main)\sales-history\page.js:59:
+  src\app\(main)\sales-history\page.js:60:            if (txError) throw txError;
+  src\app\(main)\sales-history\page.js:61:            setSales(transactions || []);
+  src\app\(main)\sales-history\page.js:62:
+  src\app\(main)\sales-history\page.js:63:            const { data: myReviews } = await supabase
+  src\app\(main)\sales-history\page.js:64:                .from("reviews")
+> src\app\(main)\search\page.js:62:        [7musers:[0mseller_id (
+  src\app\(main)\search\page.js:63:          First_Name,
+  src\app\(main)\search\page.js:64:          Last_Name
+  src\app\(main)\search\page.js:65:        ),
+> src\app\(main)\search\page.js:66:        [7mprofiles ([0m full_name, org_name, is_verified_org ),
+  src\app\(main)\search\page.js:67:        categories (
+  src\app\(main)\search\page.js:68:          name
+  src\app\(main)\search\page.js:69:        )
+  src\app\(main)\search\page.js:70:      `)
+  src\app\(main)\search\page.js:71:      .or(searchRule)
+  src\app\(main)\search\page.js:72:      .eq("is_available", true)
+  src\app\(main)\search\page.js:73:      .eq("status", "active")
+  src\app\(main)\search\page.js:74:      .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
+  src\app\(main)\search\page.js:75:
+  src\app\(main)\search\page.js:76:    if (res.data) {
+> src\app\api\summarize-reviews\route.js:60:            .from([7m"profiles"[0m)
+  src\app\api\summarize-reviews\route.js:61:            .select("ai_summary")
+  src\app\api\summarize-reviews\route.js:62:            .eq("id", sellerId)
+  src\app\api\summarize-reviews\route.js:63:            .single();
+  src\app\api\summarize-reviews\route.js:64:
+  src\app\api\summarize-reviews\route.js:65:        if (profileError && profileError.code !== "PGRST116") {
+  src\app\api\summarize-reviews\route.js:66:            throw profileError;
+  src\app\api\summarize-reviews\route.js:67:        }
+  src\app\api\summarize-reviews\route.js:68:
+  src\app\api\summarize-reviews\route.js:69:        const existingSummary = profile?.ai_summary || null;
+  src\app\api\summarize-reviews\route.js:70:
+> src\app\api\summarize-reviews\route.js:167:            .from([7m"profiles"[0m)
+  src\app\api\summarize-reviews\route.js:168:            .update({ ai_summary: summaryData })
+  src\app\api\summarize-reviews\route.js:169:            .eq("id", sellerId);
+  src\app\api\summarize-reviews\route.js:170:
+  src\app\api\summarize-reviews\route.js:171:        if (updateError) throw updateError;
+  src\app\api\summarize-reviews\route.js:172:
+  src\app\api\summarize-reviews\route.js:173:        return NextResponse.json({ success: true, summaryData });
+  src\app\api\summarize-reviews\route.js:174:    } catch (error) {
+  src\app\api\summarize-reviews\route.js:175:        console.error("Groq Summary API error:", error?.message || error);
+  src\app\api\summarize-reviews\route.js:176:        return NextResponse.json(
+  src\app\api\summarize-reviews\route.js:177:            { success: false, error: error?.message || "Review summary generation failed" },
+> src\app\auth\callback\route.js:69:                    .from([7m'profiles'[0m)
+  src\app\auth\callback\route.js:70:                    .select('is_banned')
+  src\app\auth\callback\route.js:71:                    .eq('id', user.id)
+  src\app\auth\callback\route.js:72:                    .maybeSingle()
+  src\app\auth\callback\route.js:73:
+  src\app\auth\callback\route.js:74:                if (profile?.is_banned) {
+  src\app\auth\callback\route.js:75:                    await supabase.auth.signOut()
+  src\app\auth\callback\route.js:76:                    return NextResponse.redirect(`${origin}/login?error=Banned`)
+  src\app\auth\callback\route.js:77:                }
+  src\app\auth\callback\route.js:78:            }
+  src\app\auth\callback\route.js:79:
+> src\components\AdminFooter.js:31:          .from([7m"profiles"[0m)
+  src\components\AdminFooter.js:32:          .select("role")
+  src\components\AdminFooter.js:33:          .eq("id", user.id)
+  src\components\AdminFooter.js:34:          .maybeSingle();
+  src\components\AdminFooter.js:35:
+  src\components\AdminFooter.js:36:        if (error) console.error("AdminFooter error:", error);
+  src\components\AdminFooter.js:37:
+  src\components\AdminFooter.js:38:        const role = profile?.role;
+  src\components\AdminFooter.js:39:        if (isMounted) {
+  src\components\AdminFooter.js:40:          if (role === "admin" || role === "super_admin") {
+  src\components\AdminFooter.js:41:            setUserRole(role);
+> src\components\BanGuard.tsx:52:                    .from([7m"profiles"[0m)
+  src\components\BanGuard.tsx:53:                    .select("is_banned")
+  src\components\BanGuard.tsx:54:                    .eq("id", userId)
+  src\components\BanGuard.tsx:55:                    .maybeSingle();
+  src\components\BanGuard.tsx:56:                if (data?.is_banned) kick();
+  src\components\BanGuard.tsx:57:            } catch (err) {
+  src\components\BanGuard.tsx:58:                console.error("[BanGuard] check failed:", err);
+  src\components\BanGuard.tsx:59:            }
+  src\components\BanGuard.tsx:60:        };
+  src\components\BanGuard.tsx:61:
+  src\components\BanGuard.tsx:62:        const onVisible = () => {
+> src\components\MarkAsTransactedModal.js:52:                            .from([7m"profiles"[0m)
+  src\components\MarkAsTransactedModal.js:53:                            .select("id, full_name, First_Name, Last_Name, email, avatar_url")
+  src\components\MarkAsTransactedModal.js:54:                            .in("id", buyerIds);
+  src\components\MarkAsTransactedModal.js:55:
+  src\components\MarkAsTransactedModal.js:56:                        if (contactProfiles) setBuyers(contactProfiles);
+  src\components\MarkAsTransactedModal.js:57:                    }
+  src\components\MarkAsTransactedModal.js:58:                }
+  src\components\MarkAsTransactedModal.js:59:            } catch (err) {
+  src\components\MarkAsTransactedModal.js:60:                console.error("Error fetching contacts:", err);
+  src\components\MarkAsTransactedModal.js:61:            } finally {
+  src\components\MarkAsTransactedModal.js:62:                setFetching(false);
+> src\components\Navbar.js:43:          .from([7m"users"[0m)
+  src\components\Navbar.js:44:          .select("avatar_url")
+  src\components\Navbar.js:45:          .eq("id", currentUser.id)
+  src\components\Navbar.js:46:          .single();
+  src\components\Navbar.js:47:
+  src\components\Navbar.js:48:        if (data?.avatar_url) {
+  src\components\Navbar.js:49:          setAvatarUrl(data.avatar_url);
+  src\components\Navbar.js:50:        }
+  src\components\Navbar.js:51:      }
+  src\components\Navbar.js:52:
+  src\components\Navbar.js:53:      setLoading(false);
+> src\components\SearchBar.js:55:        .select("id, title, tags, categories ( name ), [7mprofiles ([0m is_verified_org )")
+  src\components\SearchBar.js:56:        .or(matchFilter)
+  src\components\SearchBar.js:57:        .eq("is_available", true)
+  src\components\SearchBar.js:58:        .eq("status", "active")
+  src\components\SearchBar.js:59:        .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+  src\components\SearchBar.js:60:        .limit(15);
+  src\components\SearchBar.js:61:
+  src\components\SearchBar.js:62:      if (!error && data) {
+  src\components\SearchBar.js:63:        setSuggestions(
+  src\components\SearchBar.js:64:          data
+  src\components\SearchBar.js:65:            .filter((p) => !isMerch(p) || p.profiles?.is_verified_org)
+> src\components\Sidebar.js:176:            .from([7m"profiles"[0m)
+  src\components\Sidebar.js:177:            .select("role")
+  src\components\Sidebar.js:178:            .eq("id", session.user.id)
+  src\components\Sidebar.js:179:            .maybeSingle();
+  src\components\Sidebar.js:180:
+  src\components\Sidebar.js:181:          setRole(profile?.role || session.user.app_metadata?.role || "user");
+  src\components\Sidebar.js:182:        }
+  src\components\Sidebar.js:183:      } catch (err) {
+  src\components\Sidebar.js:184:        console.error("Error loading user info:", err);
+  src\components\Sidebar.js:185:      }
+  src\components\Sidebar.js:186:    }
+> src\lib\auth\requireRole.ts:12:        .from([7m"profiles"[0m).select("role").eq("id", user.id).maybeSingle();
+  src\lib\auth\requireRole.ts:13:    const role = me?.role ?? "user";
+  src\lib\auth\requireRole.ts:14:
+  src\lib\auth\requireRole.ts:15:    if (!STAFF.includes(role)) redirect("/marketplace");
+  src\lib\auth\requireRole.ts:16:    if (!allowed.includes(role)) redirect("/admin/reports");
+  src\lib\auth\requireRole.ts:17:    return { user, role };
+  src\lib\auth\requireRole.ts:18:}
+> src\lib\supabase\proxy.ts:91:      .from([7m"profiles"[0m)
+  src\lib\supabase\proxy.ts:92:      .select("role, is_banned")
+  src\lib\supabase\proxy.ts:93:      .eq("id", userId)
+  src\lib\supabase\proxy.ts:94:      .maybeSingle();
+  src\lib\supabase\proxy.ts:95:
+  src\lib\supabase\proxy.ts:96:    role = profile?.role || "buyer";
+  src\lib\supabase\proxy.ts:97:    isBanned = !!profile?.is_banned;
+  src\lib\supabase\proxy.ts:98:  }
+  src\lib\supabase\proxy.ts:99:
+  src\lib\supabase\proxy.ts:100:  if (isBanned) {
+  src\lib\supabase\proxy.ts:101:    await supabase.auth.signOut(); // clears the session cookies via setAll
+

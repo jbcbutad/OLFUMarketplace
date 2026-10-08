@@ -17,7 +17,7 @@ const archivo = Archivo({
 
 const URL_ERRORS: Record<string, string> = {
   UnauthorizedDomain:
-    "Access restricted. Only official @student.fatima.edu.ph and @fatima.edu.ph accounts are allowed.",
+    "Access restricted. Students must use their Valenzuela campus email ending in val@student.fatima.edu.ph. Faculty and staff must use @fatima.edu.ph.",
   AuthFailed: "Authentication failed. Please try again.",
   Banned:
     "This account has been suspended. If you think this is a mistake, please contact the OLFU Marketplace administrators.",
@@ -126,7 +126,7 @@ function AuthPortalContent() {
               <span>🎓</span>
               <div>
                 <b>Student</b>
-                <small>@student.fatima.edu.ph</small>
+                <small>...val@student.fatima.edu.ph</small>
               </div>
             </button>
             <button

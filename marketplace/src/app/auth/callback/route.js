@@ -20,6 +20,16 @@ export async function GET(request) {
         return NextResponse.redirect(`${origin}/login?error=Banned`)
     }
 
+    // Signup rejected by the database hook (not a val student / faculty email)
+    if (
+        requestUrl.searchParams.get('error') &&
+        (requestUrl.searchParams.get('error_description') || '')
+            .toLowerCase()
+            .includes('only official olfu')
+    ) {
+        return NextResponse.redirect(`${origin}/login?error=UnauthorizedDomain`)
+    }
+
     if (code) {
         const cookieStore = await cookies()
         const supabase = createServerClient(
@@ -50,17 +60,15 @@ export async function GET(request) {
         } else {
             const user = data?.user
 
-            // Domain restriction
-            if (user?.email) {
-                const email = user.email.toLowerCase()
-                const allowed =
-                    email.endsWith('@student.fatima.edu.ph') ||
-                    email.endsWith('@fatima.edu.ph')
+            // Domain restriction (val students + faculty/staff only)
+            const email = (user?.email || '').toLowerCase()
+            const allowed =
+                /^[^@]+val@student\.fatima\.edu\.ph$/.test(email) ||
+                /^[^@]+@fatima\.edu\.ph$/.test(email)
 
-                if (!allowed) {
-                    await supabase.auth.signOut()
-                    return NextResponse.redirect(`${origin}/login?error=UnauthorizedDomain`)
-                }
+            if (!allowed) {
+                await supabase.auth.signOut()
+                return NextResponse.redirect(`${origin}/login?error=UnauthorizedDomain`)
             }
 
             // Safety net: the database flag is the source of truth for bans
