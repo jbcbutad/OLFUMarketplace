@@ -39,6 +39,7 @@ We use this information to:
 - Review listings and reports, detect prohibited content, and enforce our Terms of Service.
 - Answer your questions through the AI assistant.
 - Keep the Marketplace running, diagnose problems, and protect it from abuse.
+- Check that your email address belongs to your own eligible OLFU account.
 
 We do not sell your personal information, and we do not use it for advertising.
 
@@ -90,7 +91,7 @@ Under the Data Privacy Act of 2012 (Republic Act No. 10173), you have the right 
 
 ## 12. Who the Marketplace Is For
 
-The Marketplace is intended for members of the OLFU community and is not meant for use by people outside it.
+The Marketplace is intended for members of the OLFU Valenzuela community and is not meant for use by people outside it.
 
 ## 13. Changes to This Policy
 

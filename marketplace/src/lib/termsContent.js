@@ -28,7 +28,7 @@ To use the Marketplace, you must:
 - Keep your account information accurate and updated.
 - Keep your login credentials secure.
 
-The Marketplace uses OLFU credential verification to help ensure that only authorized members of the community can access the platform.
+The Marketplace is open only to the OLFU Valenzuela community. Students must sign in with an official Valenzuela campus student account, which is an email address ending in val@student.fatima.edu.ph. Faculty and staff must sign in with an official @fatima.edu.ph account. The Marketplace checks your email address when you sign in, and accounts that do not meet these requirements are not allowed and may be removed.
 
 ## 3. Your Account
 
@@ -58,6 +58,10 @@ When you buy or sell an item, you understand that:
 - The Marketplace does not act as the buyer or seller of user-listed products.
 
 The current system facilitates communication and transaction arrangements between users rather than directly completing the transaction on behalf of the users.
+
+All sales, rentals, loans, and exchanges are made directly between the buyer and the seller. The Marketplace is not a party to any transaction, and it does not own, inspect, hold, deliver, guarantee, or process payment for any item. The condition, quality, safety, legality, price, and description of each item, and whether a transaction is completed, are the sole responsibility of the users involved.
+
+Please use good judgment before going ahead with a transaction. We recommend inspecting items before paying, meeting in public areas within campus, and not sharing sensitive personal or financial information.
 
 ## 5. Listings
 
@@ -107,13 +111,15 @@ You must not use messaging to:
 - Impersonate another person.
 - Conduct activities unrelated to the intended purpose of the Marketplace.
 
-The system stores conversations as part of its messaging functionality and provides administrators with tools for managing reports and platform activity.
+Conversations take place directly between users. The Marketplace does not take part in your conversations or negotiations, and it is not responsible for what users say to one another or for any agreement they reach.
+
+The system stores conversations as part of its messaging functionality. To help keep the community safe, automated tools may screen content, and administrators may review messages or content that have been reported or flagged, using the tools provided for managing reports and platform activity.
 
 ## 8. Your Safety
 
-We provide features intended to help create a safer marketplace, including account verification, reporting, blocking, administrative monitoring, and content moderation.
+We provide features intended to help create a safer marketplace, including account verification, reporting, blocking, administrative monitoring, and content moderation. We take reasonable steps to protect the Marketplace and its users.
 
-However, no online platform can guarantee that every interaction or transaction will be completely safe.
+However, no online platform can guarantee complete security or prevent every case of fraud, and we cannot verify the identity, intentions, or conduct of every user. You use the Marketplace, and deal with other users, at your own risk.
 
 Before completing a transaction, users should carefully review the listing, communicate with the other party, and use reasonable caution when arranging payment or meeting arrangements.
 
@@ -126,6 +132,8 @@ You may also use available blocking features to prevent unwanted communication.
 Reports may be reviewed by administrators, who may take appropriate action based on the circumstances.
 
 ## 10. Prohibited Activities
+
+As a member of the OLFU community, you are expected to act with honesty, respect, and good character, in keeping with the values of the university. Treat other users the way you would on campus.
 
 You may not use the Marketplace to:
 
@@ -176,14 +184,17 @@ For details about what we collect and how we use it, please read our Privacy Pol
 
 ## 15. Enforcement of These Terms
 
-If you violate these Terms, administrators may take actions including:
+If a user is reported or flagged for violating these Terms, administrators may review the matter and take action at their discretion. Depending on the seriousness of the conduct, actions may include:
 
+- Issuing a warning.
 - Removing your listing.
 - Removing inappropriate content.
 - Restricting certain account features.
 - Suspending your account.
-- Blocking your account from accessing the Marketplace.
+- Permanently banning your account from the Marketplace.
 - Taking other appropriate administrative action.
+
+Actions may be taken with or without prior notice. Banned users may not create a new account to return. Reports are reviewed in good faith, but the Marketplace is not obliged to take any particular action. If you believe action was taken on your account by mistake, you may contact the administrators using the contact details in our Privacy Policy to request a review.
 
 The purpose of these actions is to maintain an organized and safer marketplace for the OLFU community.
 
@@ -207,6 +218,8 @@ We do not guarantee:
 - The outcome of transactions arranged between users.
 
 Users are responsible for making their own decisions before completing a transaction.
+
+To the fullest extent permitted by law, the Marketplace and its administrators are not liable for any loss, damage, or dispute arising from transactions or communications between users. This includes fraud or scams, items that are misdescribed, defective, or never delivered, unpaid amounts, and injury or property damage during meetups. Disputes are to be resolved between the users involved. If you believe a crime has been committed, please report it to campus security and the appropriate authorities. Nothing in these Terms limits any right you have under the law that cannot be excluded.
 
 ## 18. Acceptance of These Terms
 
