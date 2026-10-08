@@ -16,8 +16,8 @@ const SLIDES = [
         bgImage: "campus.png",
     },
     {
-        title: "Merch for every college.",
-        text: "Wear your college pride.",
+        title: "Your Campus Era Starts Here.",
+        text: "Find merch that matches your vibe.",
         cta: "Find yours",
         bgImage: "campus.png",
         seals: ["seal-crim", "seal-nursing", "seal-pharmacy", "seal-pt", "seal-education", "seal-ccs"],
