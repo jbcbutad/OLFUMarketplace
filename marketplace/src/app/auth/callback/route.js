@@ -10,6 +10,8 @@ export async function GET(request) {
     const code = requestUrl.searchParams.get('code')
     const origin = requestUrl.origin
 
+    // TEMPORARY: testers allowed outside the Fatima domains. Remove after testing.
+    const TESTER_EMAILS = ['yashkothiya345@gmail.com']
     // Banned users come back from Supabase with error params and no code
     if (
         isBannedError(
@@ -64,7 +66,8 @@ export async function GET(request) {
             const email = (user?.email || '').toLowerCase()
             const allowed =
                 /^[^@]+val@student\.fatima\.edu\.ph$/.test(email) ||
-                /^[^@]+@fatima\.edu\.ph$/.test(email)
+                /^[^@]+@fatima\.edu\.ph$/.test(email) ||
+                TESTER_EMAILS.includes(email)
 
             if (!allowed) {
                 await supabase.auth.signOut()
