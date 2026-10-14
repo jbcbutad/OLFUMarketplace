@@ -266,7 +266,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 <SubLink href="/categories" active={pathname === "/categories" && !activeCategory}>
                   All Categories & Tags
                 </SubLink>
-                <SubLink href="/categories?category=Books" active={activeCategory === "Textbooks"}>
+                <SubLink href="/categories?category=Books" active={activeCategory === "Books"}>
                   📚 Textbooks
                 </SubLink>
                 <SubLink href="/categories?category=Electronics" active={activeCategory === "Electronics"}>
@@ -275,10 +275,10 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 <SubLink href="/categories?category=Uniforms" active={activeCategory === "Uniforms"}>
                   👕 Uniforms
                 </SubLink>
-                <SubLink href="/categories?category=Equipment" active={activeCategory === "Uniforms"}>
+                <SubLink href="/categories?category=Equipment" active={activeCategory === "Equipment"}>
                   ⚙️ Equipments
                 </SubLink>
-                <SubLink href="/categories?category=Supplies" active={activeCategory === "Uniforms"}>
+                <SubLink href="/categories?category=Supplies" active={activeCategory === "Supplies"}>
                   📦 Supplies
                 </SubLink>
               </div>
