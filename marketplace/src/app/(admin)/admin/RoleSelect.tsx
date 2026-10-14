@@ -5,17 +5,19 @@ import { useRouter } from 'next/navigation';
 import { updateUserRole } from './actions';
 import { Loader2, Lock, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase/client';
+
 
 interface RoleSelectProps {
   userId: string;
   currentRole: string;
+  viewerRole: string;
+  viewerId: string;
 }
 
-export default function RoleSelect({ userId, currentRole }: RoleSelectProps) {
+export default function RoleSelect({ userId, currentRole, viewerRole, viewerId }: RoleSelectProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [currentUserRole, setCurrentUserRole] = useState<string>("user");
+  const [currentUserRole, setCurrentUserRole] = useState<string>(viewerRole);
 
   const normalizeRole = (role: string) => {
     if (!role) return 'user';
@@ -33,33 +35,18 @@ export default function RoleSelect({ userId, currentRole }: RoleSelectProps) {
   }, [currentRole]);
 
   useEffect(() => {
-    let activeSessionUserId: string | null = null;
+    setCurrentUserRole(viewerRole);
+  }, [viewerRole]);
 
-    async function fetchCurrentRole() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        activeSessionUserId = session.user.id;
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
-        if (profile?.role) setCurrentUserRole(profile.role);
-      }
-    }
-
-    fetchCurrentRole();
-
-    // Dynamically update requester permission state across all rows when self-role changes
+  useEffect(() => {
     const handleRoleUpdate = (event: any) => {
-      if (activeSessionUserId && event.detail.userId === activeSessionUserId) {
+      if (event.detail?.userId === viewerId) {
         setCurrentUserRole(event.detail.newRole);
       }
     };
-
     window.addEventListener("user-role-changed", handleRoleUpdate);
     return () => window.removeEventListener("user-role-changed", handleRoleUpdate);
-  }, []);
+  }, [viewerId]);
 
   const isRequesterSuperAdmin = currentUserRole === "super_admin" || currentUserRole === "superadmin";
   const isTargetSuperAdmin = selectedRole === "super_admin";

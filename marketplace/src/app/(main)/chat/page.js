@@ -59,14 +59,14 @@ export default function ChatHub() {
     let timer = null;
     const scheduleReload = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => loadRooms({ silent: true }), 400);
+      timer = setTimeout(() => loadRooms({ silent: true }), 1500);
     };
 
     const channel = supabase
       .channel(`chat-hub-${currentUser.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "direct_messages" },
+        { event: "INSERT", schema: "public", table: "direct_messages" },
         scheduleReload
       )
       .subscribe();

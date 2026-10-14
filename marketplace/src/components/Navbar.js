@@ -34,9 +34,13 @@ export default function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
+    let lastUserId = null;
+
     const initAuth = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser ?? null);
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      lastUserId = currentUser?.id ?? null;
+      setUser(currentUser);
 
       if (currentUser) {
         const { data } = await supabase
@@ -59,9 +63,14 @@ export default function Navbar() {
       setUser(session?.user ?? null);
 
       if (event === "SIGNED_IN") {
-        router.refresh();
+        const newId = session?.user?.id ?? null;
+        if (newId !== lastUserId) {
+          lastUserId = newId;
+          router.refresh();
+        }
       }
       if (event === "SIGNED_OUT") {
+        lastUserId = null;
         setUser(null);
         setAvatarUrl(null);
         router.push("/login");

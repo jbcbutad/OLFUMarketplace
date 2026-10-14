@@ -267,7 +267,12 @@ export default async function UsersAdminPage({
                   {/* Actions: role dropdown, then ban/unban, always in one row */}
                   <div className="md:col-span-4 flex items-center md:justify-end gap-2">
                     {canChangeRoles ? (
-                      <RoleSelect userId={u.id} currentRole={u.role || "user"} />
+                      <RoleSelect
+                        userId={u.id}
+                        currentRole={u.role || "user"}
+                        viewerRole={viewerRole}
+                        viewerId={currentUserId}
+                      />
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
                         <Lock size={12} /> Roles: super admin only

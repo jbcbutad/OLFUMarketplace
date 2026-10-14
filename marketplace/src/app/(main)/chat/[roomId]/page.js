@@ -98,8 +98,9 @@ export default function ChatRoom() {
   useEffect(() => {
     async function loadChat() {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return router.push("/login");
       setCurrentUser(user);
       currentUserIdRef.current = user.id;

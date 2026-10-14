@@ -11,6 +11,7 @@ export default function AdminFooter() {
 
   useEffect(() => {
     let isMounted = true;
+    let checkedUserId = null;
 
     async function checkRole() {
       try {
@@ -18,6 +19,7 @@ export default function AdminFooter() {
         const user = session?.user;
 
         if (!user) {
+          checkedUserId = null;
           if (isMounted) {
             setUserRole(null);
             setLoading(false);
@@ -25,6 +27,7 @@ export default function AdminFooter() {
           return;
         }
 
+        checkedUserId = user.id;
         if (isMounted) setUserId(user.id);
 
         const { data: profile, error } = await supabase
@@ -53,19 +56,27 @@ export default function AdminFooter() {
     checkRole();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          checkRole();
-        } else {
+      (event, session) => {
+        if (!session?.user) {
+          checkedUserId = null;
           setUserRole(null);
           setLoading(false);
+          return;
         }
+        // Token refreshes and the first event don't change who is logged in
+        if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
+        // Only look the role up again when a different user signs in
+        if (session.user.id !== checkedUserId) checkRole();
       }
     );
+
+    // Same event the Sidebar listens to, so role changes still show up right away
+    window.addEventListener("user-role-changed", checkRole);
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      window.removeEventListener("user-role-changed", checkRole);
     };
   }, []);
 

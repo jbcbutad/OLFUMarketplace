@@ -49,7 +49,8 @@ export default function ReportsPage() {
           reported:reported_id ( id, full_name, email, avatar_url, "First_Name", "Last_Name" ),
           product:product_id ( id, title, image_urls )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       const fetchedReports = data || [];
@@ -85,21 +86,6 @@ export default function ReportsPage() {
 
   useEffect(() => {
     fetchReports();
-
-    const channel = supabase
-      .channel('realtime-reports-queue')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'reports' },
-        () => {
-          fetchReports();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const [modal, setModal] = useState(null); // { type: 'ban' | 'remove', report }
