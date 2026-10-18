@@ -199,7 +199,7 @@ export default function ProductReviews({ initialReviews = [], aiSummary = null, 
                                                         src={reviewer.avatar_url || "/placeholder-avatar.png"}
                                                         alt={name}
                                                         fill
-                                                        sizes="36px"
+                                                        unoptimized
                                                         className="object-cover"
                                                     />
                                                 </div>

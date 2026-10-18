@@ -202,7 +202,7 @@ function AuthPortalContent() {
 
       <aside
         className={styles.right}
-        style={{ backgroundImage: "url(/campus.jpg)" }}
+        style={{ backgroundImage: "url(/campus.png)" }}
         aria-label="OLFU campus with mascot Ollie"
       >
         <div className={styles.brand}>

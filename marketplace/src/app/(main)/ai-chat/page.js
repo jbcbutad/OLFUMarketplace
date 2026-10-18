@@ -22,7 +22,10 @@ export default function AiChatPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const messagesEndRef = useRef(null);
+
+
 
   useEffect(() => {
     async function initUserAndHistory() {
@@ -30,6 +33,19 @@ export default function AiChatPage() {
       setCurrentUser(user);
 
       if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        setAvatarUrl(
+          profile?.avatar_url ||
+          user.user_metadata?.avatar_url ||
+          user.user_metadata?.picture ||
+          null
+        );
+
         // Fetch past chat memory from Supabase
         const { data, error } = await supabase
           .from('ai_messages')
@@ -129,10 +145,12 @@ export default function AiChatPage() {
   };
 
   return (
-    <div className="text-foreground min-h-screen flex flex-col justify-between">
+    // Fixed-height column: only the messages area scrolls.
+    // If the purple status bar covers the input, use h-[calc(100dvh-2.5rem)] instead of h-dvh.
+    <div className="text-foreground h-dvh flex flex-col overflow-hidden">
 
       {/* HEADER BAR */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-20 px-6 py-4 flex items-center justify-between">
+      <div className="shrink-0 border-b border-border bg-card/50 backdrop-blur-md px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/marketplace"
@@ -164,70 +182,87 @@ export default function AiChatPage() {
         )}
       </div>
 
-      {/* CHAT MESSAGES CONTAINER */}
-      <div className="max-w-4xl w-full mx-auto px-4 py-6 flex-grow flex flex-col space-y-4 overflow-y-auto">
-        {messages.map((msg, index) => {
-          const isUser = msg.role === 'user';
-          return (
-            <div
-              key={index}
-              className={`flex items-start gap-3 max-w-[80%] sm:max-w-[70%] ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
-                }`}
-            >
-              <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border ${isUser
-                ? 'bg-foreground text-background border-transparent'
-                : 'bg-white text-indigo-500 border-indigo-500/50'
-                }`}>
-                {isUser ? <User size={14} /> : <Bot size={14} />}
+      {/* CHAT MESSAGES: the only part that scrolls */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-4xl w-full mx-auto px-4 py-6 flex flex-col space-y-4">
+          {messages.map((msg, index) => {
+            const isUser = msg.role === 'user';
+            return (
+              <div
+                key={index}
+                className={`flex items-start gap-3 max-w-[80%] sm:max-w-[70%] ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
+                  }`}
+              >
+                <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center overflow-hidden text-xs font-bold border ${isUser
+                  ? 'bg-foreground text-background border-transparent'
+                  : 'bg-white text-indigo-500 border-indigo-500/50'
+                  }`}>
+                  {isUser ? (
+                    avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt="You"
+                        referrerPolicy="no-referrer"
+                        onError={() => setAvatarUrl(null)}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User size={14} />
+                    )
+                  ) : (
+                    <Bot size={14} />
+                  )}
+                </div>
+                <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${isUser
+                  ? 'bg-emerald-600 text-background rounded-tr-none font-medium'
+                  : 'bg-white dark:bg-neutral-900 border border-border text-foreground rounded-tl-none font-normal'
+                  }`}>
+                  {isUser ? (
+                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                        a: ({ href, children }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-indigo-600">
+                            {children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  )}
+                </div>
               </div>
-              <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${isUser
-                ? 'bg-foreground text-background rounded-tr-none font-medium'
-                : 'bg-white dark:bg-neutral-900 border border-border text-foreground rounded-tl-none font-normal'
-                }`}>
-                {isUser ? (
-                  <span className="whitespace-pre-wrap">{msg.content}</span>
-                ) : (
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                      a: ({ href, children }) => (
-                        <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-indigo-600">
-                          {children}
-                        </a>
-                      ),
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {loading && (
-          <div className="flex items-start gap-3 mr-auto max-w-[70%]">
-            <div className="w-8 h-8 rounded-full bg-white text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
-              <Bot size={14} />
+          {loading && (
+            <div className="flex items-start gap-3 mr-auto max-w-[70%]">
+              <div className="w-8 h-8 rounded-full bg-white text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <Bot size={14} />
+              </div>
+              <div className="p-4 rounded-2xl bg-card border border-border text-muted-foreground rounded-tl-none flex items-center gap-2 text-xs font-medium">
+                <Loader2 size={14} className="animate-spin text-indigo-500" /> AI is thinking...
+              </div>
             </div>
-            <div className="p-4 rounded-2xl bg-card border border-border text-muted-foreground rounded-tl-none flex items-center gap-2 text-xs font-medium">
-              <Loader2 size={14} className="animate-spin text-indigo-500" /> AI is thinking...
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* SUGGESTION QUICK PILLS */}
-      <div className="dark:bg-neutral-900 max-w-4xl w-full mx-auto px-4 pb-2 flex flex-wrap gap-2">
+      <div className="shrink-0 max-w-4xl w-full mx-auto px-4 pb-2 flex flex-wrap gap-2 hover:text-white">
         {["How do I create a listing?", "Where are my transactions?", "How do I report a user?"].map((suggestion) => (
           <button
             key={suggestion}
             onClick={() => setInput(suggestion)}
-            className="px-3 py-1.5 rounded-full bg-white border border-border text-[11px] font-semibold text-muted-foreground hover:border border-black hover:text-foreground hover:bg-neutral-800 transition-colors cursor-pointer dark:text-black"
+            className="px-3 py-1.5 rounded-full bg-white border border-border text-[11px] font-semibold text-muted-foreground hover:border border-black hover:text-white hover:bg-emerald-600 transition-colors cursor-pointer dark:text-white dark:bg-neutral-900 dark:hover:bg-emerald-600 dark:hover:text-white"
           >
             {suggestion}
           </button>
@@ -235,11 +270,11 @@ export default function AiChatPage() {
       </div>
 
       {/* INPUT FORM FOOTER */}
-      <div className="border-t border-border bg-card/80 backdrop-blur-md p-4 sticky bottom-0 z-20 dark:text-black">
+      <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur-md p-4 dark:text-black">
         <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-2">
           <input
             type="text"
-            className="flex-grow bg-white border border-border rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-foreground/20 placeholder:text-muted-foreground dark:text-black"
+            className="flex-grow bg-white border border-border rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-foreground/20 placeholder:text-muted-foreground dark:text-white dark:bg-neutral-900 dark:border-border dark:placeholder:text-muted-foreground"
             placeholder="Ask AI assistant anything about the marketplace..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -247,7 +282,7 @@ export default function AiChatPage() {
           <button
             type="submit"
             disabled={!input.trim() || loading}
-            className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 shrink-0"
+            className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 shrink-0"
           >
             <Send size={15} /> Send
           </button>

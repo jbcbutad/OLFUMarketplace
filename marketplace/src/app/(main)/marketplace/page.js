@@ -156,13 +156,6 @@ export default async function Home({ searchParams }) {
       buildHref({ sort: o.value === "newest" ? null : o.value }),
     ])
   );
-  // 1. Categories (Merchandise stays out of the browse bar)
-  const { data: categoriesData } = await supabase
-    .from("categories")
-    .select("id, name, icon")
-    .order("name", { ascending: true });
-
-  const categories = categoriesData || [];
 
   // Base query (category-filtered)
   const buildQuery = (fields) => {
@@ -190,7 +183,7 @@ export default async function Home({ searchParams }) {
     created_at,
     tags,
     status,
-    profiles ( full_name )
+    profiles ( full_name, avatar_url, is_verified_org, org_name )
   `).order("created_at", { ascending: false });
 
   if (error) console.error("Error fetching products:", error);
@@ -326,41 +319,15 @@ export default async function Home({ searchParams }) {
         <div className="mb-8">
           <h2 className="text-3xl font-extrabold text-foreground">Marketplace</h2>
           <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-            Pick a category or tag to find what you need.
+            Discover amazing products from verified sellers.
           </p>
         </div>
-
-        {/* Categories: one scrollable row on mobile, wraps on larger screens */}
-        <section className="mb-8" aria-label="Categories">
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
-            <Link
-              scroll={false}
-              href={buildHref({ category: null, tags: null })}
-              aria-current={!selectedCategory ? "page" : undefined}
-              className={`${pillBase} ${!selectedCategory ? pillOn : pillOff}`}
-            >
-              All
-            </Link>
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                scroll={false}
-                href={buildHref({ category: cat.name, tags: null })}
-                aria-current={selectedCategory === cat.name ? "page" : undefined}
-                className={`${pillBase} ${selectedCategory === cat.name ? pillOn : pillOff}`}
-              >
-                <span aria-hidden="true">{cat.icon || "🏷️"}</span>
-                <span>{cat.name}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
 
         {/* Tags: selected first, then only tags that exist on the remaining items */}
         {tags.length > 0 && (
           <section className="mb-8" aria-label="Tags">
             <h3 className="text-sm font-semibold text-neutral-800 mb-3 flex items-center gap-1.5 dark:text-neutral-200">
-              <Tag size={14} />
+              <Tag size={15} className="text-emerald-600 dark:text-emerald-400" />
               {activeTags.length > 0
                 ? "Narrow down further"
                 : selectedCategory
@@ -472,6 +439,8 @@ export default async function Home({ searchParams }) {
                   title={product.title}
                   price={product.price}
                   seller={product.profiles?.full_name || "Unknown Seller"}
+                  sellerAvatar={product.profiles?.avatar_url}
+                  createdAt={product.created_at}
                   image={product.image_urls?.[0] || "/placeholder.png"}
                   category={product.categories?.name}
                   tags={product.tags}

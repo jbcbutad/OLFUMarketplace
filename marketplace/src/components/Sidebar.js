@@ -12,15 +12,12 @@ import {
   CalendarClock,
   MessageSquare,
   ListOrdered,
-  PlusCircle,
   Bot,
   ChevronDown,
   ShoppingBag,
   ShieldAlert,
   Users,
   Shield,
-  Sun,
-  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   History,
@@ -117,7 +114,7 @@ function AdminLink({ href, title, label, icon: Icon, theme, pathname, isOpen }) 
       href={href}
       title={title}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 py-2.5 rounded-xl text-sm font-semibold transition-all border ${active ? theme.activeLink : theme.inactiveLink
+      className={`flex items-center gap-3 py-2 rounded-xl text-sm font-semibold transition-all border ${active ? theme.activeLink : theme.inactiveLink
         } ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
     >
       <Icon size={18} className={`${active ? "text-white" : theme.icon} shrink-0`} />
@@ -134,7 +131,6 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
     pathname === "/purchase-history" || pathname === "/sales-history"
   );
   const [role, setRole] = useState(null);
-  const [theme, setTheme] = useState("dark");
   const unreadCount = useUnreadCount();
 
   const [internalIsOpen, setInternalIsOpen] = useState(true);
@@ -144,27 +140,16 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
   const activeCategory = searchParams.get("category");
   const isActive = (path) => pathname === path && !activeCategory;
 
+  // Apply the saved theme on load (defaults to dark).
+  // Change "dark" to "light" here to force light mode.
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "dark";
-    setTheme(savedTheme);
     if (savedTheme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
   }, []);
-
-  const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    localStorage.setItem("theme", nextTheme);
-
-    if (nextTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  };
 
   useEffect(() => {
     async function loadRole() {
@@ -208,10 +193,15 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
   const transactionGroupActive = pathname === "/purchase-history" || pathname === "/sales-history";
 
   return (
-    <aside className={`navigation-surface h-full text-neutral-900 dark:text-white border-r ${LINE} flex flex-col justify-between p-3 transition-all duration-300 shrink-0 overflow-x-hidden ${isOpen ? "w-64" : "w-16"}`}>
-      <div className="space-y-6 overflow-y-auto overflow-x-hidden">
+    <aside className={`navigation-surface h-full text-neutral-900 dark:text-white border-r ${LINE} flex flex-col p-3 transition-all duration-300 shrink-0 overflow-x-hidden ${isOpen ? "w-64" : "w-18"}`}>
+      <div
+        className={`flex-1 min-h-0 space-y-4 overflow-y-auto overflow-x-hidden pb-4 ${isOpen
+            ? "[scrollbar-width:thin] [scrollbar-color:theme(colors.stone.400)_transparent]"
+            : "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          }`}
+      >
         {/* BRAND LOGO & COLLAPSE / EXPAND TOGGLE */}
-        <div className={`py-2 flex items-center ${isOpen ? "px-1 justify-between" : "justify-center"}`}>
+        <div className={`py-3 flex items-center ${isOpen ? "px-3 justify-between" : "justify-center"}`}>
           {isOpen ? (
             <>
               <Link
@@ -244,7 +234,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
         </div>
 
         {/* NAVIGATION LINKS */}
-        <nav className="space-y-1">
+        <nav className="space-y-1.5">
           <NavLink href="/marketplace" label="Home" icon={Home} active={isActive("/marketplace")} isOpen={isOpen} />
           <NavLink href="/recent" label="Recent Listings" icon={Clock} active={isActive("/recent")} isOpen={isOpen} />
           <NavLink href="/rentals" label="Rentals" icon={CalendarClock} active={pathname.startsWith("/rentals")} isOpen={isOpen} />
@@ -269,14 +259,8 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 <SubLink href="/categories?category=Books" active={activeCategory === "Books"}>
                   📚 Textbooks
                 </SubLink>
-                <SubLink href="/categories?category=Electronics" active={activeCategory === "Electronics"}>
-                  💻 Electronics
-                </SubLink>
                 <SubLink href="/categories?category=Uniforms" active={activeCategory === "Uniforms"}>
                   👕 Uniforms
-                </SubLink>
-                <SubLink href="/categories?category=Equipment" active={activeCategory === "Equipment"}>
-                  ⚙️ Equipments
                 </SubLink>
                 <SubLink href="/categories?category=Supplies" active={activeCategory === "Supplies"}>
                   📦 Supplies
@@ -384,10 +368,10 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
 
           return (
             <div
-              className={`pt-4 border-t space-y-1 animate-in fade-in duration-200 ${themeConfig.border}`}
+              className={`mt-2 pt-4 border-t space-y-1.5 animate-in fade-in duration-200 ${themeConfig.border}`}
             >
               {isOpen && (
-                <div className="flex items-center justify-between px-3 mb-2">
+                <div className="flex items-center justify-between px-3 mb-3">
                   <span
                     className={`text-[10px] font-black tracking-widest uppercase flex items-center gap-1 ${themeConfig.text}`}
                   >
@@ -420,34 +404,6 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
             </div>
           );
         })()}
-      </div>
-
-      {/* BOTTOM CONTROLS & THEME TOGGLE */}
-      <div className={`pt-4 border-t ${LINE} space-y-2 shrink-0`}>
-        <button
-          onClick={toggleTheme}
-          type="button"
-          title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          className={`flex items-center justify-center w-full py-2.5 rounded-xl text-sm font-semibold transition-all text-neutral-700 dark:text-neutral-300 hover:bg-stone-300 dark:hover:bg-neutral-800 border ${LINE} cursor-pointer ${isOpen ? "px-3 gap-3" : "w-10 h-10 mx-auto"
-            }`}
-        >
-          {theme === "dark" ? (
-            <Sun size={18} className="text-amber-400 shrink-0" />
-          ) : (
-            <Moon size={18} className="text-indigo-600 shrink-0" />
-          )}
-          {isOpen && <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
-        </button>
-
-        <Link
-          href="/create-listing"
-          title="Create Listing"
-          className={`flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-black border border-emerald-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors active:scale-95 shadow-sm ${isOpen ? "px-3" : "w-10 h-10 mx-auto"
-            }`}
-        >
-          <PlusCircle size={16} className="shrink-0" />
-          {isOpen && <span className="truncate">Create Listing</span>}
-        </Link>
       </div>
     </aside>
   );

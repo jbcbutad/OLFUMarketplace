@@ -80,7 +80,7 @@ export default async function RentalsPage({ searchParams }) {
     // One query for every active, available listing (same rules as the marketplace).
     // Rentals are picked out in JS (like the marketplace does for tags), so spelling
     // and capitalisation of the tag never hides a rental.
-    const [productsRes, categoriesRes] = await Promise.all([
+    const [productsRes] = await Promise.all([
         supabase
             .from("products")
             .select(
@@ -101,7 +101,6 @@ export default async function RentalsPage({ searchParams }) {
             .not("is_published", "is", false)
             .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
             .order("created_at", { ascending: false }),
-        supabase.from("categories").select("id, name, icon").order("name", { ascending: true }),
     ]);
 
     const error = productsRes.error;
@@ -114,11 +113,7 @@ export default async function RentalsPage({ searchParams }) {
             (p.tags || []).some((t) => RENTAL_KEYS.has(tagKey(t)))
     );
 
-    // Only categories that actually have rentals, so there are no empty clicks
-    const rentalCategoryNames = new Set(rentals.map((p) => p.categories?.name).filter(Boolean));
-    const categories = (categoriesRes.data || []).filter(
-        (c) => rentalCategoryNames.has(c.name)
-    );
+
 
     const inCategory = sortProducts(
         selectedCategory
@@ -244,68 +239,52 @@ export default async function RentalsPage({ searchParams }) {
                     </button>
                 </form>
 
-                {/* Categories: one scrollable row on mobile, wraps on larger screens */}
-                {categories.length > 0 && (
-                    <section className="mb-8" aria-label="Categories">
-                        <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
-                            <Link
-                                scroll={false}
-                                href={buildHref({ category: null, tags: null })}
-                                aria-current={!selectedCategory ? "page" : undefined}
-                                className={`${pillBase} ${!selectedCategory ? pillOn : pillOff}`}
-                            >
-                                All
-                            </Link>
-                            {categories.map((cat) => (
-                                <Link
-                                    key={cat.id}
-                                    scroll={false}
-                                    href={buildHref({ category: cat.name, tags: null })}
-                                    aria-current={selectedCategory === cat.name ? "page" : undefined}
-                                    className={`${pillBase} ${selectedCategory === cat.name ? pillOn : pillOff}`}
-                                >
-                                    <span aria-hidden="true">{cat.icon || "🏷️"}</span>
-                                    <span>{cat.name}</span>
-                                </Link>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                {/* Tags: selected first, then only tags that exist on the remaining items */}
+                {/* Tags */}
                 {tags.length > 0 && (
                     <section className="mb-8" aria-label="Tags">
-                        <h3 className="text-sm font-semibold text-neutral-800 mb-3 flex items-center gap-1.5 dark:text-neutral-200">
-                            <Tag size={14} />
-                            {activeTags.length > 0
-                                ? "Narrow down further"
-                                : selectedCategory
-                                    ? `Popular in ${selectedCategory}`
-                                    : "Popular tags"}
-                        </h3>
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                            <div>
+                                <h3 className="flex items-center gap-2 text-sm font-bold text-neutral-900 dark:text-white">
+                                    <Tag size={15} className="text-emerald-600 dark:text-emerald-400" />
+                                    {activeTags.length > 0 ? "Narrow down further" : "Browse by tag"}
+                                </h3>
+                                <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+                                    {activeTags.length > 0
+                                        ? "Add more tags to refine your results."
+                                        : "Pick a tag to find what you need."}
+                                </p>
+                            </div>
+
+                            {activeTags.length > 0 && (
+                                <Link
+                                    scroll={false}
+                                    href={buildHref({ tags: null })}
+                                    className="shrink-0 text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+                                >
+                                    Clear tags
+                                </Link>
+                            )}
+                        </div>
+
                         <div className="flex flex-wrap gap-2">{topTags.map(tagPill)}</div>
 
                         {activeTags.length > 0 && relatedTags.length === 0 && (
-                            <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                            <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
                                 No other tags on these items.
                             </p>
                         )}
 
                         {moreTags.length > 0 && (
-                            <details className="group mt-3">
-                                <summary className="inline-flex items-center gap-1 cursor-pointer list-none text-xs font-medium text-neutral-800 hover:text-foreground [&::-webkit-details-marker]:hidden dark:text-neutral-200 dark:hover:text-white">
-                                    <span className="group-open:hidden">
-                                        Show {moreTags.length} more
-                                    </span>
+                            <details className="group mt-4 border-t border-stone-300 pt-3 dark:border-neutral-700">
+                                <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-semibold text-neutral-800 hover:text-emerald-700 dark:text-neutral-200 dark:hover:text-emerald-400 [&::-webkit-details-marker]:hidden">
+                                    <span className="group-open:hidden">Show {moreTags.length} more</span>
                                     <span className="hidden group-open:inline">Show less</span>
                                     <ChevronDown
                                         size={14}
                                         className="transition-transform group-open:rotate-180"
                                     />
                                 </summary>
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                    {moreTags.map(tagPill)}
-                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">{moreTags.map(tagPill)}</div>
                             </details>
                         )}
                     </section>

@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 
+const MAX_OFFER = 1000000; // change to whatever limit you want
+
+const formatPeso = (digits: string) =>
+  digits ? Number(digits).toLocaleString("en-PH") : "";
+
 export default function MakeOffer({
   sellerId,
   productTitle,
@@ -20,6 +25,15 @@ export default function MakeOffer({
   const [checkingOwner, setCheckingOwner] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const router = useRouter();
+
+  const handleOfferChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, ""); // strip commas and letters
+    if (digits === "") {
+      setOfferAmount("");
+      return;
+    }
+    setOfferAmount(String(Math.min(Number(digits), MAX_OFFER)));
+  };
 
   useEffect(() => {
     async function checkOwnership() {
@@ -97,11 +111,11 @@ export default function MakeOffer({
         <div className="relative grow">
           <PhilippinePeso className="absolute left-3.5 top-1/2 -translate-y-1/2 text-black dark:text-white" size={18} />
           <input
-            type="number"
-            min="1"
-            value={offerAmount}
-            onChange={(e) => setOfferAmount(e.target.value)}
-            placeholder="0.00"
+            type="text"
+            inputMode="numeric"
+            value={formatPeso(offerAmount)}
+            onChange={handleOfferChange}
+            placeholder="0"
             disabled={loading}
             className="w-full bg-muted border border-black text-foreground rounded-xl py-2.5 pl-9 pr-4 text-sm font-semibold focus:ring-2 focus:ring-foreground/20 outline-none transition-all placeholder:text-muted-foreground/60 disabled:opacity-50"
           />

@@ -5,12 +5,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Heart, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Heart, ShieldCheck, Trash2, Clock } from "lucide-react";
 import ProductReviews from "@/components/ProductReviews";
 import ProductActions from "@/components/ProductActions";
 import OwnerBanner from "@/components/OwnerBanner";
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
+
 
 // `border-border` is too light to see against stone-200, so every outline uses
 // these instead. Change them here to restyle all lines at once.
@@ -19,6 +20,26 @@ const OUTLINE = "border-stone-800 dark:border-neutral-700"; // chips, tags, badg
 const PANEL = `bg-stone-200 border ${OUTLINE} dark:bg-neutral-900 rounded-xl p-4`;
 const CHIP_OFF =
   "bg-stone-200 text-black border-stone-800 hover:bg-emerald-50 hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:hover:bg-emerald-950 dark:hover:border-emerald-700";
+
+
+function timeAgo(dateInput) {
+  if (!dateInput) return null;
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return null;
+
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const weeks = Math.floor(days / 7);
+  if (days < 30) return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
+
+  return date.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+}
 
 export default function ProductDetailPage({ params }) {
   const [resolvedParams, setResolvedParams] = useState(null);
@@ -264,6 +285,16 @@ export default function ProductDetailPage({ params }) {
   const isMerchandiseCategory = isMerch(product);
   const images = product.image_urls?.length > 0 ? product.image_urls : ["/placeholder.png"];
   const mainImage = images[activeImage] ?? images[0];
+  const postedAgo = timeAgo(product.created_at);
+  const postedFull = product.created_at
+    ? new Date(product.created_at).toLocaleString("en-PH", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    })
+    : null;
 
   return (
     <div className="text-foreground w-full min-h-screen flex flex-col justify-between transition-colors relative">
@@ -408,7 +439,15 @@ export default function ProductDetailPage({ params }) {
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-tight">
                 {product.title}
               </h1>
-
+              {postedAgo && (
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <Clock size={13} />
+                  <time dateTime={new Date(product.created_at).toISOString()} title={postedFull}>
+                    Posted {postedAgo}
+                  </time>
+                  <span className="opacity-60">· {postedFull}</span>
+                </p>
+              )}
               <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 flex items-baseline gap-2">
                 <span>₱{Number(product.price).toLocaleString()}</span>
                 {product.tags?.map(t => t.toLowerCase()).includes("rentals") && (
