@@ -7,6 +7,8 @@ import { Edit3, X, Tag, PhilippinePeso, FileText, Layers, Loader2, ShieldCheck }
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 
+const MAX_DESCRIPTION = 1000;
+
 export default function EditListingModal({ product, onClose, onSaved }) {
     const merch = isMerch(product);
     const expired = getListingState(product) === "expired";
@@ -23,6 +25,10 @@ export default function EditListingModal({ product, onClose, onSaved }) {
 
     const handleSave = async (e) => {
         e.preventDefault();
+        if (form.description.trim().length > MAX_DESCRIPTION) {
+            toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
+            return;
+        }
         setSaving(true);
         try {
             // 1. Re-run moderation on the edited text + cover photo
@@ -39,6 +45,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
             }
             const modRes = await fetch("/api/moderate-listing", { method: "POST", body: fd });
             if (modRes.status === 401) throw new Error("Your session expired. Please log in again.");
+            if (!modRes.ok) throw new Error("Couldn't check your edits right now. Please try again.");
             const moderation = await modRes.json();
 
             if (moderation.verdict === "rejected") {
@@ -162,7 +169,10 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><FileText size={14} /> Description</label>
                         <textarea rows="4" className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none"
-                            value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                            value={form.description} maxLength={MAX_DESCRIPTION} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                        <p className="text-right text-[11px] text-muted-foreground">
+                            {form.description.length} / {MAX_DESCRIPTION}
+                        </p>
                     </div>
 
                     <div className="flex gap-3 pt-2">

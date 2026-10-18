@@ -265,8 +265,30 @@ export default function AuditLogsPage() {
                     <option value="error">Error</option>
                 </select>
 
-                <input type="date" value={from} onChange={(e) => update(setFrom, e.target.value)} className={inputClass} title="From date" />
-                <input type="date" value={to} onChange={(e) => update(setTo, e.target.value)} className={inputClass} title="To date" />
+                <input
+                    type="date"
+                    value={from}
+                    max={to || undefined}
+                    onChange={(e) => {
+                        const v = e.target.value;
+                        update(setFrom, v);
+                        if (v && to && v > to) setTo(v); // From moved past To, so push To forward
+                    }}
+                    className={inputClass}
+                    title="From date"
+                />
+                <input
+                    type="date"
+                    value={to}
+                    min={from || undefined}
+                    onChange={(e) => {
+                        const v = e.target.value;
+                        update(setTo, v);
+                        if (v && from && v < from) setFrom(v); // To typed before From, so pull From back
+                    }}
+                    className={inputClass}
+                    title="To date"
+                />
             </div>
 
             {error && (

@@ -19,6 +19,8 @@ interface ListingOutput {
   suggestedTags: string[];
 }
 
+const MAX_DESCRIPTION = 1000;
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
@@ -29,7 +31,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body: RequestBody = await req.json();
-    const { description: userPrompt, image } = body;
+    const { description: rawPrompt, image } = body;
+    const userPrompt =
+      typeof rawPrompt === "string" ? rawPrompt.trim().slice(0, MAX_DESCRIPTION) : "";
 
     if (!userPrompt && !image) {
       return NextResponse.json({ error: "Provide an image or short text note." }, { status: 400 });
@@ -77,7 +81,15 @@ Price must be a realistic number in Philippine Pesos (PHP). Do not wrap in backt
       () => run(process.env.GEMINI_MODEL || "gemini-3.6-flash"),
       { fallbackFn: () => run(process.env.GEMINI_FALLBACK_MODEL || "gemini-2.5-flash") }
     );
-    const parsed: ListingOutput = JSON.parse(response.text);
+    const raw: ListingOutput = JSON.parse(response.text);
+    const parsed: ListingOutput = {
+      title: String(raw.title ?? "").slice(0, 100),
+      description: String(raw.description ?? "").slice(0, MAX_DESCRIPTION),
+      price: Number(raw.price) || 0,
+      suggestedTags: Array.isArray(raw.suggestedTags)
+        ? raw.suggestedTags.map(String).slice(0, 10)
+        : [],
+    };
     return NextResponse.json({ success: true, listing: parsed, provider: "gemini" });
   } catch (error: any) {
     console.error("Listing generation error:", error);

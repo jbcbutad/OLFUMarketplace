@@ -143,6 +143,13 @@ export async function POST(req) {
             form.get("description") || ""
         ).trim();
 
+        if (description.length > 1000) {
+            return Response.json(
+                { error: "Description is too long (max 1000 characters)." },
+                { status: 400 }
+            );
+        }
+
         let tags = [];
         try {
             const raw = form.get("tags");

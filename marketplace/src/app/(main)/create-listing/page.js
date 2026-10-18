@@ -69,6 +69,7 @@ const compressToBlob = (file, maxSize = 768, quality = 0.7) =>
 const RESERVED_TAGS = ["official-merch", "flagged", "pending", "expired"];
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
+const MAX_DESCRIPTION = 1000;
 const MAX_IMAGE_MB = 10;
 
 const checkImage = (file) => {
@@ -255,7 +256,7 @@ function CreateListingContent() {
         const { title: aiTitle, description: aiDesc, price: aiPrice, suggestedTags: aiTags } = data.listing;
 
         if (aiTitle) setTitle(aiTitle);
-        if (aiDesc) setDescription(aiDesc);
+        if (aiDesc) setDescription(String(aiDesc).slice(0, MAX_DESCRIPTION));
         if (aiPrice !== undefined && aiPrice !== null) setPrice(aiPrice.toString());
 
         if (aiTags && Array.isArray(aiTags)) {
@@ -327,6 +328,9 @@ function CreateListingContent() {
     e.preventDefault();
     if (images.length === 0) return toast.error("Please upload at least one image!");
     if (!categoryId) return toast.error("Please select a category!");
+    if (description.trim().length > MAX_DESCRIPTION) {
+      return toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
+    }
     setLoading(true);
 
     try {
@@ -779,8 +783,12 @@ function CreateListingContent() {
                 className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 pl-12 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none placeholder:text-neutral-400"
                 placeholder="Tell buyers more about your product..."
                 value={description}
+                maxLength={MAX_DESCRIPTION}
                 onChange={(e) => setDescription(e.target.value)}
               />
+              <p className="mt-1.5 text-right text-[11px] text-neutral-500">
+                {description.length} / {MAX_DESCRIPTION}
+              </p>
             </div>
 
             {/* SUBMIT */}
