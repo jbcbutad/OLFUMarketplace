@@ -53,16 +53,17 @@ Price must be a realistic number in Philippine Pesos (PHP). Do not wrap in backt
     const contents: any[] = [promptText];
 
     if (image && typeof image === "string") {
-      if (image.startsWith("data:")) {
-        const matches = image.match(/^data:(.+);base64,(.+)$/);
-        if (matches) {
-          contents.push({
-            inlineData: { mimeType: matches[1], data: matches[2] },
-          });
-        }
-      } else {
-        contents.push(image);
+      const matches = image.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+      if (!matches) {
+        return NextResponse.json(
+          { error: "Only JPG, PNG or WEBP images are allowed." },
+          { status: 400 }
+        );
       }
+      if (matches[2].length > 6 * 1024 * 1024) {
+        return NextResponse.json({ error: "Image is too large." }, { status: 413 });
+      }
+      contents.push({ inlineData: { mimeType: matches[1], data: matches[2] } });
     }
 
     const run = (model: string) =>

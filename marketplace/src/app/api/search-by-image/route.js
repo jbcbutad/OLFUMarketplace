@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import sharp from "sharp";
+import { sniffImageType } from "@/lib/imageValidation";
 
 sharp.cache(false);
 
@@ -115,12 +116,19 @@ export async function POST(req) {
         const formData = await req.formData();
         const file = formData.get("image");
 
-        if (!file) {
+        if (!file || typeof file === "string") {
             return Response.json({ error: "No image provided" }, { status: 400 });
+        }
+        if (file.size > 4 * 1024 * 1024) {
+            return Response.json({ error: "Image is too large." }, { status: 413 });
         }
 
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
+
+        if (!sniffImageType(buffer)) {
+            return Response.json({ error: "Only JPG, PNG or WEBP images are allowed." }, { status: 400 });
+        }
 
         let base64Image;
         try {
@@ -130,7 +138,7 @@ export async function POST(req) {
                 .toBuffer();
             base64Image = compressedBuffer.toString("base64");
         } catch (sharpError) {
-            base64Image = buffer.toString("base64");
+            return Response.json({ error: "That image couldn't be read. Try a JPG, PNG or WEBP." }, { status: 400 });
         }
 
         let geminiError = null;

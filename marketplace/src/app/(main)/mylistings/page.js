@@ -192,12 +192,26 @@ function MyListingsContent() {
   const confirmDelete = async () => {
     if (!activeItem) return;
     setIsProcessing(true);
-    const { error } = await supabase.from("products").delete().eq("id", activeItem.id);
-    if (!error) {
-      setListings(listings.filter(item => item.id !== activeItem.id));
-      setIsDeleteModalOpen(false);
-    }
+    const { data, error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", activeItem.id)
+      .select("id");
     setIsProcessing(false);
+
+    if (error) {
+      toast.error("Couldn't delete: " + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      toast.error("Couldn't delete this listing. You may not have permission.");
+      return;
+    }
+
+    setListings(listings.filter((item) => item.id !== activeItem.id));
+    setIsDeleteModalOpen(false);
+    setActiveItem(null);
+    toast.success("Listing deleted.");
   };
 
   const filteredListings = listings.filter(item => {

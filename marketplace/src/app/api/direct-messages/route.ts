@@ -23,6 +23,21 @@ export async function POST(req: Request) {
     if (!roomId) {
       return NextResponse.json({ error: "Missing roomId" }, { status: 400 });
     }
+
+    // Only accept images from our own chat bucket, in an allowed format
+    if (image_url) {
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const okHost =
+        !base ||
+        String(image_url).startsWith(`${base}/storage/v1/object/public/chat-images/`);
+      const okExt = /\.(jpe?g|png|webp)$/i.test(String(image_url));
+      if (!okHost || !okExt) {
+        return NextResponse.json(
+          { error: "Only JPG, PNG or WEBP images are allowed." },
+          { status: 400 }
+        );
+      }
+    }
     if (!finalBody) {
       return NextResponse.json({ error: "Message is empty" }, { status: 400 });
     }

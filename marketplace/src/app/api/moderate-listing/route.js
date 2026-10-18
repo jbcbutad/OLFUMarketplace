@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
+import { ALLOWED_IMAGE_TYPES, sniffImageType } from "@/lib/imageValidation";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -174,13 +175,9 @@ export async function POST(req) {
             );
         }
 
-        if (
-            files.some(
-                (file) => !file.type?.startsWith("image/")
-            )
-        ) {
+        if (files.some((file) => !ALLOWED_IMAGE_TYPES.includes(file.type))) {
             return Response.json(
-                { error: "Only image files are allowed." },
+                { error: "Only JPG, PNG or WEBP images are allowed." },
                 { status: 400 }
             );
         }
@@ -215,19 +212,19 @@ export async function POST(req) {
         ];
 
         for (let i = 0; i < files.length; i++) {
-            const data = Buffer.from(
-                await files[i].arrayBuffer()
-            ).toString("base64");
+            const buf = Buffer.from(await files[i].arrayBuffer());
+            const mimeType = sniffImageType(buf);
 
-            parts.push(
-                `Image ${i}:`,
-                {
-                    inlineData: {
-                        data,
-                        mimeType: files[i].type,
-                    },
-                }
-            );
+            if (!mimeType) {
+                return Response.json(
+                    { error: "Only JPG, PNG or WEBP images are allowed." },
+                    { status: 400 }
+                );
+            }
+
+            parts.push(`Image ${i}:`, {
+                inlineData: { data: buf.toString("base64"), mimeType },
+            });
         }
 
         const genAI = new GoogleGenerativeAI(

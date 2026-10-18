@@ -15,7 +15,6 @@ export default function SellerControls({ product, currentUserId }) {
     const router = useRouter();
     const [openDropdown, setOpenDropdown] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isTransactOpen, setIsTransactOpen] = useState(false);
     const [targetStatus, setTargetStatus] = useState("unavailable");
     const [isProcessing, setIsProcessing] = useState(false);
@@ -166,15 +165,6 @@ export default function SellerControls({ product, currentUserId }) {
 
 
 
-    const confirmDelete = async () => {
-        setIsProcessing(true);
-        const { error } = await supabase.from("products").delete().eq("id", product.id);
-        setIsProcessing(false);
-        if (!error) {
-            router.push("/mylistings");
-        }
-    };
-
     // Early return if flagged by system
     if (isFlagged) {
         return (
@@ -216,10 +206,10 @@ export default function SellerControls({ product, currentUserId }) {
                     This listing was rejected by an admin and can't be edited.
                 </span>
                 <button
-                    onClick={() => setIsDeleteOpen(true)}
+                    onClick={() => router.push("/mylistings")}
                     className="px-3.5 py-2 text-red-600 border border-red-500/40 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-red-500/10"
                 >
-                    Delete
+                    Manage in My Listings
                 </button>
             </div>
         );
@@ -312,12 +302,7 @@ export default function SellerControls({ product, currentUserId }) {
                         <Edit3 size={13} /> Edit
                     </button>
                 )}
-                <button
-                    onClick={() => setIsDeleteOpen(true)}
-                    className="px-3.5 py-2 bg-transparent text-red-600 dark:text-red-400 border border-red-500/40 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 hover:bg-red-500/10 transition-colors cursor-pointer"
-                >
-                    <Trash2 size={13} /> Delete
-                </button>
+
             </div>
 
             {/* Merchandise Quantity Deduction Box */}
@@ -430,31 +415,7 @@ export default function SellerControls({ product, currentUserId }) {
                 />
             )}
 
-            {/* Delete Modal */}
-            {isDeleteOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-background border border-border p-6 rounded-3xl max-w-sm w-full text-center">
-                        <AlertTriangle className="text-red-600 dark:text-red-400 mx-auto mb-3" size={32} />
-                        <h3 className="text-lg font-black uppercase mb-2 text-foreground">Delete Product?</h3>
-                        <p className="text-muted-foreground text-xs mb-4">This action cannot be undone.</p>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setIsDeleteOpen(false)}
-                                className="flex-1 py-2.5 bg-muted text-foreground rounded-xl text-xs font-bold hover:opacity-80"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                disabled={isProcessing}
-                                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700"
-                            >
-                                {isProcessing ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Delete"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 }

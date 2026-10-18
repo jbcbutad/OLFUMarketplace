@@ -67,6 +67,20 @@ const compressToBlob = (file, maxSize = 768, quality = 0.7) =>
 
 // Tags the app controls: users can't add these by hand, and they aren't sent to AI moderation
 const RESERVED_TAGS = ["official-merch", "flagged", "pending", "expired"];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
+const MAX_IMAGE_MB = 10;
+
+const checkImage = (file) => {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type) || !ALLOWED_IMAGE_EXTS.includes(ext)) {
+    return `"${file.name}" isn't allowed. Please use JPG, PNG or WEBP photos only.`;
+  }
+  if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+    return `"${file.name}" is larger than ${MAX_IMAGE_MB} MB.`;
+  }
+  return null;
+};
 function CreateListingContent() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -158,6 +172,22 @@ function CreateListingContent() {
     }
   };
 
+  // Only these photo formats are accepted (Gemini-safe; everything is re-encoded to JPEG later)
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+  const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
+  const MAX_IMAGE_MB = 10;
+
+  const checkImage = (file) => {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type) || !ALLOWED_IMAGE_EXTS.includes(ext)) {
+      return `"${file.name}" isn't allowed. Please use JPG, PNG or WEBP photos only.`;
+    }
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+      return `"${file.name}" is larger than ${MAX_IMAGE_MB} MB.`;
+    }
+    return null;
+  };
+
   const handleTagKeyDown = (e) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
@@ -172,15 +202,23 @@ function CreateListingContent() {
 
   const handleImageChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
-    if (images.length + selectedFiles.length > 10) {
+    e.target.value = "";
+
+    const valid = [];
+    for (const file of selectedFiles) {
+      const problem = checkImage(file);
+      if (problem) toast.error(problem);
+      else valid.push(file);
+    }
+
+    if (valid.length === 0) return;
+    if (images.length + valid.length > 10) {
       toast.error("You can only upload a maximum of 10 images.");
       return;
     }
-    if (selectedFiles.length > 0) {
-      setImages((prev) => [...prev, ...selectedFiles]);
-      const newPreviews = selectedFiles.map((file) => URL.createObjectURL(file));
-      setPreviewUrls((prev) => [...prev, ...newPreviews]);
-    }
+
+    setImages((prev) => [...prev, ...valid]);
+    setPreviewUrls((prev) => [...prev, ...valid.map((f) => URL.createObjectURL(f))]);
   };
 
   const removeImage = (indexToRemove) => {
@@ -579,7 +617,7 @@ function CreateListingContent() {
                 <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-2xl cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all">
                   <ImagePlus className="text-neutral-400 mb-1" size={24} />
                   <span className="text-[10px] font-bold text-neutral-400 uppercase">Add Photo</span>
-                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
+                  <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" multiple onChange={handleImageChange} />
                 </label>
               )}
 

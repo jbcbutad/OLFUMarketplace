@@ -10,6 +10,8 @@ import { supabase } from "@/lib/supabase/client";
 // restyle the whole input.
 const LINE = "border-stone-400 dark:border-neutral-700";
 const TEXT = "text-neutral-900 dark:text-white";
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const EXT_BY_TYPE = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 export default function ChatInput({ roomId, sellerId }) {
   const [text, setText] = useState("");
@@ -24,6 +26,12 @@ export default function ChatInput({ roomId, sellerId }) {
   function handleImageSelect(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setError("Only JPG, PNG or WEBP images are allowed.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     const MAX_FILE_SIZE = 8 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
@@ -68,12 +76,12 @@ export default function ChatInput({ roomId, sellerId }) {
 
       // 2. Upload image to Supabase storage if selected
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
+        const fileExt = EXT_BY_TYPE[imageFile.type];
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("chat-images")
-          .upload(fileName, imageFile);
+          .upload(fileName, imageFile, { contentType: imageFile.type });
 
         if (uploadError) throw new Error("Failed to upload image.");
 
@@ -141,7 +149,7 @@ export default function ChatInput({ roomId, sellerId }) {
       <form onSubmit={handleSend} className="flex gap-2 items-center w-full shrink-0">
         <input
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           className="hidden"
           ref={fileInputRef}
           onChange={handleImageSelect}
