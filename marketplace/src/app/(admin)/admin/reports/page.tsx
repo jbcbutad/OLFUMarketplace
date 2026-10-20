@@ -89,6 +89,7 @@ export default function ReportsPage() {
   }, []);
 
   const [modal, setModal] = useState(null); // { type: 'ban' | 'remove', report }
+  const [chatView, setChatView] = useState(null); // { report, messages, loading }
   const [modalReason, setModalReason] = useState('');
 
   const runAction = async (reportId, fn, failLabel) => {
@@ -128,6 +129,17 @@ export default function ReportsPage() {
         'Failed to remove listing'
       );
     }
+  };
+
+  const openChat = async (report) => {
+    setChatView({ report, messages: [], loading: true });
+    const { data, error } = await supabase.rpc('moderate_get_reported_chat', { p_report_id: report.id });
+    if (error) {
+      toast.error('Could not load chat: ' + error.message);
+      setChatView(null);
+      return;
+    }
+    setChatView({ report, messages: data || [], loading: false });
   };
 
   const isProductReport = (r) => {
@@ -304,12 +316,13 @@ export default function ReportsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {report.context_room_id && (
-                      <Link
-                        href={`/chat/${report.context_room_id}`}
+                      <button
+                        type="button"
+                        onClick={() => openChat(report)}
                         className={btn("outline", "sm")}
                       >
-                        <MessageSquare size={14} /> Inspect Chat Context <ExternalLink size={12} />
-                      </Link>
+                        <MessageSquare size={14} /> Inspect Chat Context
+                      </button>
                     )}
 
                     {resolvedProductId && (
@@ -407,6 +420,57 @@ export default function ReportsPage() {
                 className={btn("danger", "sm")}>
                 Confirm
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chatView && (
+        <div
+          className="fixed inset-0 bg-black/60 z-[9999] backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setChatView(null)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[85vh] flex flex-col bg-surface text-foreground border border-line rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-line flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold">Reported chat (read-only)</h3>
+                <p className="text-[11px] text-ink-soft">
+                  {resolveName(chatView.report.reporter)} (reporter) · {resolveName(chatView.report.reported)} (reported)
+                </p>
+              </div>
+              <button onClick={() => setChatView(null)} className={btn("outline", "sm")}>Close</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatView.loading ? (
+                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-ink-soft" size={28} /></div>
+              ) : chatView.messages.length === 0 ? (
+                <p className="text-sm text-ink-soft text-center py-10">No messages in this conversation.</p>
+              ) : (
+                chatView.messages.map((m) => {
+                  const isReported = m.msg_sender_id === chatView.report.reported?.id;
+                  const isReporter = m.msg_sender_id === chatView.report.reporter?.id;
+                  const who = isReported ? resolveName(chatView.report.reported) : isReporter ? resolveName(chatView.report.reporter) : 'Unknown';
+                  return (
+                    <div key={m.msg_id} className={`flex flex-col ${isReported ? 'items-start' : 'items-end'}`}>
+                      <span className="text-[10px] text-ink-soft mb-0.5">
+                        {who}{isReported ? ' (reported)' : ''} · {new Date(m.msg_created_at).toLocaleString()}
+                      </span>
+                      {m.msg_image_url && (
+                        <img src={m.msg_image_url} alt="attachment" className="max-w-[240px] rounded-xl border border-line mb-1" />
+                      )}
+                      {m.msg_body && m.msg_body !== 'Sent an image' && (
+                        <div className={`px-3 py-2 rounded-2xl text-sm max-w-[80%] whitespace-pre-wrap break-words border ${isReported ? 'bg-rose-500/10 border-rose-500/20' : 'bg-tint border-line'}`}>
+                          {m.msg_body}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
