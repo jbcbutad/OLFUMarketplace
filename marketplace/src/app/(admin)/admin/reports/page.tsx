@@ -22,6 +22,27 @@ import {
   Trash2,
 } from 'lucide-react';
 
+const CONFIRM_COPY = {
+  resolve: {
+    title: 'Mark as resolved?',
+    message: 'This report will move to the Resolved Archive.',
+    confirmText: 'Mark Resolved',
+    style: 'primary',
+  },
+  dismiss: {
+    title: 'Dismiss this report?',
+    message: 'This report will move to the Dismissed Archive with no action taken.',
+    confirmText: 'Dismiss',
+    style: 'danger',
+  },
+  reopen: {
+    title: 'Re-open this report?',
+    message: 'This report will go back into the pending queue.',
+    confirmText: 'Re-open',
+    style: 'primary',
+  },
+};
+
 export default function ReportsPage() {
   const [reports, setReports] = useState([]);
   const [productLinks, setProductLinks] = useState({});
@@ -91,6 +112,7 @@ export default function ReportsPage() {
   const [modal, setModal] = useState(null); // { type: 'ban' | 'remove', report }
   const [chatView, setChatView] = useState(null); // { report, messages, loading }
   const [modalReason, setModalReason] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null); // { type, report }
 
   const runAction = async (reportId, fn, failLabel) => {
     setUpdatingId(reportId);
@@ -108,6 +130,27 @@ export default function ReportsPage() {
   const handleResolve = (id) => runAction(id, () => supabase.rpc('moderate_resolve_report', { p_report_id: id }), 'Failed to resolve');
   const handleDismiss = (id) => runAction(id, () => supabase.rpc('moderate_dismiss_report', { p_report_id: id }), 'Failed to dismiss');
   const handleReopen = (id) => runAction(id, () => supabase.rpc('moderate_reopen_report', { p_report_id: id }), 'Failed to re-open');
+  const requestAction = (type, report) => setConfirmAction({ type, report });
+
+  const closeConfirm = () => {
+    if (!updatingId) setConfirmAction(null);
+  };
+
+  const handleConfirm = async () => {
+    const { type, report } = confirmAction;
+    setConfirmAction(null);
+    if (type === 'resolve') await handleResolve(report.id);
+    else if (type === 'dismiss') await handleDismiss(report.id);
+    else await handleReopen(report.id);
+  };
+
+  // Close the popup with Escape
+  useEffect(() => {
+    if (!confirmAction) return;
+    const onKey = (e) => e.key === 'Escape' && closeConfirm();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirmAction, updatingId]);
 
   const submitModal = async () => {
     const reason = modalReason.trim();
@@ -357,14 +400,14 @@ export default function ReportsPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => handleResolve(report.id)}
+                          onClick={() => requestAction('resolve', report)}
                           disabled={isUpdating}
                           className={btn("primary", "sm")}
                         >
                           <CheckCircle2 size={14} /> Mark Resolved
                         </button>
                         <button
-                          onClick={() => handleDismiss(report.id)}
+                          onClick={() => requestAction('dismiss', report)}
                           disabled={isUpdating}
                           className={btn("outline", "sm")}
                         >
@@ -375,7 +418,7 @@ export default function ReportsPage() {
 
                     {status !== 'pending' && (
                       <button
-                        onClick={() => handleReopen(report.id)}
+                        onClick={() => requestAction('reopen', report)}
                         disabled={isUpdating}
                         className={btn("outline", "sm")}
                         title="Re-open into pending queue"
@@ -390,6 +433,31 @@ export default function ReportsPage() {
           })}
         </div>
       )}
+
+      {confirmAction && (() => {
+        const copy = CONFIRM_COPY[confirmAction.type];
+        return (
+          <div
+            className="fixed inset-0 bg-black/60 z-[9999] backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={closeConfirm}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="w-full max-w-md bg-surface text-foreground border border-line rounded-2xl p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold mb-1">{copy.title}</h3>
+              <p className="text-sm text-ink-soft mb-6">{copy.message}</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={closeConfirm} className={btn("outline", "sm")}>Cancel</button>
+                <button onClick={handleConfirm} className={btn(copy.style, "sm")}>{copy.confirmText}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {modal && (
         <div className="fixed inset-0 bg-black/60 z-[9999] backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => { setModal(null); setModalReason(''); }}>

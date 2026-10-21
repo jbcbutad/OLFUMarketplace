@@ -3,6 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { isMerch } from "@/lib/merch";
 import { ShieldCheck } from "lucide-react";
+import { cleanName } from "@/lib/cleanName";
 
 // "2h ago", "3d ago", "Mar 5" etc.
 function timeAgo(dateInput) {
@@ -77,6 +78,7 @@ export default function ProductCard({
   orgName = null,
   stockQuantity = null,
 }) {
+  const sellerName = cleanName(seller);
   const isMerchListing = isMerch({ tags, categories: { name: category } });
   const isRental = (tags || []).some((t) =>
     ["rentals", "rental"].includes(String(t).toLowerCase().replace(/[\s_#-]+/g, ""))
@@ -138,10 +140,10 @@ export default function ProductCard({
       {/* SELLER INFO: Avatar + real name (+ org if verified) + listed time */}
       <div className="mt-3 pt-2 border-t border-border/60 text-xs text-muted-foreground">
         <div className="flex items-center gap-2 min-w-0">
-          <SellerAvatar src={sellerAvatar} name={seller} />
+          <SellerAvatar src={sellerAvatar} name={sellerName} />
 
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="truncate font-semibold text-foreground">{seller}</span>
+            <span className="truncate font-semibold text-foreground">{sellerName}</span>
 
             {isVerifiedOrg && (
               <div className="flex items-center gap-1 shrink-0 text-emerald-600 dark:text-emerald-400 font-bold">

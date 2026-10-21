@@ -6,7 +6,7 @@ import { isMerch } from "@/lib/merch";
 import SortSelect from "@/components/SortSelect";
 import { SORT_OPTIONS, parseSort, sortProducts } from "@/lib/sort";
 import { X, Tag, Sparkles, ArrowRight, ChevronDown } from "lucide-react";
-
+import AutoSwipeImages from "@/components/AutoSwipeImages";
 export const dynamic = "force-dynamic";
 
 const BASE_PATH = "/marketplace";
@@ -86,26 +86,41 @@ const MERCH_BOXES = [
     title: "Org Tees",
     sub: "Soft, bold, made for campus.",
     Art: TeeArt,
-    bg: "from-emerald-900 via-emerald-950 to-neutral-950",
-    glow: "bg-emerald-400/25",
-    tilt: "-rotate-6 group-hover:-rotate-3",
+    images: [
+      "olfu-tees-cream.png",
+      "olfu-tees-green.png",
+      "olfu-tees-black.png",
+    ],
+    bg: "from-black-900 via-black-950 to-neutral-950",
+    glow: "bg-black-400/25",
+    tilt: "-rotate-3 group-hover:rotate-0",
   },
   {
     badge: "Best Seller",
     title: "Totes & Bags",
     sub: "Carry your school pride.",
     Art: ToteArt,
-    bg: "from-amber-800 via-amber-950 to-neutral-950",
-    glow: "bg-amber-400/25",
-    tilt: "rotate-3 group-hover:rotate-6",
+    images: [
+      "olfu-tote-blue.png",
+      "olfu-tote-cream.png",
+      "olfu-tote-green.png",
+    ],
+    bg: "from-black-900 via-black-950 to-neutral-950",
+    glow: "bg-black-400/25",
+    tilt: "-rotate-3 group-hover:rotate-0",
   },
   {
     badge: "Cozy Season",
     title: "Hoodies",
     sub: "Official org hoodies are here.",
     Art: HoodieArt,
-    bg: "from-violet-900 via-violet-950 to-neutral-950",
-    glow: "bg-violet-400/25",
+    images: [
+      "olfu-hoodie-green.png",
+      "olfu-hoodie-black.png",
+      "olfu-hoodie-cream.png",
+    ],
+    bg: "from-black-900 via-black-950 to-neutral-950",
+    glow: "bg-black-400/25",
     tilt: "-rotate-3 group-hover:rotate-0",
   },
 ];
@@ -156,6 +171,13 @@ export default async function Home({ searchParams }) {
       buildHref({ sort: o.value === "newest" ? null : o.value }),
     ])
   );
+  // 1. Categories (Merchandise stays out of the browse bar)
+  const { data: categoriesData } = await supabase
+    .from("categories")
+    .select("id, name, icon")
+    .order("name", { ascending: true });
+
+  const categories = categoriesData || [];
 
   // Base query (category-filtered)
   const buildQuery = (fields) => {
@@ -271,31 +293,34 @@ export default async function Home({ searchParams }) {
             />
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {MERCH_BOXES.map(({ badge, title, sub, Art, bg, glow, tilt }) => (
+              {MERCH_BOXES.map(({ badge, title, sub, Art, images, bg, glow, tilt }) => (
                 <Link
                   key={title}
                   href="/merchandise"
-                  className={`group relative block h-56 sm:h-64 overflow-hidden rounded-3xl border border-white/10 hover:border-white/30 bg-gradient-to-br ${bg} transition-colors`}
+                  className={`group relative isolate transform-gpu block h-56 sm:h-64 overflow-hidden rounded-3xl border border-white/10 hover:border-white/30 bg-gradient-to-br ${bg} transition-colors`}
                 >
-                  <div
-                    className="absolute inset-0 opacity-30"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px)",
-                      backgroundSize: "18px 18px",
-                    }}
-                  />
-                  <div
-                    className={`absolute -right-10 -bottom-10 w-64 h-64 rounded-full blur-3xl ${glow}`}
-                  />
+                  {images ? (
+                    <>
+                      <AutoSwipeImages images={images} className="absolute inset-0 rounded-3xl" />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="absolute inset-0 opacity-30"
+                        style={{
+                          backgroundImage: "radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px)",
+                          backgroundSize: "18px 18px",
+                        }}
+                      />
+                      <div className={`absolute -right-10 -bottom-10 w-64 h-64 rounded-full blur-3xl ${glow}`} />
+                      <div className={`absolute right-2 bottom-2 w-40 h-40 sm:w-48 sm:h-48 transition-transform duration-500 ${tilt}`}>
+                        <Art />
+                      </div>
+                    </>
+                  )}
 
-                  <div
-                    className={`absolute right-2 bottom-2 w-40 h-40 sm:w-48 sm:h-48 transition-transform duration-500 ${tilt}`}
-                  >
-                    <Art />
-                  </div>
-
-                  <div className="relative z-10 h-full p-6 flex flex-col justify-between max-w-[60%]">
+                  <div className="pointer-events-none relative z-10 h-full p-6 flex flex-col justify-between max-w-[60%]">
                     <div className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/10 text-white border border-white/20 backdrop-blur">
                       <Sparkles size={12} /> {badge}
                     </div>
@@ -309,6 +334,9 @@ export default async function Home({ searchParams }) {
                       </span>
                     </div>
                   </div>
+
+                  {/* border drawn on top of the photos */}
+                  <div className="pointer-events-none absolute inset-0 z-30 rounded-3xl ring-1 ring-inset ring-white/25 group-hover:ring-white/50 transition-colors" />
                 </Link>
               ))}
             </div>
@@ -319,48 +347,11 @@ export default async function Home({ searchParams }) {
         <div className="mb-8">
           <h2 className="text-3xl font-extrabold text-foreground">Marketplace</h2>
           <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-            Discover amazing products from verified sellers.
+            Pick a category or tag to find what you need.
           </p>
         </div>
 
-        {/* Tags: selected first, then only tags that exist on the remaining items */}
-        {tags.length > 0 && (
-          <section className="mb-8" aria-label="Tags">
-            <h3 className="text-sm font-semibold text-neutral-800 mb-3 flex items-center gap-1.5 dark:text-neutral-200">
-              <Tag size={15} className="text-emerald-600 dark:text-emerald-400" />
-              {activeTags.length > 0
-                ? "Narrow down further"
-                : selectedCategory
-                  ? `Popular in ${selectedCategory}`
-                  : "Popular tags"}
-            </h3>
-            <div className="flex flex-wrap gap-2">{topTags.map(tagPill)}</div>
 
-            {activeTags.length > 0 && relatedTags.length === 0 && (
-              <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-                No other tags on these items.
-              </p>
-            )}
-
-            {moreTags.length > 0 && (
-              <details className="group mt-3">
-                <summary className="inline-flex items-center gap-1 cursor-pointer list-none text-xs font-medium text-neutral-800 hover:text-foreground [&::-webkit-details-marker]:hidden dark:text-neutral-200 dark:hover:text-white">
-                  <span className="group-open:hidden">
-                    Show {moreTags.length} more
-                  </span>
-                  <span className="hidden group-open:inline">Show less</span>
-                  <ChevronDown
-                    size={14}
-                    className="transition-transform group-open:rotate-180"
-                  />
-                </summary>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {moreTags.map(tagPill)}
-                </div>
-              </details>
-            )}
-          </section>
-        )}
 
         {/* Active filters + result count */}
         <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">

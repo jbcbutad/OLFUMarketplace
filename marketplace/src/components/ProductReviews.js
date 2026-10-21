@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Star, ThumbsUp, ThumbsDown, Sparkles, MessageSquare } from "lucide-react";
+import { cleanName } from "@/lib/cleanName";
 
 // This card uses explicit light/dark colors instead of theme tokens
 // (text-foreground, bg-muted, border-border...). The card has its own
@@ -183,8 +184,7 @@ export default function ProductReviews({ initialReviews = [], aiSummary = null, 
                 ) : (
                     displayedReviews.map((review) => {
                         const reviewer = review.profiles || review.reviewer || {};
-                        const name = reviewer.full_name || `${reviewer.First_Name || ""} ${reviewer.Last_Name || ""}`.trim() || "Anonymous";
-                        const reviewerId = reviewer.id || review.reviewer_id;
+                        const name = cleanName(reviewer.full_name) || `${reviewer.First_Name || ""} ${reviewer.Last_Name || ""}`.trim() || "Anonymous"; const reviewerId = reviewer.id || review.reviewer_id;
                         const badge = getBadgeDetails(review.rating, review.sentiment_label);
                         const numericRating = Number(review.rating || 0);
 

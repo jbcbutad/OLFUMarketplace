@@ -275,11 +275,39 @@ export default async function CategoriesPage({
                             </button>
                         </form>
 
+                        {/* Categories: one scrollable row on mobile, wraps on larger screens */}
+                        {categoriesData.length > 0 && (
+                            <section className="mb-8" aria-label="Categories">
+                                <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
+                                    <Link
+                                        scroll={false}
+                                        href={buildHref({ category: null, tags: null })}
+                                        aria-current={!activeCategory ? "page" : undefined}
+                                        className={`${pillBase} ${!activeCategory ? pillOn : pillOff}`}
+                                    >
+                                        All
+                                    </Link>
+                                    {categoriesData.map((cat) => (
+                                        <Link
+                                            key={cat.id}
+                                            scroll={false}
+                                            href={buildHref({ category: cat.name, tags: null })}
+                                            aria-current={activeCategory === cat.name ? "page" : undefined}
+                                            className={`${pillBase} ${activeCategory === cat.name ? pillOn : pillOff}`}
+                                        >
+                                            {cat.icon && <span aria-hidden="true">{cat.icon}</span>}
+                                            <span>{cat.name}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
                         {/* Tags: selected first, then only tags that exist on the remaining items */}
                         {tags.length > 0 && (
                             <section className="mb-8" aria-label="Tags">
                                 <h3 className="text-sm font-semibold text-neutral-800 mb-3 flex items-center gap-1.5 dark:text-neutral-200">
-                                    <Tag size={15} className="text-emerald-600 dark:text-emerald-400" />
+                                    <Tag size={14} />
                                     {activeTags.length > 0
                                         ? "Narrow down further"
                                         : activeCategory

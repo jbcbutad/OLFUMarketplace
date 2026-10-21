@@ -7,15 +7,48 @@ import { supabase } from "@/lib/supabase/client";
 import { Building2, Check, X, ShieldCheck, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { ui, btn } from "../ui";
 
+// Popup text for each button. key = `${current status}->${new status}`
+const CONFIRM_COPY = {
+    "pending->approved": {
+        title: "Approve organization?",
+        message: (name) => `Approve "${name}" and give it verified status?`,
+        confirmText: "Approve",
+    },
+    "pending->rejected": {
+        title: "Reject application?",
+        message: (name) => `Reject the application from "${name}"?`,
+        confirmText: "Reject",
+    },
+    "approved->rejected": {
+        title: "Revoke verification?",
+        message: (name) => `Remove verified status from "${name}"? They will lose their verified badge.`,
+        confirmText: "Revoke",
+    },
+    "rejected->approved": {
+        title: "Re-approve organization?",
+        message: (name) => `Re-approve "${name}" and restore verified status?`,
+        confirmText: "Re-Approve",
+    },
+};
+
 export default function AdminOrganizationsPage() {
-    const askConfirm = useConfirm();
+    const askConfirm = useConfirm(); // still used for the delete (trash) button
     const [apps, setApps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
+    const [confirmAction, setConfirmAction] = useState(null); // { app, newStatus }
 
     useEffect(() => {
         fetchApplications();
     }, []);
+
+    // Close the popup with the Escape key
+    useEffect(() => {
+        if (!confirmAction) return;
+        const onKey = (e) => e.key === "Escape" && closeConfirm();
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [confirmAction, processingId]);
 
     async function fetchApplications() {
         setLoading(true);
@@ -72,6 +105,19 @@ export default function AdminOrganizationsPage() {
         } finally {
             setProcessingId(null);
         }
+    };
+
+    // ---- confirmation popup helpers ----
+    const requestStatusChange = (app, newStatus) => setConfirmAction({ app, newStatus });
+
+    const closeConfirm = () => {
+        if (!processingId) setConfirmAction(null);
+    };
+
+    const handleConfirm = async () => {
+        const { app, newStatus } = confirmAction;
+        await updateOrgStatus(app, newStatus);
+        setConfirmAction(null);
     };
 
     const deleteApplication = async (app) => {
@@ -167,14 +213,14 @@ export default function AdminOrganizationsPage() {
                                     {app.status === "pending" && (
                                         <>
                                             <button
-                                                onClick={() => updateOrgStatus(app, "approved")}
+                                                onClick={() => requestStatusChange(app, "approved")}
                                                 disabled={processingId === app.id}
                                                 className={btn("primary", "sm")}
                                             >
                                                 <Check size={14} /> Approve
                                             </button>
                                             <button
-                                                onClick={() => updateOrgStatus(app, "rejected")}
+                                                onClick={() => requestStatusChange(app, "rejected")}
                                                 disabled={processingId === app.id}
                                                 className={btn("dangerOutline", "sm")}
                                             >
@@ -185,7 +231,7 @@ export default function AdminOrganizationsPage() {
 
                                     {app.status === "approved" && (
                                         <button
-                                            onClick={() => updateOrgStatus(app, "rejected")}
+                                            onClick={() => requestStatusChange(app, "rejected")}
                                             disabled={processingId === app.id}
                                             className={btn("dangerOutline", "sm")}
                                         >
@@ -196,7 +242,7 @@ export default function AdminOrganizationsPage() {
                                     {app.status === "rejected" && (
                                         <>
                                             <button
-                                                onClick={() => updateOrgStatus(app, "approved")}
+                                                onClick={() => requestStatusChange(app, "approved")}
                                                 disabled={processingId === app.id}
                                                 className={btn("primary", "sm")}
                                             >
@@ -218,6 +264,49 @@ export default function AdminOrganizationsPage() {
                     </div>
                 )}
             </div>
+
+            {/* CONFIRMATION POPUP */}
+            {confirmAction && (() => {
+                const { app, newStatus } = confirmAction;
+                const copy = CONFIRM_COPY[`${app.status}->${newStatus}`];
+                const busy = processingId === app.id;
+                const isApprove = newStatus === "approved";
+
+                return (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={closeConfirm}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-md rounded-2xl border border-line bg-white dark:bg-neutral-900 p-6 shadow-2xl"
+                        >
+                            <h2 className="text-lg font-bold text-foreground">{copy.title}</h2>
+                            <p className="mt-2 text-sm text-ink-soft">{copy.message(app.org_name)}</p>
+
+                            <div className="mt-6 flex justify-end gap-2">
+                                <button
+                                    onClick={closeConfirm}
+                                    disabled={busy}
+                                    className="px-4 py-2 rounded-xl border border-line text-sm font-semibold text-foreground hover:bg-tint transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirm}
+                                    disabled={busy}
+                                    className={btn(isApprove ? "primary" : "dangerOutline", "sm")}
+                                >
+                                    {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+                                    {copy.confirmText}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

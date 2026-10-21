@@ -1,6 +1,5 @@
 "use client";
 
-import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -8,15 +7,37 @@ import { isMerch } from "@/lib/merch";
 import { Loader2, CheckCircle2, XCircle, ShieldCheck, Layers, Calendar, PhilippinePeso } from "lucide-react";
 import { ui, btn } from "../ui";
 
+// Popup text for each action
+const CONFIRM_COPY = {
+    approve: {
+        title: "Approve & publish?",
+        message: (name) => `Confirm the listing payment for "${name}" and publish it to the merchandise page?`,
+        confirmText: "Approve & Publish",
+    },
+    reject: {
+        title: "Reject this merchandise?",
+        message: (name) => `"${name}" will be marked as rejected and removed from the approval queue.`,
+        confirmText: "Reject",
+    },
+};
+
 export default function AdminMerchApprovals() {
-    const askConfirm = useConfirm();
     const [pendingItems, setPendingItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
+    const [confirmAction, setConfirmAction] = useState(null); // { item, type: "approve" | "reject" }
 
     useEffect(() => {
         fetchPendingMerch();
     }, []);
+
+    // Close the popup with the Escape key
+    useEffect(() => {
+        if (!confirmAction) return;
+        const onKey = (e) => e.key === "Escape" && closeConfirm();
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [confirmAction, processingId]);
 
     const fetchPendingMerch = async () => {
         try {
@@ -55,12 +76,6 @@ export default function AdminMerchApprovals() {
     };
 
     const rejectMerchDrop = async (productId) => {
-        const ok = await askConfirm({
-            title: "Reject this merchandise?",
-            message: "It will be marked as rejected and removed from the approval queue.",
-            confirmText: "Reject",
-        });
-        if (!ok) return;
         setProcessingId(productId);
         try {
             const { error } = await supabase
@@ -68,14 +83,28 @@ export default function AdminMerchApprovals() {
                 .update({ status: "rejected", is_available: false })
                 .eq("id", productId);
 
-            if (!error) {
-                setPendingItems(prev => prev.filter(item => item.id !== productId));
-            }
+            if (error) throw error;
+            setPendingItems((prev) => prev.filter((item) => item.id !== productId));
         } catch (err) {
             console.error("Rejection error:", err);
+            toast.error("Failed to reject item: " + err.message);
         } finally {
             setProcessingId(null);
         }
+    };
+
+    // ---- confirmation popup helpers ----
+    const requestAction = (item, type) => setConfirmAction({ item, type });
+
+    const closeConfirm = () => {
+        if (!processingId) setConfirmAction(null);
+    };
+
+    const handleConfirm = async () => {
+        const { item, type } = confirmAction;
+        if (type === "approve") await approveMerchDrop(item);
+        else await rejectMerchDrop(item.id);
+        setConfirmAction(null);
     };
 
     if (loading) return (
@@ -157,7 +186,7 @@ export default function AdminMerchApprovals() {
 
                                     <div className="flex items-center gap-3 w-full lg:w-auto">
                                         <button
-                                            onClick={() => approveMerchDrop(item)}
+                                            onClick={() => requestAction(item, "approve")}
                                             disabled={processingId === item.id}
                                             className={`${btn("primary", "md")} flex-1 lg:flex-initial`}
                                         >
@@ -166,7 +195,7 @@ export default function AdminMerchApprovals() {
 
                                         <button
                                             title="Reject merchandise"
-                                            onClick={() => rejectMerchDrop(item.id)}
+                                            onClick={() => requestAction(item, "reject")}
                                             disabled={processingId === item.id}
                                             className={btn("dangerOutline", "md")}
                                         >
@@ -181,6 +210,49 @@ export default function AdminMerchApprovals() {
                 )}
 
             </div>
+
+            {/* CONFIRMATION POPUP */}
+            {confirmAction && (() => {
+                const { item, type } = confirmAction;
+                const copy = CONFIRM_COPY[type];
+                const busy = processingId === item.id;
+                const isApprove = type === "approve";
+
+                return (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={closeConfirm}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-md rounded-2xl border border-line bg-white dark:bg-neutral-900 p-6 shadow-2xl"
+                        >
+                            <h2 className="text-lg font-bold text-foreground">{copy.title}</h2>
+                            <p className="mt-2 text-sm text-ink-soft">{copy.message(item.title)}</p>
+
+                            <div className="mt-6 flex justify-end gap-2">
+                                <button
+                                    onClick={closeConfirm}
+                                    disabled={busy}
+                                    className="px-4 py-2 rounded-xl border border-line text-sm font-semibold text-foreground hover:bg-tint transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirm}
+                                    disabled={busy}
+                                    className={btn(isApprove ? "primary" : "dangerOutline", "sm")}
+                                >
+                                    {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+                                    {copy.confirmText}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

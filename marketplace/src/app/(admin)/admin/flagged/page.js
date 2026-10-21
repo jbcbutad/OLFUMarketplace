@@ -1,6 +1,5 @@
 "use client";
 
-import { useConfirm } from "@/components/ConfirmProvider";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -13,15 +12,39 @@ const REASON_LABELS = {
     could_not_read_image: "This photo could not be read by the automatic check.",
 };
 
+// Popup text for each action
+const CONFIRM_COPY = {
+    approve: {
+        title: "Approve this listing?",
+        message: (name) => `"${name}" will be restored and become visible again.`,
+        confirmText: "Approve listing",
+        style: "primary",
+    },
+    remove: {
+        title: "Remove this listing?",
+        message: (name) => `"${name}" will be taken down and the seller won't be able to relist it from here.`,
+        confirmText: "Remove listing",
+        style: "danger",
+    },
+};
+
 export default function AdminFlaggedPage() {
-    const askConfirm = useConfirm();
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
+    const [confirmAction, setConfirmAction] = useState(null); // { group, action: "approve" | "remove" }
 
     useEffect(() => {
         fetchFlags();
     }, []);
+
+    // Close the popup with the Escape key
+    useEffect(() => {
+        if (!confirmAction) return;
+        const onKey = (e) => e.key === "Escape" && closeConfirm();
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [confirmAction, processingId]);
 
     async function fetchFlags() {
         setLoading(true);
@@ -58,17 +81,6 @@ export default function AdminFlaggedPage() {
     }
 
     const resolveGroup = async (group, action) => {
-        if (
-            action === "remove" &&
-            !(await askConfirm({
-                title: "Remove this listing?",
-                message: "It will be taken down and the seller won't be able to relist it from here.",
-                confirmText: "Remove listing",
-            }))
-        ) {
-            return;
-        }
-
         setProcessingId(group.productId);
         try {
             const {
@@ -112,6 +124,19 @@ export default function AdminFlaggedPage() {
         } finally {
             setProcessingId(null);
         }
+    };
+
+    // ---- confirmation popup helpers ----
+    const requestAction = (group, action) => setConfirmAction({ group, action });
+
+    const closeConfirm = () => {
+        if (!processingId) setConfirmAction(null);
+    };
+
+    const handleConfirm = async () => {
+        const { group, action } = confirmAction;
+        await resolveGroup(group, action);
+        setConfirmAction(null);
     };
 
     if (loading) {
@@ -181,7 +206,7 @@ export default function AdminFlaggedPage() {
 
                                         <div className="flex items-center gap-2 shrink-0">
                                             <button
-                                                onClick={() => resolveGroup(group, "approve")}
+                                                onClick={() => requestAction(group, "approve")}
                                                 disabled={busy}
                                                 className={btn("primary", "sm")}
                                             >
@@ -189,7 +214,7 @@ export default function AdminFlaggedPage() {
                                                 Approve listing
                                             </button>
                                             <button
-                                                onClick={() => resolveGroup(group, "remove")}
+                                                onClick={() => requestAction(group, "remove")}
                                                 disabled={busy}
                                                 className={btn("dangerOutline", "sm")}
                                             >
@@ -250,6 +275,49 @@ export default function AdminFlaggedPage() {
                     </div>
                 )}
             </div>
+
+            {/* CONFIRMATION POPUP */}
+            {confirmAction && (() => {
+                const { group, action } = confirmAction;
+                const copy = CONFIRM_COPY[action];
+                const busy = processingId === group.productId;
+                const name = group.product?.title || "This listing";
+
+                return (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={closeConfirm}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-md rounded-2xl border border-line bg-surface text-foreground p-6 shadow-2xl"
+                        >
+                            <h2 className="text-lg font-bold">{copy.title}</h2>
+                            <p className="mt-2 text-sm text-ink-soft">{copy.message(name)}</p>
+
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button
+                                    onClick={closeConfirm}
+                                    disabled={busy}
+                                    className={btn("outline", "sm")}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirm}
+                                    disabled={busy}
+                                    className={btn(copy.style, "sm")}
+                                >
+                                    {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+                                    {copy.confirmText}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

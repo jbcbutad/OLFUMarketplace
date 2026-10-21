@@ -6,6 +6,7 @@ import UnbanButton from "./UnbanButton";
 import BanButton from "./BanButton";
 import { ui, btn, pillTone, roleStyle, roleLabel } from "../ui";
 import { Users, ShieldAlert, Search, Ban, Lock } from "lucide-react";
+import { cleanName } from "@/lib/cleanName";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export default async function UsersAdminPage({
   };
   const resolveDisplayName = (u: any) => {
     const derived = `${u.First_Name || ""} ${u.Last_Name || ""}`.trim();
-    return u.full_name || (derived.length > 0 ? derived : null) || u.email || "Unnamed Account";
+    return cleanName(u.full_name) || (derived.length > 0 ? derived : null) || u.email || "Unnamed Account";
   };
 
   const inputCls = `${ui.input} text-xs font-semibold`;
