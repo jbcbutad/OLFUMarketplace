@@ -92,7 +92,7 @@ export default async function RentalsPage({ searchParams }) {
         image_urls,
         created_at,
         tags,
-        profiles ( full_name ),
+        profiles ( full_name, avatar_url ),
         categories ( name )
       `
             )
@@ -371,6 +371,7 @@ export default async function RentalsPage({ searchParams }) {
                                     title={product.title}
                                     price={product.price}
                                     seller={product.profiles?.full_name || "Unknown Seller"}
+                                    sellerAvatar={product.profiles?.avatar_url}
                                     image={product.image_urls?.[0] || "/placeholder.png"}
                                     category={product.categories?.name}
                                     tags={product.tags}
