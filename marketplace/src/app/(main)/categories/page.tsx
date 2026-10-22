@@ -84,7 +84,7 @@ export default async function CategoriesPage({
       tags,
       is_available,
       stock_quantity,
-      profiles ( full_name, avatar_url, org_name, is_verified_org )
+      profiles ( full_name, avatar_url, org_name, is_verified_org ),
       categories!inner ( name )
     `)
         .eq("is_available", true)
