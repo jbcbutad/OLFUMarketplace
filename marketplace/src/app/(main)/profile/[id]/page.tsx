@@ -499,6 +499,7 @@ export default function PublicProfilePage() {
                 title={product.title}
                 price={product.price}
                 seller={fullName}
+                sellerAvatar={profileData?.avatar_url}
                 orgName={profileData?.org_name}
                 isVerifiedOrg={isVerifiedOrg}
                 image={product.image_urls?.[0] || "/placeholder.png"}

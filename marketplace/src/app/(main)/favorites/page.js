@@ -31,7 +31,7 @@ export default function FavoritesPage() {
             image_urls,
             tags,
             categories ( name ),
-            profiles:seller_id ( full_name )
+            profiles:seller_id ( full_name, avatar_url )
           )
         `)
                 .eq("user_id", user.id)
@@ -117,6 +117,7 @@ export default function FavoritesPage() {
                                             title={product.title}
                                             price={product.price}
                                             seller={product.profiles?.full_name || "Seller"}
+                                            sellerAvatar={product.profiles?.avatar_url}
                                             image={product.image_urls?.[0] || "/placeholder.png"}
                                             category={product.categories?.name}
                                             tags={product.tags}

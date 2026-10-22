@@ -122,7 +122,7 @@ function MerchandiseContent() {
           is_available,
           stock_quantity,
           expires_at,
-          profiles!inner ( full_name, org_name, is_verified_org ),
+          profiles!inner ( full_name, avatar_url, org_name, is_verified_org ),
           categories ( name, icon )
         `)
         .eq("is_available", true)
@@ -541,7 +541,7 @@ function MerchandiseContent() {
                     <ProductCard
                       title={product.title}
                       price={product.price}
-                      seller={product.profiles?.full_name}
+                      sellerAvatar={product.profiles?.avatar_url}
                       orgName={product.profiles?.org_name}
                       isVerifiedOrg={product.profiles?.is_verified_org}
                       image={product.image_urls?.[0]}

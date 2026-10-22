@@ -58,7 +58,7 @@ export default async function RecentListingsPage() {
       created_at,
       tags,
       is_available,
-      profiles ( full_name ),
+      profiles ( full_name, avatar_url ),
       categories!inner ( name )
     `)
         .eq("is_available", true)
@@ -108,6 +108,7 @@ export default async function RecentListingsPage() {
                                         title={product.title}
                                         price={product.price}
                                         seller={sellerName}
+                                        sellerAvatar={product.profiles?.avatar_url}
                                         image={coverImage}
                                         category={product.categories?.name}
                                         tags={product.tags}

@@ -63,7 +63,7 @@ export default async function SearchPage({ searchParams }) {
           First_Name,
           Last_Name
         ),
-        profiles ( full_name, org_name, is_verified_org ),
+        profiles ( full_name, avatar_url, org_name, is_verified_org ),
         categories (
           name
         )
@@ -158,6 +158,7 @@ export default async function SearchPage({ searchParams }) {
                     title={product.title}
                     price={product.price}
                     seller={sellerName}
+                    sellerAvatar={product.profiles?.avatar_url}
                     image={coverImage}
                     category={product.categories?.name}
                     tags={product.tags}
