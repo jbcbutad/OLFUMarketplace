@@ -47,6 +47,7 @@ function NavLink({ href, title, label, icon: Icon, active, isOpen, iconClassName
   return (
     <Link
       href={href}
+      prefetch={false}
       title={title || label}
       aria-current={active ? "page" : undefined}
       className={`${ITEM_BASE} relative ${active ? ITEM_ON : ITEM_OFF} ${isOpen ? "px-3" : "justify-center w-10 h-10 mx-auto"}`}
@@ -96,6 +97,7 @@ function SubLink({ href, active, children }) {
   return (
     <Link
       href={href}
+      prefetch={false}
       aria-current={active ? "page" : undefined}
       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${active
         ? "bg-emerald-600 text-white font-bold"
@@ -112,6 +114,7 @@ function AdminLink({ href, title, label, icon: Icon, theme, pathname, isOpen }) 
   return (
     <Link
       href={href}
+      prefetch={false}
       title={title}
       aria-current={active ? "page" : undefined}
       className={`flex items-center gap-3 py-2 rounded-xl text-sm font-semibold transition-all border ${active ? theme.activeLink : theme.inactiveLink
@@ -196,8 +199,8 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
     <aside className={`navigation-surface h-full text-neutral-900 dark:text-white border-r ${LINE} flex flex-col p-3 transition-all duration-300 shrink-0 overflow-x-hidden ${isOpen ? "w-64" : "w-18"}`}>
       <div
         className={`flex-1 min-h-0 space-y-4 overflow-y-auto overflow-x-hidden pb-4 ${isOpen
-            ? "[scrollbar-width:thin] [scrollbar-color:theme(colors.stone.400)_transparent]"
-            : "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          ? "[scrollbar-width:thin] [scrollbar-color:theme(colors.stone.400)_transparent]"
+          : "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           }`}
       >
         {/* BRAND LOGO & COLLAPSE / EXPAND TOGGLE */}
@@ -206,6 +209,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
             <>
               <Link
                 href="/marketplace"
+                prefetch={false}
                 className="text-xl font-black uppercase tracking-wider italic text-neutral-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors truncate"
               >
                 Marketplace

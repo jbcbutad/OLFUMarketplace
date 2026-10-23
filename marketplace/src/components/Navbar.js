@@ -95,7 +95,7 @@ export default function Navbar() {
     <nav className="navigation-surface border-b border-neutral-200/80 dark:border-neutral-800/80 text-foreground px-3 sm:px-6 py-2 md:py-0 md:h-20 flex flex-wrap md:flex-nowrap items-center gap-y-2 sticky top-0 z-50 transition-colors">
       {/* LOGO: the image already includes the "O.L.F.U Marketplace" text,
           so we swap between the light and dark versions by theme. */}
-      <Link href="/marketplace" className="order-1 flex items-center shrink-0" aria-label="OLFU Marketplace home">
+      <Link href="/marketplace" prefetch={false} className="order-1 flex items-center shrink-0" aria-label="OLFU Marketplace home">
         <Image
           src="/marketplacelogo_light.png"
           alt="OLFU Marketplace"
