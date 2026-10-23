@@ -5,6 +5,7 @@ import { sniffImageType } from "@/lib/imageValidation";
 sharp.cache(false);
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const IMAGE_SEARCH_PROMPT = `
 Look at this image and identify the primary item.

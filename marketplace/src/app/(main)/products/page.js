@@ -3,7 +3,7 @@ import ProductCard from "@/components/ProductCard";
 import { isMerch } from "@/lib/merch";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function ProductsPage() {
   const nowIso = new Date().toISOString();

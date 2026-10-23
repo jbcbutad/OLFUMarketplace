@@ -3,7 +3,7 @@ import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const LIMIT = 30; // kept at your original 30
 

@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { generateWithRetry } from "@/lib/geminiRetry";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
