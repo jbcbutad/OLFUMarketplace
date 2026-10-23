@@ -9,6 +9,8 @@ const EXEMPT_EMAILS = [
     'ong.karl88@gmail.com',
     'gabijanlawrence@gmail.com',
     'johnchie224@gmail.com',
+    'raymongalsim180@gmail.com',
+
 ]
 
 export async function GET(request) {
