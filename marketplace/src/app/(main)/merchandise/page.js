@@ -542,6 +542,7 @@ function MerchandiseContent() {
                       title={product.title}
                       price={product.price}
                       sellerAvatar={product.profiles?.avatar_url}
+                      seller={product.profiles?.full_name || "Unknown Seller"}
                       orgName={product.profiles?.org_name}
                       isVerifiedOrg={product.profiles?.is_verified_org}
                       image={product.image_urls?.[0]}
