@@ -180,7 +180,7 @@ export default function ProductActions({
             <div className={`p-4 ${CARD} rounded-2xl space-y-4`}>
               <div className="flex items-center justify-between text-xs font-bold text-foreground">
                 <span>{existingRoomId ? "Your order" : "Select Quantity:"}</span>
-                <span className="text-emerald-600 dark:text-emerald-400">{stockAvailable} Units Available</span>
+                <span className="text-emerald-600 dark:text-emerald-400">{stockAvailable} {stockAvailable === 1 ? "Unit" : "Units"} Available</span>
               </div>
 
               {existingRoomId ? (
@@ -247,7 +247,7 @@ export default function ProductActions({
       )}
 
       {/* Message box (logged-in buyers only). It draws its own top divider. */}
-      {currentUserId && (
+      {currentUserId && !(isMerchandise && existingRoomId) && (
         <SendMessageToSeller sellerId={product.seller_id} productId={product.id} existingRoomId={existingRoomId} />
       )}
     </div>
