@@ -423,6 +423,7 @@ export default async function Home({ searchParams }) {
             {products.map((product, index) => (
               <Link
                 href={`/products/${product.id}`}
+                prefetch={false}
                 key={product.id}
                 className="block group transition-all duration-300 hover:-translate-y-1 active:scale-95"
               >

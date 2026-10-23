@@ -112,7 +112,7 @@ export default function FavoritesPage() {
                                 const product = fav.products;
 
                                 return (
-                                    <Link key={fav.id} href={`/products/${product.id}`} className="block group">
+                                    <Link key={fav.id} href={`/products/${product.id}`} prefetch={false} className="block group">
                                         <ProductCard
                                             title={product.title}
                                             price={product.price}

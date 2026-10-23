@@ -126,7 +126,7 @@ export default function ProductActions({
               : `border-2 ${LINE} bg-stone-300 dark:bg-neutral-800 text-neutral-900 dark:text-white`
               }`}>
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Seller Avatar" className="w-full h-full object-cover" />
+                <img src={profile.avatar_url} referrerPolicy="no-referrer" alt="Seller Avatar" className="w-full h-full object-cover" />
               ) : (
                 sellerName?.charAt(0).toUpperCase()
               )}

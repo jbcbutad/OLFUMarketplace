@@ -325,7 +325,7 @@ export default function ProfilePage() {
                                 >
                                     {profileData?.avatar_url ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={profileData.avatar_url} className="h-full w-full object-cover" alt="Profile avatar" />
+                                        <img src={profileData.avatar_url} referrerPolicy="no-referrer" className="h-full w-full object-cover" alt="Profile avatar" />
                                     ) : (
                                         authEmail?.charAt(0).toUpperCase() || "?"
                                     )}
@@ -459,7 +459,7 @@ export default function ProfilePage() {
 
                             return (
                                 <div key={product.id} className="group relative transition-all duration-300 hover:-translate-y-1">
-                                    <Link href={`/products/${product.id}`} className="block">
+                                    <Link href={`/products/${product.id}`} prefetch={false} className="block">
                                         <div className="relative overflow-hidden rounded-2xl">
                                             <ProductCard
                                                 title={product.title}

@@ -15,7 +15,7 @@ export default async function ProductsPage() {
       price,
       image_urls,
       tags,
-      users ( First_Name, Last_Name, avatar_url )
+      users ( First_Name, Last_Name, avatar_url ),
       categories ( name )
     `)
     .eq("is_available", true)
@@ -35,10 +35,11 @@ export default async function ProductsPage() {
             {products?.filter((p) => !isMerch(p)).map((product) => {
               const sellerName = `${product.users?.First_Name || ""} ${product.users?.Last_Name || ""}`.trim() || "Unknown Seller";
               return (
-                <Link key={product.id} href={`/products/${product.id}`} className="block group">
+                <Link key={product.id} href={`/products/${product.id}`} prefetch={false} className="block group">
                   <ProductCard
                     title={product.title}
                     price={product.price}
+                    seller={sellerName}
                     sellerAvatar={product.users?.avatar_url}
                     image={product.image_urls?.[0] || "/placeholder.png"}
                     category={product.categories?.name}

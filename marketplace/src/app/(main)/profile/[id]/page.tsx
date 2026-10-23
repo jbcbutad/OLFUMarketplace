@@ -380,7 +380,7 @@ export default function PublicProfilePage() {
               >
                 {profileData?.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profileData.avatar_url} className="h-full w-full object-cover" alt="Profile avatar" />
+                  <img src={profileData.avatar_url} referrerPolicy="no-referrer" className="h-full w-full object-cover" alt="Profile avatar" />
                 ) : (
                   <span>{fullName?.[0] || "?"}</span>
                 )}
@@ -492,6 +492,7 @@ export default function PublicProfilePage() {
           {products.map((product) => (
             <Link
               href={`/products/${product.id}`}
+              prefetch={false}
               key={product.id}
               className="group block transition-all duration-300 hover:-translate-y-1 active:scale-95"
             >
