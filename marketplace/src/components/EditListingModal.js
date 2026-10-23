@@ -56,8 +56,8 @@ export default function EditListingModal({ product, onClose, onSaved }) {
 
             // 2. Tags: keep everything as-is (official-merch is never touched here)
             let tags = Array.isArray(product.tags) ? [...product.tags] : [];
-            if (needsReview && !tags.includes("Flagged")) tags.push("Flagged");
-            if (!needsReview) tags = tags.filter((t) => t !== "Flagged");
+            tags = tags.filter((t) => t !== "Flagged"); // flagged state lives in status, not tags
+
 
             // 3. Stock, availability, status
             const stock = canEditStock ? parseInt(form.stock_quantity) || 0 : currentStock;
