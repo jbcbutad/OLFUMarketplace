@@ -5,7 +5,8 @@ import RoleSelect from "../RoleSelect";
 import UnbanButton from "./UnbanButton";
 import BanButton from "./BanButton";
 import { ui, btn, pillTone, roleStyle, roleLabel } from "../ui";
-import { Users, ShieldAlert, Search, Ban, Lock } from "lucide-react";
+import { Users, ShieldAlert, Ban, Lock } from "lucide-react";
+import UserFilters from "./UserFilters";
 import { cleanName } from "@/lib/cleanName";
 
 export const dynamic = "force-dynamic";
@@ -105,7 +106,7 @@ export default async function UsersAdminPage({
     return cleanName(u.full_name) || (derived.length > 0 ? derived : null) || u.email || "Unnamed Account";
   };
 
-  const inputCls = `${ui.input} text-xs font-semibold`;
+
   const hasFilters =
     q || roleFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" || sort !== "name_asc";
 
@@ -124,7 +125,7 @@ export default async function UsersAdminPage({
 
       </div>
 
-      {/* FILTER BAR: account type tabs + search (plain GET form, no client JS) */}
+      {/* FILTER BAR: account type tabs + live filters */}
       <div className={`${ui.card} p-4 flex flex-col lg:flex-row lg:items-center gap-3`}>
         <div className="inline-flex p-1 rounded-xl bg-tint border border-line self-start">
           {[
@@ -145,41 +146,14 @@ export default async function UsersAdminPage({
           ))}
         </div>
 
-        <form method="get" action="/admin/users" className="flex flex-wrap items-center gap-2 lg:ml-auto">
-          <input type="hidden" name="type" value={typeFilter} />
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Search name or email"
-              className={`${inputCls} pl-8 w-60`}
-            />
-          </div>
-          <select name="role" defaultValue={roleFilter} className={inputCls}>
-            <option value="all">All roles</option>
-            <option value="super_admin">Super admin</option>
-            <option value="admin">Admin</option>
-            <option value="moderator">Moderator</option>
-            <option value="user">User</option>
-          </select>
-          <select name="status" defaultValue={statusFilter} className={inputCls}>
-            <option value="all">All accounts</option>
-            <option value="banned">Banned only</option>
-          </select>
-          <select name="sort" defaultValue={sort} className={inputCls}>
-            <option value="name_asc">Name A–Z</option>
-            <option value="name_desc">Name Z–A</option>
-          </select>
-          <button type="submit" className={btn("primary", "sm")}>
-            Apply
-          </button>
-          {hasFilters && (
-            <Link href="/admin/users" className="text-xs font-semibold text-ink-soft hover:text-brand-deep hover:underline">
-              Clear
-            </Link>
-          )}
-        </form>
+        <UserFilters
+          q={q}
+          role={roleFilter}
+          status={statusFilter}
+          sort={sort}
+          type={typeFilter}
+          hasFilters={!!hasFilters}
+        />
       </div>
 
 
