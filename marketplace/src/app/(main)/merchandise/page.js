@@ -21,7 +21,7 @@ const tagLabel = (t) =>
   String(t).trim().replace(/^#+/, "").toLowerCase().replace(/\s+/g, " ");
 
 // Every merch listing carries tags like these, so they're useless as filters
-const COMMON_TAG_KEYS = new Set(["officialmerch", "merch", "merchandise"]);
+const COMMON_TAG_KEYS = new Set(["officialmerch", "merch", "merchandise", "flagged"]);
 
 // Merch is sold by organizations, so that's the useful way to split it
 // (every item is in the Merchandise category, so a category filter would only

@@ -89,11 +89,18 @@ export default function AdminFlaggedPage() {
 
             // Restore the listing to the state it would have had without the flag
             const isMerch = Array.isArray(group.product?.tags) && group.product.tags.includes("official-merch");
+            const cleanTags = Array.isArray(group.product?.tags)
+                ? group.product.tags.filter((t) => String(t).toLowerCase() !== "flagged")
+                : null;
             const productUpdate =
                 action === "approve"
-                    ? { status: isMerch ? "pending" : "active", is_published: true, is_available: true }
+                    ? {
+                        status: isMerch ? "pending" : "active",
+                        is_published: true,
+                        is_available: true,
+                        ...(cleanTags ? { tags: cleanTags } : {}),
+                    }
                     : { status: "rejected", is_published: false, is_available: false };
-
             const { data: updated, error: productError } = await supabase
                 .from("products")
                 .update(productUpdate)

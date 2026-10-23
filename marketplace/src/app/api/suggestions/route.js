@@ -7,7 +7,7 @@ const tagKey = (t) =>
   String(t).trim().replace(/^#+/, "").toLowerCase().replace(/[\s_,-]+/g, "");
 
 // Internal tags that should never be suggested
-const HIDDEN_TAG_KEYS = new Set(["pending", "expired", "officialmerch"]);
+const HIDDEN_TAG_KEYS = new Set(["pending", "expired", "officialmerch", "flagged"]);
 
 export async function POST(req) {
   try {
