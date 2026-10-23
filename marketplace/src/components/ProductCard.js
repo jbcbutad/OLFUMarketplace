@@ -138,20 +138,38 @@ export default function ProductCard({
       )}
 
       {/* SELLER INFO: Avatar + real name (+ org if verified) + listed time */}
+      {/* SELLER INFO: Avatar + real name (+ org on its own line if verified) + listed time */}
       <div className="mt-3 pt-2 border-t border-border/60 text-xs text-muted-foreground">
         <div className="flex items-center gap-2 min-w-0">
           <SellerAvatar src={sellerAvatar} name={sellerName} />
 
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="truncate font-semibold text-foreground">{sellerName}</span>
+          {isVerifiedOrg && orgName ? (
+            <div className="flex flex-col min-w-0 flex-1 leading-tight">
+              <span className="truncate font-semibold text-foreground" title={sellerName}>
+                {sellerName}
+              </span>
+              <span
+                className="flex items-center gap-1 min-w-0 text-emerald-600 dark:text-emerald-400 font-bold"
+                title={`${orgName} (Verified Org)`}
+              >
+                <ShieldCheck size={12} className="shrink-0" />
+                <span className="text-[11px] truncate">{orgName}</span>
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="truncate font-semibold text-foreground">{sellerName}</span>
 
-            {isVerifiedOrg && (
-              <div className="flex items-center gap-1 shrink-0 text-emerald-600 dark:text-emerald-400 font-bold">
-                <ShieldCheck size={14} title="Verified Org Representative" />
-                {orgName && <span className="text-[11px] truncate max-w-[80px]">({orgName})</span>}
-              </div>
-            )}
-          </div>
+              {isVerifiedOrg && (
+                <div
+                  className="flex items-center gap-1 shrink-0 text-emerald-600 dark:text-emerald-400 font-bold"
+                  title="Verified Org Representative"
+                >
+                  <ShieldCheck size={14} />
+                </div>
+              )}
+            </div>
+          )}
 
           {listedAgo && (
             <time
