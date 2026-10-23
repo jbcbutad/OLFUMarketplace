@@ -86,7 +86,7 @@ export default function ProductActions({
       });
       if (error || !roomId) throw new Error(error?.message || "Failed to open chat.");
 
-      const body = `Hi! I would like to order ${orderQty} unit(s) of "${product.title}" (Total: ₱${(product.price * orderQty).toLocaleString()}). I'll send my GCash payment screenshot here.`;
+      const body = `Hi! I would like to order ${orderQty} unit(s) of "${product.title}" (Total: ₱${(product.price * orderQty).toLocaleString()}). Is it still available?`;
       const res = await fetch("/api/direct-messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,6 +96,7 @@ export default function ProductActions({
         const d = await res.json().catch(() => ({}));
         throw new Error(d.error || "Failed to send order message.");
       }
+      setExistingRoomId(roomId);
 
       // The button stays in its loading state until the redirect finishes
       router.push(`/chat/${roomId}?sellerId=${product.seller_id}&productId=${product.id}`);
@@ -178,37 +179,53 @@ export default function ProductActions({
           {isMerchandise ? (
             <div className={`p-4 ${CARD} rounded-2xl space-y-4`}>
               <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                <span>Select Quantity:</span>
+                <span>{existingRoomId ? "Your order" : "Select Quantity:"}</span>
                 <span className="text-emerald-600 dark:text-emerald-400">{stockAvailable} Units Available</span>
               </div>
 
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min="1"
-                  max={stockAvailable}
-                  value={orderQty}
-                  onChange={(e) => setOrderQty(Math.min(parseInt(e.target.value) || 1, stockAvailable))}
-                  aria-label="Quantity"
-                  className="w-24 bg-stone-200 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-neutral-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 transition-all dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:focus:border-emerald-600"
-                />
-                <button
-                  onClick={handleInquireMerchandise}
-                  disabled={inquiring || stockAvailable <= 0}
-                  className="flex-1 py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  {inquiring ? (
-                    <><Loader2 className="animate-spin" size={16} /> Opening Chat...</>
-                  ) : stockAvailable <= 0 ? (
-                    "Sold Out"
-                  ) : (
-                    <><MessageSquare size={16} /> Order & Message Org (₱{(product.price * orderQty).toLocaleString()})</>
-                  )}
-                </button>
-              </div>
-              <p className="text-[11px] text-muted-foreground text-center">
-                Clicking this opens a chat with the organization to send your GCash receipt.
-              </p>
+              {existingRoomId ? (
+                <>
+                  <Link
+                    href={`/chat/${existingRoomId}?sellerId=${product.seller_id}&productId=${product.id}`}
+                    className="w-full py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <MessageSquare size={16} /> View Conversation
+                  </Link>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    You already have a conversation with the organization about this item.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      max={stockAvailable}
+                      value={orderQty}
+                      onChange={(e) => setOrderQty(Math.min(parseInt(e.target.value) || 1, stockAvailable))}
+                      aria-label="Quantity"
+                      className="w-24 bg-stone-200 border border-stone-800 rounded-xl px-3 py-2 text-xs font-bold text-neutral-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 transition-all dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:focus:border-emerald-600"
+                    />
+                    <button
+                      onClick={handleInquireMerchandise}
+                      disabled={inquiring || stockAvailable <= 0}
+                      className="flex-1 py-3 bg-foreground text-background hover:opacity-90 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      {inquiring ? (
+                        <><Loader2 className="animate-spin" size={16} /> Opening Chat...</>
+                      ) : stockAvailable <= 0 ? (
+                        "Sold Out"
+                      ) : (
+                        <><MessageSquare size={16} /> Order & Message Org (₱{(product.price * orderQty).toLocaleString()})</>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Clicking this opens a chat with the organization to arrange your order.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <MakeOffer sellerId={product.seller_id} productTitle={product.title} productId={product.id} />
