@@ -1,11 +1,36 @@
 import { NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createSessionClient } from "@/lib/supabase/server";
 
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY,
-});
+// Created lazily so a missing key can never crash the module at import/build time
+let aiClient = null;
+function getAi() {
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error("GEMINI_API_KEY is not set");
+    }
+    if (!aiClient) {
+        aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    }
+    return aiClient;
+}
+
+// Review text can contain profanity/slurs. Without this, Gemini may refuse to
+// answer and the route would silently fall back to "Neutral".
+const SAFETY_SETTINGS = [
+    HarmCategory.HARM_CATEGORY_HARASSMENT,
+    HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+].map((category) => ({ category, threshold: HarmBlockThreshold.BLOCK_NONE }));
+
+const GEMINI_MODEL =
+    process.env.GEMINI_TEXT_MODEL ||
+    process.env.GEMINI_MODEL ||
+    "gemini-3.6-flash";
+
+const SYSTEM_INSTRUCTION =
+    "You are an AI review summarizer for a student marketplace. Return strictly valid raw JSON.";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -125,25 +150,24 @@ Rules:
 - Do not use markdown.
         `.trim();
 
-        const completion = await groq.chat.completions.create({
-            model: process.env.GROQ_TEXT_MODEL || "llama-3.1-8b-instant",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are an AI review summarizer for a student marketplace. Return strictly valid raw JSON.",
-                },
-                {
-                    role: "user",
-                    content: prompt,
-                },
-            ],
-            response_format: { type: "json_object" },
-            max_tokens: 500,
-            temperature: 0.2,
+        const response = await getAi().models.generateContent({
+            model: GEMINI_MODEL,
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: {
+                systemInstruction: SYSTEM_INSTRUCTION,
+                responseMimeType: "application/json",
+                temperature: 0.2,
+                maxOutputTokens: 2048,
+                safetySettings: SAFETY_SETTINGS,
+            },
         });
 
-        const rawContent = completion.choices?.[0]?.message?.content;
-        if (!rawContent) throw new Error("Groq returned an empty response");
+        const rawContent = response.text;
+        if (!rawContent) {
+            throw new Error(
+                `Gemini returned an empty response (block: ${response.promptFeedback?.blockReason || response.candidates?.[0]?.finishReason || "unknown"})`
+            );
+        }
 
         const summaryData = JSON.parse(rawContent);
 
@@ -152,7 +176,7 @@ Rules:
             !Array.isArray(summaryData.pros) ||
             !Array.isArray(summaryData.cons)
         ) {
-            throw new Error("Groq returned an invalid summary structure");
+            throw new Error("Gemini returned an invalid summary structure");
         }
 
         summaryData.pros = summaryData.pros
@@ -172,7 +196,7 @@ Rules:
 
         return NextResponse.json({ success: true, summaryData });
     } catch (error) {
-        console.error("Groq Summary API error:", error?.message || error);
+        console.error("Gemini Summary API error:", error?.message || error);
         return NextResponse.json(
             { success: false, error: error?.message || "Review summary generation failed" },
             { status: 500 }
