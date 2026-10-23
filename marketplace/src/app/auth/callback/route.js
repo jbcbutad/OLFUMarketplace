@@ -5,6 +5,12 @@ import { cookies } from 'next/headers'
 const isBannedError = (code, text) =>
     code === 'user_banned' || (text || '').toLowerCase().includes('banned')
 
+const EXEMPT_EMAILS = [
+    'ong.karl88@gmail.com',
+    'gabijanlawrence@gmail.com',
+    'johnchie224@gmail.com',
+]
+
 export async function GET(request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
@@ -64,8 +70,8 @@ export async function GET(request) {
             const email = (user?.email || '').toLowerCase()
             const allowed =
                 /^[^@]+val@student\.fatima\.edu\.ph$/.test(email) ||
-                /^[^@]+@fatima\.edu\.ph$/.test(email)
-
+                /^[^@]+@fatima\.edu\.ph$/.test(email) ||
+                EXEMPT_EMAILS.includes(email)
             if (!allowed) {
                 await supabase.auth.signOut()
                 return NextResponse.redirect(`${origin}/login?error=UnauthorizedDomain`)
