@@ -20,6 +20,15 @@ export default function SearchBar() {
   const wrapperRef = useRef(null);
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null); // Keeps track of active speech instance
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setIsLoggedIn(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -264,7 +273,13 @@ export default function SearchBar() {
           {/* Camera Search Button */}
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (!isLoggedIn) {
+                toast.error("Please log in to search by photo.");
+                return;
+              }
+              fileInputRef.current?.click();
+            }}
             disabled={isAnalyzing}
             title="Search by photo with AI"
             className="p-1.5 text-neutral-500 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-all disabled:opacity-50 flex items-center justify-center"

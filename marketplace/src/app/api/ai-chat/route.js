@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { requireAiUser } from '@/lib/aiQuota';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -130,6 +131,9 @@ const MAX_HISTORY_MESSAGES = 12; // keeps cost and prompt-injection surface smal
 
 export async function POST(req) {
   try {
+    const gate = await requireAiUser('chat', 40);
+    if (gate.error) return gate.error;
+
     const { history, message } = await req.json();
 
     if (!message || typeof message !== 'string' || !message.trim()) {

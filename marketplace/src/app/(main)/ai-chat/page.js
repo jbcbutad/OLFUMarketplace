@@ -23,6 +23,7 @@ export default function AiChatPage() {
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const messagesEndRef = useRef(null);
 
 
@@ -31,6 +32,7 @@ export default function AiChatPage() {
     async function initUserAndHistory() {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
+      setAuthChecked(true);
 
       if (user) {
         const { data: profile } = await supabase
@@ -77,9 +79,36 @@ export default function AiChatPage() {
     scrollToBottom();
   }, [messages, loading]);
 
+  if (authChecked && !currentUser) {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center gap-4 px-6 text-center text-foreground">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center">
+          <Bot size={24} />
+        </div>
+        <h1 className="text-lg font-bold">Log in to use the AI Assistant</h1>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          The assistant is for signed-in OLFU members.
+        </p>
+        <div className="flex gap-2">
+          <Link href="/login" className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm">
+            Log in
+          </Link>
+          <Link href="/marketplace" className="px-5 py-2.5 rounded-xl bg-muted text-foreground font-bold text-sm">
+            Back
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     if (!input.trim() || loading) return;
+
+    if (!currentUser) {
+      toast.error('Please log in to use the AI assistant.');
+      return;
+    }
 
     const userMessage = input.trim();
     setInput('');
@@ -104,7 +133,11 @@ export default function AiChatPage() {
       });
 
       const data = await response.json();
-      const aiReply = data.reply || data.error || "I'm having trouble responding right now.";
+      if (!response.ok) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.error || "I'm having trouble responding right now." }]);
+        return;
+      }
+      const aiReply = data.reply || "I'm having trouble responding right now.";
 
       setMessages((prev) => [...prev, { role: 'assistant', content: aiReply }]);
 

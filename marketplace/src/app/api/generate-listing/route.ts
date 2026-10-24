@@ -1,7 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { generateWithRetry } from "@/lib/geminiRetry";
+import { requireAiUser } from "@/lib/aiQuota";
+
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -24,12 +26,7 @@ const MAX_DESCRIPTION = 1000;
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
 
     const body: RequestBody = await req.json();
     const { description: rawPrompt, image } = body;
@@ -39,6 +36,9 @@ export async function POST(req: NextRequest) {
     if (!userPrompt && !image) {
       return NextResponse.json({ error: "Provide an image or short text note." }, { status: 400 });
     }
+
+    const gate = await requireAiUser("autofill", 15);
+    if (gate.error) return gate.error;
 
     const promptText = `You are an expert marketplace assistant for Our Lady of Fatima University (OLFU).
 Analyze the provided item details or image and generate an optimized listing.

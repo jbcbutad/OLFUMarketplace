@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import sharp from "sharp";
 import { sniffImageType } from "@/lib/imageValidation";
+import { requireAiUser } from "@/lib/aiQuota";
 
 sharp.cache(false);
 
@@ -112,8 +113,12 @@ async function analyzeWithGroq(base64Image, groqKey) {
     return parsed.query.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+
 export async function POST(req) {
     try {
+        const gate = await requireAiUser("image-search", 20);
+        if (gate.error) return gate.error;
+
         const formData = await req.formData();
         const file = formData.get("image");
 
@@ -167,13 +172,13 @@ export async function POST(req) {
         }
 
         return Response.json(
-            { error: "Both vision services failed", geminiError, groqError },
+            { error: "Photo search is unavailable right now. Please try again." },
             { status: 500 }
         );
     } catch (error) {
         console.error("Unhandled image search error:", error);
         return Response.json(
-            { error: error?.message || "Unexpected image search error" },
+            { error: "Photo search is unavailable right now. Please try again." },
             { status: 500 }
         );
     }
