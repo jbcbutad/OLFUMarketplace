@@ -157,13 +157,7 @@ export default function ChatInput({ roomId, sellerId }) {
 
         <div className="flex-1 flex items-center bg-stone-100 border border-stone-800 rounded-full pl-3 pr-1 py-1 transition-all focus-within:border-emerald-700 focus-within:ring-2 focus-within:ring-emerald-600/30 dark:bg-neutral-800 dark:border-neutral-700 dark:focus-within:border-emerald-600">
           <button
-            onClick={() => {
-              if (!isLoggedIn) {
-                toast.error("Please log in to search by photo.");
-                return;
-              }
-              fileInputRef.current?.click();
-            }}
+            onClick={() => fileInputRef.current?.click()}
             disabled={isSending}
             type="button"
             aria-label="Attach image"
