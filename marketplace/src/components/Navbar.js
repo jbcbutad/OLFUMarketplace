@@ -12,12 +12,15 @@ import {
   ShoppingCart,
   ShoppingBag,
   Heart,
+  Bell,
   MessageSquare
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import SearchBar from "@/components/SearchBar";
 import useUnreadCount from "@/lib/useUnreadCount";
+import NotificationBell from "@/components/NotificationBell";
+import { useUnreadNotifications } from "@/lib/useNotifications";
 
 // Dropdown colors: explicit light/dark so the menu follows the theme
 const MENU_LINE = "border-stone-400 dark:border-neutral-700";
@@ -30,6 +33,7 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const unreadCount = useUnreadCount();
+  const notifCount = useUnreadNotifications(user?.id);
 
   const router = useRouter();
 
@@ -125,6 +129,8 @@ export default function Navbar() {
 
         {user && (
           <>
+            <NotificationBell count={notifCount} />
+
             {/* MESSAGES BUTTON WITH BADGE (phones use the menu instead, see the dot on the avatar) */}
             <Link
               href="/chat"
@@ -188,10 +194,11 @@ export default function Navbar() {
                 </div>
                 <ChevronDown size={16} className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
 
-                {/* Unread dot for phones, where the Messages button is hidden */}
-                {unreadCount > 0 && (
+                {/* Unread dot for phones, where the Messages and Notifications buttons are hidden */}
+                {notifCount > 0 && unreadCount === 0 && (
                   <span className="sm:hidden absolute -top-0.5 -right-0.5 w-3 h-3 bg-rose-600 rounded-full ring-2 ring-stone-200 dark:ring-neutral-900" />
                 )}
+
               </button>
 
               {dropdownOpen && (
@@ -209,6 +216,18 @@ export default function Navbar() {
                     <Link href="/profile" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
                       <User size={18} />
                       My Profile
+                    </Link>
+
+                    <Link href="/notifications" role="menuitem" className={`${MENU_ITEM} justify-between sm:hidden`} onClick={() => setDropdownOpen(false)}>
+                      <div className="flex items-center gap-3">
+                        <Bell size={18} className="text-amber-500" />
+                        Notifications
+                      </div>
+                      {notifCount > 0 && (
+                        <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                          {notifCount > 9 ? "9+" : notifCount}
+                        </span>
+                      )}
                     </Link>
 
                     <Link href="/chat" role="menuitem" className={`${MENU_ITEM} justify-between`} onClick={() => setDropdownOpen(false)}>
