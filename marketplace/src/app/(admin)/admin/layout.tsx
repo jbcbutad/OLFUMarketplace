@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import AdminFooter from '@/components/AdminFooter';
 import AdminUserCard from './AdminUserCard';
+import AdminNotificationBell from '@/components/AdminNotificationBell';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -16,7 +17,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <main className="flex-1 p-6 overflow-y-auto relative">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end items-center gap-3 mb-4">
+            <AdminNotificationBell />
             <AdminUserCard />
           </div>
           {children}

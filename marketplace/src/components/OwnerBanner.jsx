@@ -48,7 +48,7 @@ export default function OwnerBanner({ sellerId, productId, status, updatedAt }) 
           <span className="uppercase text-[10px] font-bold px-2.5 py-1 bg-rose-500/20 text-rose-800 dark:text-rose-300 rounded-md border border-rose-500/30 shrink-0">
             Expired
           </span>
-          <span>This listing expired due to 90 days of inactivity.</span>
+          <span>This listing expired due to 30 days of inactivity.</span>
         </div>
         <RelistButton productId={productId} />
       </div>

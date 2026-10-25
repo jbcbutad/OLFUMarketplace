@@ -20,7 +20,7 @@ const URL_ERRORS: Record<string, string> = {
     "Access restricted. Students must use their Valenzuela campus email ending in val@student.fatima.edu.ph. Faculty and staff must use @fatima.edu.ph.",
   AuthFailed: "Authentication failed. Please try again.",
   Banned:
-    "This account has been suspended. If you think this is a mistake, please contact the OLFU Marketplace administrators.",
+    "This account has been suspended. If you think this is a mistake, please contact olfumarketplace@gmail.com",
 };
 
 const GREETINGS = [

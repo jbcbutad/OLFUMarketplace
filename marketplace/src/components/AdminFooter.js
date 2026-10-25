@@ -28,7 +28,7 @@ async function pingDatabase() {
       cache: "no-store",
     });
     const ms = Math.round(performance.now() - started);
-    if (res.status >= 500) return { state: "down", ms };
+    if (!res.ok) return { state: "down", ms };
     return { state: ms > SLOW_MS ? "slow" : "healthy", ms };
   } catch {
     return { state: "down", ms: null };
@@ -74,7 +74,7 @@ export default function AdminFooter() {
 
         const role = profile?.role;
         if (isMounted) {
-          if (role === "admin" || role === "super_admin") {
+          if (["admin", "super_admin", "superadmin"].includes(role)) {
             setUserRole(role);
           } else {
             setUserRole(null);
