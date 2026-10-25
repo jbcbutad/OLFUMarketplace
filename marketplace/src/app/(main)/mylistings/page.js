@@ -291,6 +291,10 @@ function MyListingsContent() {
               const editLocked = isPendingAdmin || isFlagged || isRejected;
 
               const isUnavailable = !item.is_available || isExpiredTag;
+              const msLeft = item.expires_at ? new Date(item.expires_at).getTime() - Date.now() : null;
+              const nearExpiry =
+                !isMerchandise && item.status === "active" && item.is_available &&
+                msLeft !== null && msLeft > 0 && msLeft <= 3 * 24 * 60 * 60 * 1000;
 
               let cardBgStyles = "bg-neutral-50 dark:bg-neutral-900 border-neutral-900 dark:border-white shadow-sm hover:shadow-md";
               if (isFlagged) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-900 dark:border-white opacity-75";
@@ -364,6 +368,15 @@ function MyListingsContent() {
                     </div>
 
                     <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto justify-center md:justify-end mt-4 md:mt-0 items-center">
+                      {nearExpiry && (
+                        <RelistButton
+                          productId={item.id}
+                          label="Renew (Free)"
+                          onDone={() => fetchListings(currentUserId)}
+                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-black rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all"
+                        />
+                      )}
+
                       {isExpiredTag ? (
                         isMerchandise ? (
                           <button

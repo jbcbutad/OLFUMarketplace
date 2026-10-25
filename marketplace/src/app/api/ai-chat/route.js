@@ -55,7 +55,7 @@ Open your listing, set it to **Unavailable**, then pick the buyer from your rece
 
 ### Official organization merchandise
 - To become a verified organization seller, open the org application page and fill in the organization name, department, contact email, and description. Agree to the Merchandise Terms.
-- Student-led organizations also need their adviser or a faculty professor to email olfumarketplace@fatima.edu.ph to confirm the organization and list the authorized student representatives. Faculty accounts do not need this step.
+- Student-led organizations also need their adviser or a faculty professor to email olfumarketplace@gmail.com to confirm the organization and list the authorized student representatives. Faculty accounts do not need this step.
 - After approval, create a listing and turn on the **Official Organization Merch** toggle. Enter the stock quantity and how many days it should run. The fee is P1.00 per day.
 - After submitting, a **Payment Required** window shows the fee and payment steps. Follow the instructions in that window exactly. Then the drop waits for admin approval and payment check (shown as "Pending" in **My Listings**).
 - Buyers order merch with **Order & Message Org** and choose a quantity.

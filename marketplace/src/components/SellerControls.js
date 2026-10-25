@@ -31,6 +31,13 @@ export default function SellerControls({ product, currentUserId }) {
     const listingState = getListingState(product);
     const isActuallyExpired = listingState === "expired";
 
+    // Last 3 days: matches relist_product and the expiry reminder. Merch renews only after it expires.
+    const msLeft = product.expires_at ? new Date(product.expires_at).getTime() - Date.now() : null;
+    const nearExpiry =
+        !isMerchandise && product.status === "active" && product.is_available &&
+        msLeft !== null && msLeft > 0 && msLeft <= 3 * 24 * 60 * 60 * 1000;
+    const daysLeft = nearExpiry ? Math.ceil(msLeft / (24 * 60 * 60 * 1000)) : null;
+
 
 
     const isFlagged = product.status === "flagged";
@@ -276,6 +283,12 @@ export default function SellerControls({ product, currentUserId }) {
                 </p>
             )}
 
+            {nearExpiry && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                    This listing expires in {daysLeft} day{daysLeft === 1 ? "" : "s"}. Renew it for free to keep it up for another 30 days.
+                </p>
+            )}
+
             {/* Action row */}
             <div className="flex items-center gap-2 flex-wrap">
                 {isExpiredTag &&
@@ -293,6 +306,15 @@ export default function SellerControls({ product, currentUserId }) {
                             className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
                         />
                     ))}
+
+                {nearExpiry && (
+                    <RelistButton
+                        productId={product.id}
+                        label="Renew (Free)"
+                        onDone={() => window.location.reload()}
+                        className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-black rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                    />
+                )}
 
                 {!isRejected && (
                     <button

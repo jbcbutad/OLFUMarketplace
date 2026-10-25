@@ -8,7 +8,6 @@ import Link from "next/link";
 import { ArrowLeft, Tag, Flag, AlertTriangle, Loader2, Heart, ShieldCheck, Trash2, Clock } from "lucide-react";
 import ProductReviews from "@/components/ProductReviews";
 import ProductActions from "@/components/ProductActions";
-import OwnerBanner from "@/components/OwnerBanner";
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 import { cleanName } from "@/lib/cleanName";
@@ -345,8 +344,6 @@ export default function ProductDetailPage({ params }) {
 
           </div>
         </div>
-
-        <OwnerBanner product={product} />
 
         {product.removal_reason && (currentUser?.id === product.seller_id || isStaffViewer) && (
           <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl mb-6 text-xs font-bold text-rose-600 dark:text-rose-400">
