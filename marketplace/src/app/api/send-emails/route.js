@@ -25,12 +25,29 @@ function authorized(req) {
 
 function render(row) {
     const url = row.link?.startsWith("/") ? SITE + row.link : SITE + "/notifications";
-    const html = `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#171717">
-<h2 style="margin:0 0 12px">${esc(row.subject)}</h2>
-${row.body ? `<p style="margin:0 0 20px;line-height:1.5">${esc(row.body)}</p>` : ""}
-<a href="${esc(url)}" style="display:inline-block;background:#047857;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">Open OLFU Marketplace</a>
-<p style="margin:24px 0 0;font-size:12px;color:#737373">You can turn these emails off on your Notifications page.</p>
-</div>`;
+    const year = new Date().getFullYear();
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+<body style="margin:0;padding:0;background:#ffffff;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+    <tr><td style="padding:0 0 6px;font-family:Verdana,Tahoma,Arial,sans-serif;font-size:20px;font-weight:bold;color:#111111;">${esc(row.subject)}</td></tr>
+    ${row.body ? `<tr><td style="padding:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;color:#111111;">${esc(row.body)}</td></tr>` : ""}
+    <tr><td style="border-top:2px solid #3a5a3a;font-size:0;line-height:0;height:2px;">&nbsp;</td></tr>
+    <tr><td align="center" style="padding:28px 0 20px;">
+      <a href="${esc(url)}" style="display:inline-block;background:#12301f;color:#E0A93B;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:20px;text-decoration:none;padding:12px 30px;border-radius:10px;">Open OLFU Marketplace</a>
+    </td></tr>
+    <tr><td align="center" style="padding:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#666666;">You can turn these emails off on your Notifications page.</td></tr>
+    <tr><td align="center" style="padding:0 0 20px;"><img src="${SITE}/email/logo.png" width="110" alt="OLFU Marketplace" style="display:block;border:0;height:auto;" /></td></tr>
+    <tr><td align="center" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:22px;color:#666666;">
+      <a href="${SITE}/terms" style="color:#666666;text-decoration:underline;">Terms of Service</a> | <a href="${SITE}/privacy" style="color:#666666;text-decoration:underline;">Privacy Policy</a><br />
+      OLFU Marketplace © ${year}. All rights reserved.
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body></html>`;
     const text = `${row.subject}\n\n${row.body ? row.body + "\n\n" : ""}${url}\n\nYou can turn these emails off on your Notifications page.`;
     return { html, text };
 }
