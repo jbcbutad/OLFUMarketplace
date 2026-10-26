@@ -15,6 +15,11 @@ import EditListingModal from "@/components/EditListingModal";
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 
+// Shared tab styles (smaller on mobile so the tabs wrap neatly)
+const TAB_BASE =
+  "px-3 py-2 md:px-4 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap";
+const TAB_OFF = "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground";
+
 function MyListingsContent() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -234,51 +239,52 @@ function MyListingsContent() {
   );
 
   return (
-    <div className="text-foreground w-full min-h-screen p-6 md:p-10 transition-colors">
+    // pb-28 keeps the last card clear of the fixed Superadmin footer on mobile
+    <div className="text-foreground w-full min-h-screen px-3 pt-4 pb-28 sm:p-6 md:p-10 transition-colors overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
 
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-black text-foreground tracking-tight uppercase italic">My Listings</h1>
-          <Link href="/create-listing" className="bg-foreground text-background px-6 py-3 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-2 border border-foreground hover:opacity-95 transition-all active:scale-95 shadow-md">
+        <div className="flex justify-between items-center gap-3 mb-5 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight uppercase italic">My Listings</h1>
+          <Link href="/create-listing" className="shrink-0 bg-foreground text-background px-4 py-2.5 md:px-6 md:py-3 rounded-xl font-black uppercase tracking-wider text-xs flex items-center gap-1.5 md:gap-2 border border-foreground hover:opacity-95 transition-all active:scale-95 shadow-md">
             <Plus size={16} /> New Listing
           </Link>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b border-neutral-900 dark:border-neutral-200 pb-4 overflow-x-auto">
+        {/* Navigation Tabs (wrap onto rows on mobile so every tab is visible) */}
+        <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-5 md:mb-6 border-b border-neutral-900 dark:border-neutral-200 pb-3 md:pb-4">
           <button
             onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "all" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+            className={`${TAB_BASE} ${activeTab === "all" ? "bg-foreground text-background shadow-sm" : TAB_OFF}`}
           >
             All Listings ({listings.length})
           </button>
           <button
             onClick={() => setActiveTab("active")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "active" ? "bg-foreground text-background shadow-sm" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+            className={`${TAB_BASE} ${activeTab === "active" ? "bg-foreground text-background shadow-sm" : TAB_OFF}`}
           >
             Active
           </button>
           <button
             onClick={() => setActiveTab("flagged")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === "flagged" ? "bg-rose-600 text-white shadow-sm font-black" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+            className={`${TAB_BASE} flex items-center gap-1.5 ${activeTab === "flagged" ? "bg-rose-600 text-white shadow-sm font-black" : TAB_OFF}`}
           >
             <AlertTriangle size={14} /> Flagged
           </button>
           <button
             onClick={() => setActiveTab("pending")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === "pending" ? "bg-amber-500 text-black shadow-sm font-black" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+            className={`${TAB_BASE} flex items-center gap-1.5 ${activeTab === "pending" ? "bg-amber-500 text-black shadow-sm font-black" : TAB_OFF}`}
           >
             <Clock size={14} /> Pending Payment
           </button>
           <button
             onClick={() => setActiveTab("expired")}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === "expired" ? "bg-red-600 text-white shadow-sm font-black" : "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground"}`}
+            className={`${TAB_BASE} flex items-center gap-1.5 ${activeTab === "expired" ? "bg-red-600 text-white shadow-sm font-black" : TAB_OFF}`}
           >
             <AlertTriangle size={14} /> Expired
           </button>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-3 md:gap-4">
           {filteredListings.length > 0 ? (
             filteredListings.map((item) => {
               const isPendingAdmin = item.status === "pending";
@@ -291,10 +297,13 @@ function MyListingsContent() {
               const editLocked = isPendingAdmin || isFlagged || isRejected;
 
               const isUnavailable = !item.is_available || isExpiredTag;
+
               const msLeft = item.expires_at ? new Date(item.expires_at).getTime() - Date.now() : null;
               const nearExpiry =
                 !isMerchandise && item.status === "active" && item.is_available &&
                 msLeft !== null && msLeft > 0 && msLeft <= 3 * 24 * 60 * 60 * 1000;
+
+
 
               let cardBgStyles = "bg-neutral-50 dark:bg-neutral-900 border-neutral-900 dark:border-white shadow-sm hover:shadow-md";
               if (isFlagged) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-900 dark:border-white opacity-75";
@@ -322,21 +331,23 @@ function MyListingsContent() {
               return (
                 <div
                   key={item.id}
-                  className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all ${cardBgStyles} ${openDropdownId === item.id ? "relative z-20" : ""}`}
+                  className={`flex flex-col gap-3 p-3 md:p-4 rounded-2xl border transition-all ${cardBgStyles} ${openDropdownId === item.id ? "relative z-20" : ""}`}
                 >
 
                   {/* FLAGGED BANNER NOTICE ON LISTING ROW IF FLAGGED */}
                   {isFlagged && (
-                    <div className="bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-xl flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold">
-                      <AlertTriangle size={15} className="shrink-0 text-rose-500" />
+                    <div className="bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-xl flex items-start gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold">
+                      <AlertTriangle size={15} className="shrink-0 mt-0.5 text-rose-500" />
                       <span><strong className="text-rose-600 dark:text-rose-400">Under Safety Review (Flagged):</strong> This listing has triggered moderation checks and is hidden from the marketplace.</span>
                     </div>
                   )}
-                  <div className="flex flex-col md:flex-row items-center gap-6">
+
+                  {/* Mobile: image + info side by side, buttons on the next row. Desktop: one row. */}
+                  <div className="flex flex-wrap md:flex-nowrap items-center gap-3 md:gap-6">
                     <Link href={`/products/${item.id}`} className="shrink-0 relative">
                       <img
                         src={item.image_urls?.[0] || "/placeholder.png"}
-                        className={`w-24 h-24 rounded-xl object-cover border border-neutral-200 dark:border-neutral-800 transition-opacity ${isUnavailable ? "grayscale opacity-60" : "hover:opacity-80"}`}
+                        className={`w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover border border-neutral-200 dark:border-neutral-800 transition-opacity ${isUnavailable ? "grayscale opacity-60" : "hover:opacity-80"}`}
                         alt={item.title}
                       />
                       {isFlagged && (
@@ -351,37 +362,36 @@ function MyListingsContent() {
                       )}
                     </Link>
 
-                    <div className="flex-grow w-full md:w-auto text-center md:text-left">
-                      <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5 flex-wrap">
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center justify-start gap-1.5 md:gap-2 mb-1.5 flex-wrap">
                         <span className="text-[9px] bg-neutral-200 dark:bg-neutral-800 border text-foreground px-2 py-0.5 rounded font-bold uppercase tracking-widest">{item.categories?.name}</span>
                         {isFlagged && <span className="text-[9px] bg-rose-100 dark:bg-rose-950/60 border border-rose-300 text-rose-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Safety Flag</span>}
                         {isExpiredTag && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">{isMerchandise ? "Duration Expired" : "Listing Expired"}</span>}
                       </div>
 
                       <Link href={`/products/${item.id}`}>
-                        <h3 className={`text-xl font-black uppercase tracking-tight ${isUnavailable && !isExpiredTag && !isFlagged ? "text-neutral-500 line-through" : "text-foreground hover:opacity-80"} transition-colors inline-block`}>{item.title}</h3>
+                        <h3 className={`text-base md:text-xl font-black uppercase tracking-tight break-words ${isUnavailable && !isExpiredTag && !isFlagged ? "text-neutral-500 line-through" : "text-foreground hover:opacity-80"} transition-colors inline-block`}>{item.title}</h3>
                       </Link>
 
-                      <p className="font-bold flex items-center justify-center md:justify-start gap-1 mt-1 text-foreground">
+                      <p className="font-bold flex items-center justify-start gap-1 mt-1 text-foreground">
                         <PhilippinePeso size={14} /> {item.price.toLocaleString()}
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap md:flex-nowrap gap-2 w-full md:w-auto justify-center md:justify-end mt-4 md:mt-0 items-center">
+                    <div className="flex gap-2 w-full md:w-auto basis-full md:basis-auto justify-center md:justify-end items-center">
                       {nearExpiry && (
                         <RelistButton
                           productId={item.id}
                           label="Renew (Free)"
                           onDone={() => fetchListings(currentUserId)}
-                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-black rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all"
+                          className="flex-1 md:flex-none px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-black rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all"
                         />
                       )}
-
                       {isExpiredTag ? (
                         isMerchandise ? (
                           <button
                             onClick={() => { setActiveItem(item); setIsRenewModalOpen(true); }}
-                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all"
+                            className="flex-1 md:flex-none justify-center px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all"
                           >
                             <RefreshCcw size={14} /> Renew Listing
                           </button>
@@ -390,24 +400,24 @@ function MyListingsContent() {
                             productId={item.id}
                             label="Relist (Free)"
                             onDone={() => fetchListings(currentUserId)}
-                            className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all"
+                            className="flex-1 md:flex-none px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all"
                           />
                         )
                       ) : (
-                        <div className="relative" ref={openDropdownId === item.id ? dropdownRef : null}>
+                        <div className="relative flex-1 md:flex-none" ref={openDropdownId === item.id ? dropdownRef : null}>
                           {isPendingAdmin ? (
-                            <div className="px-4 py-2.5 bg-amber-500 text-black border border-amber-600 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm min-w-[135px] cursor-not-allowed opacity-90">
+                            <div className="px-4 py-2.5 bg-amber-500 text-black border border-amber-600 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm md:min-w-[135px] cursor-not-allowed opacity-90">
                               <span>Awaiting Admin</span>
                             </div>
                           ) : isFlagged ? (
-                            <div className="px-4 py-2.5 bg-rose-600 text-white border border-rose-700 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm min-w-[135px] cursor-not-allowed">
+                            <div className="px-4 py-2.5 bg-rose-600 text-white border border-rose-700 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm md:min-w-[135px] cursor-not-allowed">
                               <span>Flagged</span>
                             </div>
                           ) : (
                             <button
                               type="button"
                               onClick={() => setOpenDropdownId(openDropdownId === item.id ? null : item.id)}
-                              className={`px-4 py-2.5 border rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm min-w-[135px] justify-between ${dropdownTriggerStyles}`}
+                              className={`w-full px-4 py-2.5 border rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm md:min-w-[135px] justify-between ${dropdownTriggerStyles}`}
                             >
                               <span>{currentStatusLabel}</span>
                               <ChevronDown size={14} className={`transition-transform duration-200 ${openDropdownId === item.id ? "rotate-180" : ""}`} />
@@ -415,7 +425,7 @@ function MyListingsContent() {
                           )}
 
                           {!isPendingAdmin && !isFlagged && openDropdownId === item.id && (
-                            <div className="absolute right-0 mt-2 w-48 bg-background border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
+                            <div className="absolute left-0 md:left-auto md:right-0 mt-2 w-48 bg-background border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl py-1 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
                               <button
                                 type="button"
                                 onClick={() => handleStatusChange(item, "available")}
@@ -444,19 +454,26 @@ function MyListingsContent() {
                           setIsEditModalOpen(true);
                         }}
                         disabled={editLocked}
+                        aria-label="Edit listing"
                         title={editLocked ? "Listings that are pending, flagged or rejected can't be edited" : "Edit listing"}
-                        className={`p-2.5 bg-background border border-foreground rounded-xl text-foreground transition-all ${editLocked ? "opacity-40 cursor-not-allowed" : "hover:opacity-80 active:scale-95"}`}
+                        className={`shrink-0 p-2.5 bg-background border border-foreground rounded-xl text-foreground transition-all ${editLocked ? "opacity-40 cursor-not-allowed" : "hover:opacity-80 active:scale-95"}`}
                       >
                         <Edit3 size={16} />
                       </button>
-                      <button onClick={() => { setActiveItem(item); setIsDeleteModalOpen(true); }} className="p-2.5 bg-red-50 dark:bg-red-950/30 border border-red-400 dark:border-red-800 rounded-xl text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95"><Trash2 size={16} /></button>
+                      <button
+                        aria-label="Delete listing"
+                        onClick={() => { setActiveItem(item); setIsDeleteModalOpen(true); }}
+                        className="shrink-0 p-2.5 bg-red-50 dark:bg-red-950/30 border border-red-400 dark:border-red-800 rounded-xl text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="text-center py-24 bg-neutral-50 dark:bg-neutral-900/50 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 animate-in fade-in duration-500">
+            <div className="text-center py-16 md:py-24 px-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 animate-in fade-in duration-500">
               <p className="text-neutral-400 text-sm font-bold uppercase tracking-wider">No listings found in this tab.</p>
             </div>
           )}
@@ -486,16 +503,16 @@ function MyListingsContent() {
       )}
 
       {isRenewModalOpen && activeItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-background border border-neutral-200 dark:border-neutral-800 w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
-            <div className="flex justify-between items-center border-b border-neutral-200 dark:border-neutral-800 pb-4">
-              <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2.5 text-foreground">
-                <div className="p-2 bg-red-500/10 text-red-500 rounded-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-background border border-neutral-200 dark:border-neutral-800 w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl shadow-2xl p-5 md:p-8 space-y-5 md:space-y-6">
+            <div className="flex justify-between items-center gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-4">
+              <h3 className="text-base md:text-lg font-black uppercase tracking-tight flex items-center gap-2.5 text-foreground">
+                <div className="p-2 bg-red-500/10 text-red-500 rounded-xl shrink-0">
                   <RefreshCcw size={18} />
                 </div>
                 Renew Merchandise Drop
               </h3>
-              <button onClick={() => setIsRenewModalOpen(false)} className="text-neutral-400 hover:text-foreground"><X size={20} /></button>
+              <button onClick={() => setIsRenewModalOpen(false)} aria-label="Close" className="shrink-0 text-neutral-400 hover:text-foreground"><X size={20} /></button>
             </div>
 
             <form onSubmit={handleProceedToPayment} className="space-y-4">
@@ -507,11 +524,12 @@ function MyListingsContent() {
                 <label className="text-xs font-bold text-foreground flex items-center gap-1">
                   <Layers size={14} className="text-amber-500" /> New Stock Quantity
                 </label>
+                {/* text-base on mobile stops iOS from zooming in on focus */}
                 <input
                   required
                   type="number"
                   min="1"
-                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl p-3 text-xs font-bold text-foreground outline-none"
+                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl p-3 text-base md:text-xs font-bold text-foreground outline-none"
                   value={renewForm.stock_quantity}
                   onChange={(e) => setRenewForm({ ...renewForm, stock_quantity: e.target.value })}
                   placeholder="e.g. 50"
@@ -526,7 +544,7 @@ function MyListingsContent() {
                   required
                   type="number"
                   min="1"
-                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl p-3 text-xs font-bold text-foreground outline-none"
+                  className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl p-3 text-base md:text-xs font-bold text-foreground outline-none"
                   value={renewForm.listing_duration_days}
                   onChange={(e) => setRenewForm({ ...renewForm, listing_duration_days: e.target.value })}
                   placeholder="e.g. 7"
@@ -556,15 +574,15 @@ function MyListingsContent() {
       )}
 
       {submittedMerch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-5 md:p-8 rounded-3xl max-w-md w-full max-h-[90dvh] overflow-y-auto shadow-2xl space-y-5 md:space-y-6">
 
             <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-4">
-              <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl">
+              <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl shrink-0">
                 <CreditCard size={24} />
               </div>
-              <div>
-                <h3 className="text-lg font-black uppercase tracking-tight text-foreground">Payment Required</h3>
+              <div className="min-w-0">
+                <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-foreground">Payment Required</h3>
                 <p className="text-xs text-neutral-500">Merchandise Drop Verification</p>
               </div>
             </div>
@@ -588,9 +606,9 @@ function MyListingsContent() {
 
               <div className="space-y-1.5 text-neutral-600 dark:text-neutral-300">
                 <p className="font-bold text-foreground">Steps after paying:</p>
-                <ol className="list-decimal pl-4 space-y-1 text-[11px]">
+                <ol className="list-decimal pl-4 space-y-1 text-[11px] break-words">
                   <li>Take a screenshot of your GCash payment receipt.</li>
-                  <li>Send an email to <strong className="text-foreground">olfumarketplace@gmail.com</strong>.</li>
+                  <li>Send an email to <strong className="text-foreground break-all">olfumarketplace@gmail.com</strong>.</li>
                   <li>Include your item title (<span className="italic">&quot;{submittedMerch.title}&quot;</span>) and attach the receipt screenshot.</li>
                 </ol>
               </div>
@@ -625,8 +643,8 @@ function MyListingsContent() {
       )}
 
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
             <div className="bg-red-50 dark:bg-red-950/40 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5">
               <AlertTriangle className="text-red-500" size={32} />
             </div>

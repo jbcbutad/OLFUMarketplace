@@ -21,7 +21,7 @@ const tagLabel = (t) =>
   String(t).trim().replace(/^#+/, "").toLowerCase().replace(/\s+/g, " ");
 
 // Every merch listing carries tags like these, so they're useless as filters
-const COMMON_TAG_KEYS = new Set(["officialmerch", "merch", "merchandise", "flagged"]);
+const COMMON_TAG_KEYS = new Set(["officialmerch", "merch", "merchandise", "flagged"])
 
 // Merch is sold by organizations, so that's the useful way to split it
 // (every item is in the Merchandise category, so a category filter would only
@@ -32,7 +32,7 @@ const orgOf = (p) => p.profiles?.org_name || p.profiles?.full_name || "Unknown o
 const LINE = "border-stone-400 dark:border-neutral-700";
 const OUTLINE = "border-stone-800 dark:border-neutral-700";
 const pillBase =
-  "shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 border";
+  "max-w-full whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 sm:gap-2 border";
 const pillOn =
   "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 hover:border-emerald-800 dark:bg-emerald-700 dark:text-white dark:border-emerald-600 dark:hover:bg-emerald-800 dark:hover:border-emerald-500";
 const pillOff =
@@ -43,11 +43,11 @@ function FilterChip({ label, href }) {
     <Link
       scroll={false}
       href={href}
-      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white border border-emerald-700 text-xs font-semibold hover:bg-emerald-700 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-800 transition-colors"
+      className="inline-flex items-center gap-1.5 max-w-full px-3 py-1 rounded-full bg-emerald-600 text-white border border-emerald-700 text-xs font-semibold hover:bg-emerald-700 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-800 transition-colors"
       aria-label={`Remove filter ${label}`}
     >
-      {label}
-      <X size={12} />
+      <span className="truncate">{label}</span>
+      <X size={12} className="shrink-0" />
     </Link>
   );
 }
@@ -284,37 +284,38 @@ function MerchandiseContent() {
         scroll={false}
         href={toggleTagHref(t.key)}
         aria-pressed={on}
-        className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${on
+        className={`inline-flex items-center max-w-full px-2.5 py-1.5 sm:px-3 rounded-lg text-xs font-medium transition-colors ${on
           ? "bg-emerald-600 text-white font-semibold border border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:hover:bg-emerald-800 dark:border-emerald-600"
           : "bg-stone-200 text-neutral-700 border border-neutral-800 hover:bg-emerald-50 hover:text-black hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700 dark:hover:text-white"
           }`}
       >
-        #{t.label}
+        <span className="truncate">#{t.label}</span>
         {on ? (
-          <X size={12} className="ml-1.5" />
+          <X size={12} className="ml-1.5 shrink-0" />
         ) : (
-          <span className="ml-1.5 opacity-50">{t.count}</span>
+          <span className="ml-1.5 opacity-50 shrink-0">{t.count}</span>
         )}
       </Link>
     );
   };
 
   return (
-    <div className="text-foreground w-full min-h-screen flex flex-col transition-colors select-none">
-      <div className="max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow">
+    <div className="text-foreground w-full min-h-screen flex flex-col transition-colors select-none overflow-x-hidden">
+      {/* pb-28 keeps the last row clear of the fixed Superadmin footer on mobile */}
+      <div className="max-w-screen-2xl w-full mx-auto px-3 sm:px-6 pt-5 pb-28 md:py-10 flex-grow">
 
         {/* HEADER SECTION */}
-        <div className={`mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b ${LINE} pb-6`}>
-          <div>
-            <h1 className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
-              <ShoppingBag className="text-amber-500" size={32} /> Official Merchandise
+        <div className={`mb-5 md:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 border-b ${LINE} pb-4 md:pb-6`}>
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight flex items-center gap-2 md:gap-3">
+              <ShoppingBag className="text-amber-500 shrink-0" size={28} /> Official Merchandise
             </h1>
-            <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
+            <p className="text-neutral-500 dark:text-neutral-400 text-xs md:text-sm mt-1">
               Browse official campus uniforms, organization merch, and apparel
             </p>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <div className={`px-4 py-2 bg-stone-200 dark:bg-neutral-800 border ${OUTLINE} rounded-2xl text-xs font-bold text-neutral-800 dark:text-neutral-200 shrink-0 w-fit`}>
               {products.length} {products.length === 1 ? "Item" : "Items"} Listed
             </div>
@@ -323,7 +324,7 @@ function MerchandiseContent() {
             {isVerifiedOrg && (
               <Link
                 href="/create-listing?merch=true"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95"
+                className="inline-flex items-center gap-2 px-4 md:px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md transition-all active:scale-95"
               >
                 <Plus size={16} /> Create Merch Listing
               </Link>
@@ -345,34 +346,37 @@ function MerchandiseContent() {
         ) : (
           <>
             {/* Search (keeps the organization and tag filters) */}
-            <form onSubmit={handleSearch} className="mb-8 flex gap-2" role="search">
-              <div className="relative flex-1">
+            <form onSubmit={handleSearch} className="mb-5 md:mb-8 flex gap-2" role="search">
+              <div className="relative flex-1 min-w-0">
                 <Search
                   size={16}
                   className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500"
                 />
+                {/* text-base on mobile stops iOS from zooming in on focus */}
                 <input
                   key={term}
                   type="search"
                   name="q"
                   defaultValue={term}
-                  placeholder="Search merch by name, tag or organization..."
+                  placeholder="Search merch..."
                   aria-label="Search merchandise"
-                  className="select-text w-full bg-stone-100 border border-stone-800 rounded-full pl-10 pr-4 py-2.5 text-sm font-medium text-neutral-900 placeholder:text-neutral-500 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 transition-all dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:placeholder:text-neutral-400 dark:focus:border-emerald-600"
+                  className="select-text w-full bg-stone-100 border border-stone-800 rounded-full pl-10 pr-4 py-2.5 text-base sm:text-sm font-medium text-neutral-900 placeholder:text-neutral-500 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/30 transition-all dark:bg-neutral-800 dark:text-white dark:border-neutral-700 dark:placeholder:text-neutral-400 dark:focus:border-emerald-600"
                 />
               </div>
               <button
                 type="submit"
-                className="shrink-0 px-5 py-2.5 rounded-full text-sm font-bold bg-emerald-500 hover:bg-emerald-600 border border-emerald-700 text-black transition-colors cursor-pointer"
+                aria-label="Search"
+                className="shrink-0 flex items-center justify-center w-11 sm:w-auto px-0 sm:px-5 py-2.5 rounded-full text-sm font-bold bg-emerald-500 hover:bg-emerald-600 border border-emerald-700 text-black transition-colors cursor-pointer"
               >
-                Search
+                <Search size={18} className="sm:hidden" />
+                <span className="hidden sm:inline">Search</span>
               </button>
             </form>
 
-            {/* Categories: one scrollable row on mobile, wraps on larger screens */}
+            {/* Categories: wrap onto rows so every category is visible */}
             {categories.length > 0 && (
-              <section className="mb-8" aria-label="Categories">
-                <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
+              <section className="mb-5 md:mb-8" aria-label="Categories">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   <Link
                     scroll={false}
                     href={buildHref({ category: null, tags: null })}
@@ -389,18 +393,18 @@ function MerchandiseContent() {
                       aria-current={selectedCategory === cat.name ? "page" : undefined}
                       className={`${pillBase} ${selectedCategory === cat.name ? pillOn : pillOff}`}
                     >
-                      <span aria-hidden="true">{cat.icon || "🏷️"}</span>
-                      <span>{cat.name}</span>
+                      <span aria-hidden="true" className="shrink-0">{cat.icon || "🏷️"}</span>
+                      <span className="min-w-0 truncate">{cat.name}</span>
                     </Link>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Organizations: one scrollable row on mobile, wraps on larger screens */}
+            {/* Organizations: wrap onto rows; long names are cut off with "…" */}
             {orgs.length > 1 && (
-              <section className="mb-8" aria-label="Organizations">
-                <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible sm:pb-0">
+              <section className="mb-5 md:mb-8" aria-label="Organizations">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   <Link
                     scroll={false}
                     href={buildHref({ org: null, tags: null })}
@@ -418,7 +422,7 @@ function MerchandiseContent() {
                       className={`${pillBase} ${selectedOrg === name ? pillOn : pillOff}`}
                     >
                       <Building2 size={14} className="shrink-0" aria-hidden="true" />
-                      <span>{name}</span>
+                      <span className="min-w-0 truncate">{name}</span>
                     </Link>
                   ))}
                 </div>
@@ -427,16 +431,18 @@ function MerchandiseContent() {
 
             {/* Tags: selected first, then only tags that exist on the remaining items */}
             {tags.length > 0 && (
-              <section className="mb-8" aria-label="Tags">
-                <h3 className="text-sm font-semibold text-neutral-800 mb-3 flex items-center gap-1.5 dark:text-neutral-200">
-                  <Tag size={14} />
-                  {activeTags.length > 0
-                    ? "Narrow down further"
-                    : selectedOrg
-                      ? `Popular from ${selectedOrg}`
-                      : "Popular tags"}
+              <section className="mb-5 md:mb-8" aria-label="Tags">
+                <h3 className="text-sm font-semibold text-neutral-800 mb-2.5 md:mb-3 flex items-center gap-1.5 dark:text-neutral-200">
+                  <Tag size={14} className="shrink-0" />
+                  <span className="min-w-0 truncate">
+                    {activeTags.length > 0
+                      ? "Narrow down further"
+                      : selectedOrg
+                        ? `Popular from ${selectedOrg}`
+                        : "Popular tags"}
+                  </span>
                 </h3>
-                <div className="flex flex-wrap gap-2">{topTags.map(tagPill)}</div>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">{topTags.map(tagPill)}</div>
 
                 {activeTags.length > 0 && relatedTags.length === 0 && (
                   <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
@@ -446,7 +452,7 @@ function MerchandiseContent() {
 
                 {moreTags.length > 0 && (
                   <details className="group mt-3">
-                    <summary className="inline-flex items-center gap-1 cursor-pointer list-none text-xs font-medium text-neutral-800 hover:text-foreground [&::-webkit-details-marker]:hidden dark:text-neutral-200 dark:hover:text-white">
+                    <summary className="inline-flex items-center gap-1 cursor-pointer list-none py-1 text-xs font-medium text-neutral-800 hover:text-foreground [&::-webkit-details-marker]:hidden dark:text-neutral-200 dark:hover:text-white">
                       <span className="group-open:hidden">
                         Show {moreTags.length} more
                       </span>
@@ -456,7 +462,7 @@ function MerchandiseContent() {
                         className="transition-transform group-open:rotate-180"
                       />
                     </summary>
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
                       {moreTags.map(tagPill)}
                     </div>
                   </details>
@@ -466,7 +472,7 @@ function MerchandiseContent() {
 
             {/* Active filters + result count */}
             {(hasFilters || visible.length > 0) && (
-              <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">
+              <div className="mb-4 md:mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">
                 <span className="text-sm font-semibold text-foreground mr-1">
                   {visible.length} item{visible.length === 1 ? "" : "s"}
                 </span>
@@ -510,11 +516,9 @@ function MerchandiseContent() {
               </div>
             )}
 
-
-
-            {/* PRODUCT GRID */}
+            {/* PRODUCT GRID: 2 columns on phones */}
             {visible.length === 0 ? (
-              <div className="text-center py-24 bg-stone-200 rounded-3xl border border-dashed border-neutral-800 dark:bg-neutral-800 dark:border-neutral-700">
+              <div className="text-center py-16 md:py-24 px-4 bg-stone-200 rounded-3xl border border-dashed border-neutral-800 dark:bg-neutral-800 dark:border-neutral-700">
                 <p className="text-neutral-800 text-base font-medium dark:text-white">
                   {products.length === 0
                     ? "No merchandise products listed yet."
@@ -531,13 +535,12 @@ function MerchandiseContent() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
                 {visible.map((product) => (
                   <Link
                     key={product.id}
                     href={`/products/${product.id}`}
-                    prefetch={false}
-                    className="block group transition-all duration-300 hover:-translate-y-1 active:scale-95"
+                    className="block min-w-0 group transition-all duration-300 hover:-translate-y-1 active:scale-95"
                   >
                     <ProductCard
                       title={product.title}

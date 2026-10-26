@@ -525,23 +525,26 @@ export default function ChatHub() {
     : "";
 
   return (
-    <div className="text-foreground w-full min-h-screen transition-colors">
-      <div className="max-w-7xl mx-auto py-10 px-4 md:px-6">
-        <div className="flex flex-col h-[80vh] min-h-[600px] bg-background text-foreground border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden relative shadow-sm">
+    <div className="text-foreground w-full min-h-screen transition-colors overflow-x-hidden">
+      {/* pb-24 on mobile keeps the card clear of the fixed Superadmin footer */}
+      <div className="max-w-7xl mx-auto pt-3 pb-24 px-2 sm:px-4 md:py-10 md:px-6">
+        {/* Mobile: height follows the screen. Desktop: unchanged. */}
+        <div className="flex flex-col h-[calc(100dvh-9rem)] min-h-[420px] md:h-[80vh] md:min-h-[600px] bg-background text-foreground border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden relative shadow-sm">
           {/* Header Area */}
-          <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
-            <h1 className="text-2xl font-bold mb-4 flex items-center gap-2 text-foreground">
-              <MessageSquare className="text-foreground" /> Messages
+          <div className="p-3 sm:p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 shrink-0">
+            <h1 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 flex items-center gap-2 text-foreground">
+              <MessageSquare className="text-foreground shrink-0" /> Messages
             </h1>
 
             <div className="relative">
-              <Search className="absolute left-3 top-3 text-neutral-400" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
+              {/* text-base on mobile stops iOS from zooming in on focus */}
               <input
                 type="text"
                 placeholder="Search people to chat..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full bg-background border border-neutral-300 dark:border-neutral-700 text-foreground rounded-xl py-2.5 pl-10 pr-4 outline-none focus:ring-2 focus:ring-foreground transition-all placeholder:text-neutral-400"
+                className="w-full bg-background border border-neutral-300 dark:border-neutral-700 text-foreground rounded-xl py-2.5 pl-10 pr-4 text-base md:text-sm outline-none focus:ring-2 focus:ring-foreground transition-all placeholder:text-neutral-400"
               />
 
               {searchResults.length > 0 && (
@@ -554,7 +557,7 @@ export default function ChatHub() {
                       }}
                       className="w-full flex items-center justify-between p-3 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800 last:border-0 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs overflow-hidden shrink-0">
                           {u.avatar_url ? (
                             <img
@@ -566,7 +569,7 @@ export default function ChatHub() {
                             u.First_Name?.[0] || "?"
                           )}
                         </div>
-                        <span className="font-medium text-foreground">
+                        <span className="font-medium text-foreground truncate">
                           {u.First_Name} {u.Last_Name}
                         </span>
                       </div>
@@ -606,13 +609,13 @@ export default function ChatHub() {
           </div>
 
           {/* List Area */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {loading ? (
               <div className="flex justify-center p-10">
                 <Loader2 className="animate-spin text-foreground" />
               </div>
             ) : visibleRooms.length === 0 ? (
-              <div className="text-center p-10 text-neutral-400">
+              <div className="text-center p-6 md:p-10 text-neutral-400 text-sm">
                 {activeTab === "archived" ? (
                   <>
                     <Archive className="mx-auto mb-2 opacity-30" size={48} />
@@ -658,10 +661,10 @@ export default function ChatHub() {
                   >
                     <button
                       onClick={() => router.push(`/chat/${room.id}`)}
-                      className="w-full p-4 pr-16 flex items-center gap-4 text-left cursor-pointer"
+                      className="w-full p-3 pr-12 md:p-4 md:pr-16 flex items-center gap-3 md:gap-4 text-left cursor-pointer"
                     >
-                      <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-                        <div className="w-12 h-12 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold overflow-hidden border-2 border-neutral-300 dark:border-neutral-700">
+                      <div className="relative w-11 h-11 md:w-12 md:h-12 flex items-center justify-center shrink-0">
+                        <div className="w-11 h-11 md:w-12 md:h-12 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold overflow-hidden border-2 border-neutral-300 dark:border-neutral-700">
                           {other?.avatar_url ? (
                             <img
                               src={other.avatar_url}
@@ -679,10 +682,10 @@ export default function ChatHub() {
                         />
                       </div>
 
-                      <div className="flex-1 overflow-hidden">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <div className="flex items-center justify-between gap-2">
                           <p
-                            className={`truncate ${hasUnread ? "text-foreground font-bold" : "text-foreground font-semibold"
+                            className={`truncate text-sm md:text-base ${hasUnread ? "text-foreground font-bold" : "text-foreground font-semibold"
                               }`}
                           >
                             {otherName}
@@ -721,8 +724,9 @@ export default function ChatHub() {
                     <button
                       type="button"
                       onClick={(e) => openMenu(e, room)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-neutral-500 hover:text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
+                      className="absolute right-1.5 md:right-3 top-1/2 -translate-y-1/2 p-2 rounded-full text-neutral-500 hover:text-foreground hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-pointer"
                       title="More options"
+                      aria-label="More options"
                     >
                       <MoreVertical size={18} />
                     </button>

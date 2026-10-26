@@ -252,7 +252,7 @@ export default async function Home({ searchParams }) {
   const moreTags = tags.slice(VISIBLE_TAGS);
 
   const pillBase =
-    "shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 border";
+    "shrink-0 whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 sm:gap-2 border";
   const pillOn =
     "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 hover:border-emerald-800 dark:bg-emerald-700 dark:text-white dark:border-emerald-600 dark:hover:bg-emerald-800 dark:hover:border-emerald-500";
   const pillOff =
@@ -266,42 +266,42 @@ export default async function Home({ searchParams }) {
         scroll={false}
         href={toggleTagHref(t.key)}
         aria-pressed={on}
-        className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${on
+        className={`inline-flex items-center max-w-full px-2.5 py-1.5 sm:px-3 rounded-lg text-xs font-medium transition-colors ${on
           ? "bg-emerald-600 text-white font-semibold border border-emerald-700 hover:bg-emerald-700 dark:bg-emerald-700 dark:text-white dark:hover:bg-emerald-800 dark:border-emerald-600"
           : "bg-stone-200 text-neutral-700 border border-neutral-800 hover:bg-emerald-50 hover:text-black hover:border-emerald-700 dark:bg-neutral-800 dark:text-white dark:hover:bg-emerald-950 dark:border-neutral-700 dark:hover:border-emerald-700 dark:hover:text-white"
           }`}
       >
-        #{t.label}
+        <span className="truncate">#{t.label}</span>
         {on ? (
-          <X size={12} className="ml-1.5" />
+          <X size={12} className="ml-1.5 shrink-0" />
         ) : (
-          <span className="ml-1.5 opacity-50">{t.count}</span>
+          <span className="ml-1.5 opacity-50 shrink-0">{t.count}</span>
         )}
       </Link>
     );
   };
 
   return (
-    <div className="text-foreground w-full min-h-screen flex flex-col justify-between select-none transition-colors">
-      <div className="max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow">
+    <div className="text-foreground w-full min-h-screen flex flex-col justify-between select-none transition-colors overflow-x-hidden">
+      <div className="max-w-screen-2xl w-full mx-auto px-3 sm:px-6 pt-4 pb-6 md:py-10 flex-grow">
         {/* Merchandise banners */}
         {!selectedCategory && (
-          <div className="mb-10">
+          <div className="mb-6 md:mb-10">
             <OlfuMerchBanner
-              className="h-56 sm:h-95 rounded-3xl border border-white/10 mb-10"
+              className="h-44 sm:h-95 rounded-2xl md:rounded-3xl border border-white/10 mb-4 md:mb-10"
               merchUrl="/merchandise"
             />
 
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mt-4 md:mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
               {MERCH_BOXES.map(({ badge, title, sub, Art, images, bg, glow, tilt }) => (
                 <Link
                   key={title}
                   href="/merchandise"
-                  className={`group relative isolate transform-gpu block h-56 sm:h-64 overflow-hidden rounded-3xl border border-white/10 hover:border-white/30 bg-gradient-to-br ${bg} transition-colors`}
+                  className={`group relative isolate transform-gpu block h-44 sm:h-64 overflow-hidden rounded-2xl md:rounded-3xl border border-white/10 hover:border-white/30 bg-gradient-to-br ${bg} transition-colors`}
                 >
                   {images ? (
                     <>
-                      <AutoSwipeImages images={images} className="absolute inset-0 rounded-3xl" />
+                      <AutoSwipeImages images={images} className="absolute inset-0 rounded-2xl md:rounded-3xl" />
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
                     </>
                   ) : (
@@ -314,29 +314,29 @@ export default async function Home({ searchParams }) {
                         }}
                       />
                       <div className={`absolute -right-10 -bottom-10 w-64 h-64 rounded-full blur-3xl ${glow}`} />
-                      <div className={`absolute right-2 bottom-2 w-40 h-40 sm:w-48 sm:h-48 transition-transform duration-500 ${tilt}`}>
+                      <div className={`absolute right-2 bottom-2 w-32 h-32 sm:w-48 sm:h-48 transition-transform duration-500 ${tilt}`}>
                         <Art />
                       </div>
                     </>
                   )}
 
-                  <div className="pointer-events-none relative z-10 h-full p-6 flex flex-col justify-between max-w-[60%]">
-                    <div className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/10 text-white border border-white/20 backdrop-blur">
+                  <div className="pointer-events-none relative z-10 h-full p-4 md:p-6 flex flex-col justify-between max-w-[70%] md:max-w-[60%]">
+                    <div className="inline-flex w-fit items-center gap-1.5 px-2.5 md:px-3 py-1 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-wider bg-white/10 text-white border border-white/20 backdrop-blur">
                       <Sparkles size={12} /> {badge}
                     </div>
                     <div>
-                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                      <h3 className="text-xl sm:text-3xl font-black text-white leading-tight">
                         {title}
                       </h3>
                       <p className="text-xs sm:text-sm text-white/70 mt-1">{sub}</p>
-                      <span className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-xl font-black text-[11px] uppercase tracking-wider group-hover:gap-3 transition-all">
+                      <span className="mt-2 md:mt-3 inline-flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-white text-black rounded-xl font-black text-[10px] md:text-[11px] uppercase tracking-wider group-hover:gap-3 transition-all">
                         Shop now <ArrowRight size={14} />
                       </span>
                     </div>
                   </div>
 
                   {/* border drawn on top of the photos */}
-                  <div className="pointer-events-none absolute inset-0 z-30 rounded-3xl ring-1 ring-inset ring-white/25 group-hover:ring-white/50 transition-colors" />
+                  <div className="pointer-events-none absolute inset-0 z-30 rounded-2xl md:rounded-3xl ring-1 ring-inset ring-white/25 group-hover:ring-white/50 transition-colors" />
                 </Link>
               ))}
             </div>
@@ -344,23 +344,20 @@ export default async function Home({ searchParams }) {
         )}
 
         {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-extrabold text-foreground">Marketplace</h2>
-          <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
+        <div className="mb-5 md:mb-8">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-foreground">Marketplace</h2>
+          <p className="text-neutral-500 dark:text-neutral-400 text-xs md:text-sm mt-1">
             Pick a category or tag to find what you need.
           </p>
         </div>
 
-
-
         {/* Active filters + result count */}
-        <div className="mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">
+        <div className="mb-4 md:mb-6 flex flex-wrap items-center gap-2 min-h-[32px]">
           <span className="text-sm font-semibold text-foreground mr-1">
             {error
               ? ""
               : `${products.length} item${products.length === 1 ? "" : "s"}`}
           </span>
-
 
           {!error && products.length > 1 && (
             <>
@@ -393,15 +390,13 @@ export default async function Home({ searchParams }) {
           )}
         </div>
 
-
-
-        {/* Product grid */}
+        {/* Product grid: 2 columns on phones */}
         {error ? (
           <div className="text-center py-20 text-red-500 font-semibold">
             Couldn&apos;t load items. Please refresh the page.
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-24 bg-stone-200 rounded-3xl border border-dashed border-neutral-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
+          <div className="text-center py-16 md:py-24 px-4 bg-stone-200 rounded-3xl border border-dashed border-neutral-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-white">
             <p className="text-neutral-800 text-base font-medium dark:text-white">
               {selectedCategory
                 ? `No items found in "${selectedCategory}"${activeTags.length
@@ -419,13 +414,12 @@ export default async function Home({ searchParams }) {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
             {products.map((product, index) => (
               <Link
-                href={`/products/${product.id}`}
-                prefetch={false}
+                href={`/products/${product.id}`} prefetch={false}
                 key={product.id}
-                className="block group transition-all duration-300 hover:-translate-y-1 active:scale-95"
+                className="block min-w-0 group transition-all duration-300 hover:-translate-y-1 active:scale-95"
               >
                 <ProductCard
                   title={product.title}
@@ -444,7 +438,8 @@ export default async function Home({ searchParams }) {
         )}
       </div>
 
-      <footer className="w-full shrink-0 border-t border-stone-400 dark:border-neutral-700 py-4 px-4 flex justify-center gap-6 text-xs text-neutral-700 dark:text-neutral-300">
+      {/* pb-24 on mobile keeps the links clear of the fixed Superadmin footer */}
+      <footer className="w-full shrink-0 border-t border-stone-400 dark:border-neutral-700 pt-4 pb-24 md:pb-4 px-4 flex justify-center gap-6 text-xs text-neutral-700 dark:text-neutral-300">
         <Link href="/privacy" className="underline hover:text-foreground">
           Privacy Policy
         </Link>
@@ -461,11 +456,11 @@ function FilterChip({ label, href }) {
     <Link
       scroll={false}
       href={href}
-      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white border border-emerald-700 text-xs font-semibold hover:bg-emerald-700 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-800 transition-colors"
+      className="inline-flex items-center gap-1.5 max-w-full px-3 py-1 rounded-full bg-emerald-600 text-white border border-emerald-700 text-xs font-semibold hover:bg-emerald-700 dark:bg-emerald-700 dark:border-emerald-600 dark:hover:bg-emerald-800 transition-colors"
       aria-label={`Remove filter ${label}`}
     >
-      {label}
-      <X size={12} />
+      <span className="truncate">{label}</span>
+      <X size={12} className="shrink-0" />
     </Link>
   );
 }

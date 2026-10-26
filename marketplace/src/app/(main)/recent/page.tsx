@@ -73,37 +73,37 @@ export default async function RecentListingsPage() {
     }
 
     return (
-        <div className="text-foreground w-full min-h-screen flex flex-col justify-between select-none transition-colors">
-            <div className="max-w-screen-2xl w-full mx-auto px-4 sm:px-6 py-10 flex-grow">
-                <div className="flex flex-col mb-8">
-                    <h2 className="text-3xl font-extrabold text-foreground">Recent Listings</h2>
-                    <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
+        <div className="text-foreground w-full min-h-screen flex flex-col justify-between select-none transition-colors overflow-x-hidden">
+            {/* pb-28 keeps the last row clear of the fixed Superadmin footer on mobile */}
+            <div className="max-w-screen-2xl w-full mx-auto px-3 sm:px-6 pt-5 pb-28 md:py-10 flex-grow">
+                <div className="flex flex-col mb-5 md:mb-8">
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-foreground">Recent Listings</h2>
+                    <p className="text-neutral-500 dark:text-neutral-400 text-xs md:text-sm mt-1">
                         The {LIMIT} newest items added to the marketplace
                     </p>
                 </div>
 
                 {error ? (
-                    <div className="text-center py-20 text-red-500 font-semibold">
+                    <div className="text-center py-20 px-4 text-red-500 font-semibold break-words">
                         Error loading recent items: {error.message}
                     </div>
                 ) : !products || products.length === 0 ? (
-                    <div className="text-center py-24 bg-neutral-50 dark:bg-neutral-900/40 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 animate-in fade-in duration-500">
-                        <p className="text-neutral-500 dark:text-neutral-400 text-lg font-medium">
+                    <div className="text-center py-16 md:py-24 px-4 bg-neutral-50 dark:bg-neutral-900/40 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 animate-in fade-in duration-500">
+                        <p className="text-neutral-500 dark:text-neutral-400 text-base md:text-lg font-medium">
                             No recent listings found.
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
                         {products.map((product: any, index: number) => {
                             const sellerName = product.profiles?.full_name || "Unknown Seller";
                             const coverImage = product.image_urls?.[0] || "/placeholder.png";
 
                             return (
                                 <Link
-                                    href={`/products/${product.id}`}
-                                    prefetch={false}
+                                    href={`/products/${product.id}`} prefetch={false}
                                     key={product.id}
-                                    className="block group transition-all duration-300 hover:-translate-y-1 active:scale-95"
+                                    className="block min-w-0 group transition-all duration-300 hover:-translate-y-1 active:scale-95"
                                 >
                                     <ProductCard
                                         title={product.title}
@@ -117,10 +117,10 @@ export default async function RecentListingsPage() {
                                     />
                                     <p
                                         title={fullDate(product.created_at)}
-                                        className="mt-2 flex items-center gap-1.5 px-1 text-xs font-medium text-neutral-500 dark:text-neutral-400"
+                                        className="mt-2 flex items-center gap-1.5 px-1 text-[11px] md:text-xs font-medium text-neutral-500 dark:text-neutral-400"
                                     >
                                         <Clock size={12} className="shrink-0" />
-                                        Listed {timeAgo(product.created_at)}
+                                        <span className="truncate">Listed {timeAgo(product.created_at)}</span>
                                     </p>
                                 </Link>
                             );

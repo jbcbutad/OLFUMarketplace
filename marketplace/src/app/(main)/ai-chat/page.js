@@ -26,8 +26,6 @@ export default function AiChatPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const messagesEndRef = useRef(null);
 
-
-
   useEffect(() => {
     async function initUserAndHistory() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -183,23 +181,25 @@ export default function AiChatPage() {
     <div className="text-foreground h-dvh flex flex-col overflow-hidden">
 
       {/* HEADER BAR */}
-      <div className="shrink-0 border-b border-border bg-card/50 backdrop-blur-md px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="shrink-0 border-b border-border bg-card/50 backdrop-blur-md px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Link
             href="/marketplace"
-            className="p-2 rounded-xl bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Back to marketplace"
+            className="p-2 rounded-xl bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
             <ArrowLeft size={18} />
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center font-bold">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 flex items-center justify-center font-bold shrink-0">
               <Bot size={20} />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-sm font-bold flex items-center gap-1.5">
-                OLFU AI Assistant <Sparkles size={13} className="text-amber-500" />
+                <span className="truncate">OLFU AI Assistant</span>
+                <Sparkles size={13} className="text-amber-500 shrink-0" />
               </h1>
-              <p className="text-[10px] text-muted-foreground font-medium">Memory Enabled • Supabase Synced</p>
+              <p className="text-[10px] text-muted-foreground font-medium truncate">Memory Enabled • Supabase Synced</p>
             </div>
           </div>
         </div>
@@ -207,26 +207,28 @@ export default function AiChatPage() {
         {currentUser && (
           <button
             onClick={clearHistory}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors cursor-pointer"
+            aria-label="Clear chat history"
+            className="shrink-0 flex items-center justify-center gap-1.5 w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors cursor-pointer"
             title="Clear Chat History"
           >
-            <Trash2 size={13} /> Clear History
+            <Trash2 size={14} />
+            <span className="hidden sm:inline">Clear History</span>
           </button>
         )}
       </div>
 
       {/* CHAT MESSAGES: the only part that scrolls */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="max-w-4xl w-full mx-auto px-4 py-6 flex flex-col space-y-4">
+        <div className="max-w-4xl w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 flex flex-col space-y-3 sm:space-y-4">
           {messages.map((msg, index) => {
             const isUser = msg.role === 'user';
             return (
               <div
                 key={index}
-                className={`flex items-start gap-3 max-w-[80%] sm:max-w-[70%] ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
+                className={`flex items-start gap-2 sm:gap-3 max-w-[90%] sm:max-w-[70%] ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'
                   }`}
               >
-                <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center overflow-hidden text-xs font-bold border ${isUser
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full shrink-0 flex items-center justify-center overflow-hidden text-xs font-bold border ${isUser
                   ? 'bg-foreground text-background border-transparent'
                   : 'bg-white text-indigo-500 border-indigo-500/50'
                   }`}>
@@ -247,7 +249,8 @@ export default function AiChatPage() {
                     <Bot size={14} />
                   )}
                 </div>
-                <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-xs ${isUser
+                {/* min-w-0 + break-words stop long text and links from overflowing */}
+                <div className={`min-w-0 break-words p-3 sm:p-4 rounded-2xl text-sm leading-relaxed shadow-xs ${isUser
                   ? 'bg-emerald-600 text-background rounded-tr-none font-medium'
                   : 'bg-white dark:bg-neutral-900 border border-border text-foreground rounded-tl-none font-normal'
                   }`}>
@@ -261,7 +264,7 @@ export default function AiChatPage() {
                         ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
                         strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                         a: ({ href, children }) => (
-                          <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-indigo-600">
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="underline text-indigo-600 break-all">
                             {children}
                           </a>
                         ),
@@ -276,11 +279,11 @@ export default function AiChatPage() {
           })}
 
           {loading && (
-            <div className="flex items-start gap-3 mr-auto max-w-[70%]">
-              <div className="w-8 h-8 rounded-full bg-white text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-2 sm:gap-3 mr-auto max-w-[90%] sm:max-w-[70%]">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-indigo-500 border border-indigo-500/20 flex items-center justify-center shrink-0">
                 <Bot size={14} />
               </div>
-              <div className="p-4 rounded-2xl bg-card border border-border text-muted-foreground rounded-tl-none flex items-center gap-2 text-xs font-medium">
+              <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border text-muted-foreground rounded-tl-none flex items-center gap-2 text-xs font-medium">
                 <Loader2 size={14} className="animate-spin text-indigo-500" /> AI is thinking...
               </div>
             </div>
@@ -290,34 +293,36 @@ export default function AiChatPage() {
       </div>
 
       {/* SUGGESTION QUICK PILLS */}
-      <div className="shrink-0 max-w-4xl w-full mx-auto px-4 pb-2 flex flex-wrap gap-2 hover:text-white">
+      <div className="shrink-0 max-w-4xl w-full mx-auto px-3 sm:px-4 pb-2 flex flex-wrap gap-1.5 sm:gap-2 hover:text-white">
         {["How do I create a listing?", "Where are my transactions?", "How do I report a user?"].map((suggestion) => (
           <button
             key={suggestion}
             onClick={() => setInput(suggestion)}
-            className="px-3 py-1.5 rounded-full bg-white border border-border text-[11px] font-semibold text-muted-foreground hover:border border-black hover:text-white hover:bg-emerald-600 transition-colors cursor-pointer dark:text-white dark:bg-neutral-900 dark:hover:bg-emerald-600 dark:hover:text-white"
+            className="px-2.5 py-1.5 sm:px-3 rounded-full bg-white border border-border text-[11px] font-semibold text-muted-foreground hover:border border-black hover:text-white hover:bg-emerald-600 transition-colors cursor-pointer dark:text-white dark:bg-neutral-900 dark:hover:bg-emerald-600 dark:hover:text-white"
           >
             {suggestion}
           </button>
         ))}
       </div>
 
-      {/* INPUT FORM FOOTER */}
-      <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur-md p-4 dark:text-black">
+      {/* INPUT FORM FOOTER (safe-area padding keeps it clear of the phone's home bar) */}
+      <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur-md px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 dark:text-black">
         <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-2">
+          {/* text-base on mobile stops iOS from zooming in on focus */}
           <input
             type="text"
-            className="flex-grow bg-white border border-border rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-foreground/20 placeholder:text-muted-foreground dark:text-white dark:bg-neutral-900 dark:border-border dark:placeholder:text-muted-foreground"
-            placeholder="Ask AI assistant anything about the marketplace..."
+            className="flex-grow min-w-0 bg-white border border-border rounded-xl px-3 sm:px-4 py-3 text-base sm:text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-foreground/20 placeholder:text-muted-foreground dark:text-black dark:bg-neutral-900 dark:border-border dark:placeholder:text-muted-foreground"
+            placeholder="Ask the AI assistant..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
           <button
             type="submit"
+            aria-label="Send"
             disabled={!input.trim() || loading}
-            className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 shrink-0"
+            className="w-11 h-11 sm:w-auto sm:h-auto sm:px-5 sm:py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-all shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
           >
-            <Send size={15} /> Send
+            <Send size={16} /> <span className="hidden sm:inline">Send</span>
           </button>
         </form>
       </div>
