@@ -58,7 +58,7 @@ function render(row) {
     </td></tr>
 
     <tr><td align="center" style="padding:0 32px 16px;font-family:${FONT};font-size:14px;line-height:24px;">
-      ${navLink("Buy now", "/")} &nbsp;|&nbsp; ${navLink("Sell your items", "/sell")} &nbsp;|&nbsp; ${navLink("My listings", "/my-listings")} &nbsp;|&nbsp; ${navLink("Rentals", "/rentals")} &nbsp;|&nbsp; ${navLink("Merchandise", "/merchandise")}
+      ${navLink("Buy now", "/marketplace")} &nbsp;|&nbsp; ${navLink("Sell your items", "/create-listing")} &nbsp;|&nbsp; ${navLink("My listings", "/mylistings")} &nbsp;|&nbsp; ${navLink("Rentals", "/rentals")} &nbsp;|&nbsp; ${navLink("Merchandise", "/merchandise")}
     </td></tr>
 
     <tr><td align="center" style="padding:0 32px 8px;font-family:${FONT};font-size:12px;line-height:18px;color:#777777;">You can turn these emails off on your Notifications page.</td></tr>
