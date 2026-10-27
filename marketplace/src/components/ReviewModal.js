@@ -67,7 +67,7 @@ export default function ReviewModal({
                         body: JSON.stringify({ comment: cleanComment }),
                     });
                     const aiData = await aiRes.json();
-                    if (aiData.label) {
+                    if (aiData.success && aiData.label) {
                         sentiment_label = aiData.label;
                         sentiment_score = aiData.score;
                     }

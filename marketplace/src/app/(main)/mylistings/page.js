@@ -19,6 +19,8 @@ import { getListingState } from "@/lib/listingStatus";
 const TAB_BASE =
   "px-3 py-2 md:px-4 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap";
 const TAB_OFF = "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground";
+const MAX_STOCK = 999;
+
 
 function MyListingsContent() {
   const [listings, setListings] = useState([]);
@@ -121,7 +123,12 @@ function MyListingsContent() {
     setIsProcessing(true);
     try {
       const daysNum = parseInt(renewForm.listing_duration_days) || 7;
-      const stockNum = parseInt(renewForm.stock_quantity) || 10;
+      const stockNum = parseInt(renewForm.stock_quantity, 10);
+      if (!Number.isInteger(stockNum) || stockNum < 1 || stockNum > MAX_STOCK) {
+        toast.error(`Stock must be between 1 and ${MAX_STOCK}.`);
+        setIsProcessing(false);
+        return;
+      }
 
       const { data: fee, error } = await supabase.rpc("request_merch_renewal", {
         p_product_id: activeItem.id,
@@ -531,8 +538,15 @@ function MyListingsContent() {
                   min="1"
                   className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl p-3 text-base md:text-xs font-bold text-foreground outline-none"
                   value={renewForm.stock_quantity}
-                  onChange={(e) => setRenewForm({ ...renewForm, stock_quantity: e.target.value })}
-                  placeholder="e.g. 50"
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                    setRenewForm({
+                      ...renewForm,
+                      stock_quantity: digits === "" ? "" : String(Math.min(Number(digits), MAX_STOCK)),
+                    });
+                  }}
+                  max={MAX_STOCK}
+                  placeholder="e.g. 50 (max 999)"
                 />
               </div>
 

@@ -70,6 +70,7 @@ const RESERVED_TAGS = ["official-merch", "flagged", "pending", "expired"];
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
 const MAX_DESCRIPTION = 1000;
+const MAX_STOCK = 999;
 const MAX_IMAGE_MB = 10;
 
 const checkImage = (file) => {
@@ -328,6 +329,12 @@ function CreateListingContent() {
     e.preventDefault();
     if (images.length === 0) return toast.error("Please upload at least one image!");
     if (!categoryId) return toast.error("Please select a category!");
+    if (isOfficialOrgMerch) {
+      const stockNum = parseInt(stockQuantity, 10);
+      if (!Number.isInteger(stockNum) || stockNum < 1 || stockNum > MAX_STOCK) {
+        return toast.error(`Stock must be between 1 and ${MAX_STOCK}.`);
+      }
+    }
     if (description.trim().length > MAX_DESCRIPTION) {
       return toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
     }
@@ -572,10 +579,14 @@ function CreateListingContent() {
                         required={isOfficialOrgMerch}
                         type="number"
                         min="1"
+                        max={MAX_STOCK}
                         className="w-full bg-background border border-emerald-500/30 rounded-xl p-3 pl-10 text-foreground text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="e.g., 50"
+                        placeholder="e.g., 50 (max 999)"
                         value={stockQuantity}
-                        onChange={(e) => setStockQuantity(e.target.value)}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                          setStockQuantity(digits === "" ? "" : String(Math.min(Number(digits), MAX_STOCK)));
+                        }}
                       />
                     </div>
 

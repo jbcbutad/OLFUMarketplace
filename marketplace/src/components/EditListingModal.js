@@ -8,6 +8,7 @@ import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 
 const MAX_DESCRIPTION = 1000;
+const MAX_STOCK = 999;
 
 export default function EditListingModal({ product, onClose, onSaved }) {
     const merch = isMerch(product);
@@ -28,6 +29,13 @@ export default function EditListingModal({ product, onClose, onSaved }) {
         if (form.description.trim().length > MAX_DESCRIPTION) {
             toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
             return;
+        }
+        if (canEditStock) {
+            const stockNum = parseInt(form.stock_quantity, 10);
+            if (!Number.isInteger(stockNum) || stockNum < 0 || stockNum > MAX_STOCK) {
+                toast.error(`Stock must be between 0 and ${MAX_STOCK}.`);
+                return;
+            }
         }
         setSaving(true);
         try {
@@ -154,9 +162,15 @@ export default function EditListingModal({ product, onClose, onSaved }) {
 
                         {canEditStock && (
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Layers size={14} /> Total Stock Units Left</label>
-                                <input required type="number" min="0" className="w-full bg-muted/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                                    value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} />
+                                <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Layers size={14} /> Total Stock Units Left (max 999)</label>
+                                <input required type="number" min="0" max={MAX_STOCK} className="w-full bg-muted/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                                    value={form.stock_quantity} onChange={(e) => {
+                                        const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                                        setForm({
+                                            ...form,
+                                            stock_quantity: digits === "" ? "" : String(Math.min(Number(digits), MAX_STOCK)),
+                                        });
+                                    }} />
                             </div>
                         )}
                         {merch && expired && (
