@@ -112,37 +112,40 @@ export default function SalesHistoryPage() {
     );
 
     return (
-        <div className="text-foreground w-full min-h-screen p-6 md:p-10 transition-colors">
+        // pb-28 keeps the last card clear of the fixed Superadmin footer on mobile
+        <div className="text-foreground w-full min-h-screen px-3 pt-4 pb-28 sm:p-6 md:p-10 transition-colors overflow-x-hidden">
             <div className="max-w-5xl mx-auto">
-                <div className="mb-6">
-                    <Link href="/mylistings" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium mb-4 transition-colors">
+                <div className="mb-4 md:mb-6">
+                    <Link href="/mylistings" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm font-medium mb-3 md:mb-4 transition-colors">
                         <ArrowLeft size={16} /> Back to My Listings
                     </Link>
-                    <h1 className="text-3xl font-black uppercase italic tracking-tight flex items-center gap-3">
-                        <ShoppingBag className="text-yellow-500" size={32} /> Sales History
+                    <h1 className="text-2xl md:text-3xl font-black uppercase italic tracking-tight flex items-center gap-2 md:gap-3">
+                        <ShoppingBag className="text-yellow-500 shrink-0" size={28} /> Sales History
                     </h1>
                 </div>
 
-                {/* THEMED FILTER & CONTROL BAR */}
-                <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-xs">                    <div className="relative w-full md:w-72">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Search title or buyer..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-muted/60 border border-border rounded-xl pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-yellow-500 transition-colors"
-                    />
-                </div>
+                {/* FILTER & CONTROL BAR */}
+                <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-3 md:p-4 mb-4 md:mb-6 flex flex-col md:flex-row gap-3 md:gap-4 md:items-center md:justify-between shadow-xs">
+                    {/* Search */}
+                    <div className="relative w-full md:w-72">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                            type="text"
+                            placeholder="Search title or buyer..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-muted/60 border border-border rounded-xl pl-9 pr-3 py-2 text-base sm:text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-yellow-500 transition-colors"
+                        />
+                    </div>
 
-                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                        {/* Transaction Type Filter */}
-                        <div className="flex bg-muted p-1 rounded-xl border border-border text-xs font-bold">
+                    <div className="flex flex-col sm:flex-row gap-2 md:gap-3 w-full md:w-auto">
+                        {/* Transaction Type Filter (tabs share the full width on mobile) */}
+                        <div className="flex w-full sm:w-auto bg-muted p-1 rounded-xl border border-border text-xs font-bold">
                             {["all", "sale", "rental"].map((type) => (
                                 <button
                                     key={type}
                                     onClick={() => setFilterType(type)}
-                                    className={`px-3 py-1.5 rounded-lg capitalize transition-all ${filterType === type
+                                    className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg capitalize transition-all ${filterType === type
                                         ? "bg-yellow-500 text-black shadow-xs font-black"
                                         : "text-muted-foreground hover:text-foreground"
                                         }`}
@@ -152,13 +155,13 @@ export default function SalesHistoryPage() {
                             ))}
                         </div>
 
-                        {/* Sort Dropdown */}
-                        <div className="flex items-center gap-1.5 bg-muted border border-border px-3 py-1.5 rounded-xl text-xs font-bold text-foreground">
+                        {/* Sort Dropdown (full width on mobile) */}
+                        <div className="flex items-center gap-1.5 w-full sm:w-auto bg-muted border border-border px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold text-foreground">
                             <ArrowUpDown size={14} className="text-yellow-500 shrink-0" />
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="bg-transparent text-foreground outline-none cursor-pointer"
+                                className="flex-1 min-w-0 bg-transparent text-foreground text-base sm:text-xs outline-none cursor-pointer"
                             >
                                 <option value="newest" className="bg-card text-foreground">Newest First</option>
                                 <option value="oldest" className="bg-card text-foreground">Oldest First</option>
@@ -170,7 +173,7 @@ export default function SalesHistoryPage() {
                 </div>
 
                 {/* SALES LIST */}
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                     {processedSales.length > 0 ? (
                         processedSales.map((tx) => {
                             const buyer = tx.profiles;
@@ -179,50 +182,66 @@ export default function SalesHistoryPage() {
                             const existingReview = reviewsMap[tx.id];
 
                             return (
-                                <div key={tx.id} className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">                                    <div className="flex items-center gap-4">
-                                    <img src={product?.image_urls?.[0] || "/placeholder.png"} alt={product?.title} className="w-16 h-16 rounded-xl object-cover border border-border bg-muted shrink-0" />
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
-                                                {tx.status}
-                                            </span>
-                                            {tx.transaction_type && (
-                                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-muted text-muted-foreground border-border">
-                                                    {tx.transaction_type}
+                                <div
+                                    key={tx.id}
+                                    className="bg-white dark:bg-neutral-900 border border-border rounded-2xl p-3 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 shadow-xs"
+                                >
+                                    {/* Product info */}
+                                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                                        <img
+                                            src={product?.image_urls?.[0] || "/placeholder.png"}
+                                            alt={product?.title}
+                                            className="w-14 h-14 md:w-16 md:h-16 rounded-xl object-cover border border-border bg-muted shrink-0"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                                                    {tx.status}
                                                 </span>
-                                            )}
-                                            {product?.price && (
-                                                <span className="text-xs font-bold text-yellow-500">
-                                                    ₱{Number(product.price).toLocaleString()}
+                                                {tx.transaction_type && (
+                                                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded border bg-muted text-muted-foreground border-border">
+                                                        {tx.transaction_type}
+                                                    </span>
+                                                )}
+                                                {product?.price && (
+                                                    <span className="text-xs font-bold text-yellow-500">
+                                                        ₱{Number(product.price).toLocaleString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <h3 className="font-bold text-sm md:text-base text-foreground break-words">
+                                                {product?.title || "Item"}
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground flex items-start gap-1 mt-0.5">
+                                                <User size={12} className="text-yellow-500 mt-0.5 shrink-0" />
+                                                <span className="min-w-0 break-words">
+                                                    Buyer: <strong className="text-foreground">{buyerName}</strong>
                                                 </span>
-                                            )}
+                                            </p>
                                         </div>
-                                        <h3 className="font-bold text-base text-foreground">{product?.title || "Item"}</h3>
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                            <User size={12} className="text-yellow-500" /> Buyer: <strong className="text-foreground">{buyerName}</strong>
-                                        </p>
                                     </div>
-                                </div>
 
-                                    <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                                        {/* View Chat Button */}
+                                    {/* Actions: two equal buttons on mobile, compact on desktop */}
+                                    <div className="grid grid-cols-2 md:flex md:items-center gap-2 w-full md:w-auto">
                                         <Link
                                             href={`/chat/${tx.buyer_id}?sellerId=${tx.buyer_id}`}
-                                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-muted hover:bg-accent text-foreground border border-border rounded-xl text-xs font-bold transition-all"
+                                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-muted hover:bg-accent text-foreground border border-border rounded-xl text-xs font-bold transition-all whitespace-nowrap"
                                         >
                                             <MessageSquare size={13} className="text-yellow-500" /> View Chat
                                         </Link>
 
-                                        {/* Review Button */}
                                         {existingReview ? (
                                             <button
                                                 onClick={() => setSelectedTxForReview({ ...tx, existingReview })}
-                                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-muted hover:bg-accent text-foreground border border-border rounded-xl text-xs font-bold transition-all"
+                                                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-muted hover:bg-accent text-foreground border border-border rounded-xl text-xs font-bold transition-all whitespace-nowrap"
                                             >
                                                 <Pencil size={13} className="text-yellow-500" /> Edit Review
                                             </button>
                                         ) : (
-                                            <button onClick={() => setSelectedTxForReview(tx)} className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                                            <button
+                                                onClick={() => setSelectedTxForReview(tx)}
+                                                className="inline-flex items-center justify-center gap-1.5 px-3 md:px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl text-xs font-black uppercase tracking-wider shadow-xs whitespace-nowrap"
+                                            >
                                                 <Star size={14} className="fill-black" /> Review Buyer
                                             </button>
                                         )}
@@ -231,7 +250,7 @@ export default function SalesHistoryPage() {
                             );
                         })
                     ) : (
-                        <div className="text-center py-20 bg-card/50 rounded-3xl border border-dashed border-border text-muted-foreground font-bold uppercase text-sm">
+                        <div className="text-center py-16 md:py-20 bg-card/50 rounded-3xl border border-dashed border-border text-muted-foreground font-bold uppercase text-sm">
                             {sales.length === 0 ? "No Sales History Found" : "No Matching Sales"}
                         </div>
                     )}
