@@ -73,7 +73,7 @@ We rely on these providers to run the Marketplace:
 
 These providers process information on our behalf. Hosting and server logs may include technical information such as IP addresses and the pages requested. We may also disclose information when the law requires it or when it is needed to protect the safety of users.
 
-We use Resend to send notification emails, such as listing removals, organization application results, account notices and expiry reminders. Resend receives your email address and the message content so it can deliver the email. You can turn these emails off on the Notifications page.
+We use Resend to send notification emails, such as listing removals and rejections, organization application results, account notices and expiry reminders. Resend receives your email address and the message content so it can deliver the email. You can turn these emails off on the Notifications page.
 
 ## 8. Cookies and Local Storage
 
