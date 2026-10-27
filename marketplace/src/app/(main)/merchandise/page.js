@@ -540,6 +540,7 @@ function MerchandiseContent() {
                   <Link
                     key={product.id}
                     href={`/products/${product.id}`}
+                    prefetch={false}
                     className="block min-w-0 group transition-all duration-300 hover:-translate-y-1 active:scale-95"
                   >
                     <ProductCard
