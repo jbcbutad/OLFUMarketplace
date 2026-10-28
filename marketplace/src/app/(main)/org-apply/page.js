@@ -135,7 +135,7 @@ export default function OrgApplyPage() {
         <div className="min-h-screen text-foreground p-4 sm:p-6 md:p-10 transition-colors">
             <div className="max-w-3xl mx-auto">
                 <Link
-                    href="/categories?category=Merchandise"
+                    href="/Merchandise"
                     className="inline-flex items-center gap-2 text-neutral-500 hover:text-foreground text-xs font-black uppercase tracking-wider mb-6 transition-colors"
                 >
                     <ArrowLeft size={16} /> Back to Merchandise
