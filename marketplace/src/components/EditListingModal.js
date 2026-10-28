@@ -39,26 +39,25 @@ export default function EditListingModal({ product, onClose, onSaved }) {
         }
         setSaving(true);
         try {
-            // 1. Re-run moderation on the edited text + cover photo
-            const fd = new FormData();
-            fd.append("title", form.title.trim());
-            fd.append("description", form.description.trim());
-            if (product.image_urls?.[0]) {
-                try {
-                    const blob = await (await fetch(product.image_urls[0])).blob();
-                    fd.append("images", blob, "existing-photo.jpg");
-                } catch (err) {
-                    console.warn("Could not fetch existing image for re-moderation:", err);
-                }
-            }
-            const modRes = await fetch("/api/moderate-listing", { method: "POST", body: fd });
-            if (modRes.status === 401) throw new Error("Your session expired. Please log in again.");
-            if (!modRes.ok) throw new Error("Couldn't check your edits right now. Please try again.");
-            const moderation = await modRes.json();
+            // 1. Only re-run moderation if the title or description actually changed
+            const textChanged =
+                form.title.trim() !== (product.title || "").trim() ||
+                form.description.trim() !== (product.description || "").trim();
 
-            if (moderation.verdict === "rejected") {
-                toast.error(`Update blocked: ${moderation.reason || "it violates our posting guidelines."}`, { duration: 8000 });
-                return;
+            let moderation = { verdict: "clean" };
+            if (textChanged) {
+                const fd = new FormData();
+                fd.append("title", form.title.trim());
+                fd.append("description", form.description.trim());
+                const modRes = await fetch("/api/moderate-listing", { method: "POST", body: fd });
+                if (modRes.status === 401) throw new Error("Your session expired. Please log in again.");
+                if (!modRes.ok) throw new Error("Couldn't check your edits right now. Please try again.");
+                moderation = await modRes.json();
+
+                if (moderation.verdict === "rejected") {
+                    toast.error(`Update blocked: ${moderation.reason || "it violates our posting guidelines."}`, { duration: 8000 });
+                    return;
+                }
             }
             const needsReview = moderation.verdict === "flagged";
 
