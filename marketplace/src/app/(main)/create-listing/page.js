@@ -71,6 +71,17 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
 const MAX_DESCRIPTION = 1000;
 const MAX_STOCK = 999;
+const MAX_PRICE = 999999999;
+
+// Formats a price as you type: commas, max 9 whole digits, max 2 decimals
+const formatPrice = (value) => {
+  const cleaned = String(value).replace(/[^0-9.]/g, "");
+  const [rawInt, ...rest] = cleaned.split(".");
+  const intPart = rawInt.slice(0, 9);
+  const decimals = rest.join("").slice(0, 2);
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return rest.length > 0 ? `${withCommas}.${decimals}` : withCommas;
+};
 const MAX_IMAGE_MB = 10;
 
 const checkImage = (file) => {
@@ -258,7 +269,7 @@ function CreateListingContent() {
 
         if (aiTitle) setTitle(aiTitle);
         if (aiDesc) setDescription(String(aiDesc).slice(0, MAX_DESCRIPTION));
-        if (aiPrice !== undefined && aiPrice !== null) setPrice(aiPrice.toString());
+        if (aiPrice !== undefined && aiPrice !== null) setPrice(formatPrice(aiPrice));
 
         if (aiTags && Array.isArray(aiTags)) {
           const cleanAiTags = aiTags
@@ -337,6 +348,14 @@ function CreateListingContent() {
     }
     if (description.trim().length > MAX_DESCRIPTION) {
       return toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
+    }
+    // Price: strip the commas, then validate
+    const numericPrice = parseFloat(price.replace(/,/g, ""));
+    if (isNaN(numericPrice) || numericPrice < 0) {
+      return toast.error("Please enter a valid price!");
+    }
+    if (numericPrice > MAX_PRICE) {
+      return toast.error("Price can't be more than ₱999,999,999.");
     }
     setLoading(true);
 
@@ -438,7 +457,7 @@ function CreateListingContent() {
         id: productId,
         title: title.trim(),
         description: description.trim(),
-        price: parseFloat(price),
+        price: numericPrice,
         image_urls: uploadedUrls,
         seller_id: user.id,
         category_id: finalCategoryId,
@@ -723,11 +742,12 @@ function CreateListingContent() {
               <span className="absolute left-4 top-[46px] text-neutral-400 font-bold">₱</span>
               <input
                 required
-                type="number"
+                type="text"
+                inputMode="decimal"
                 className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 pl-10 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all placeholder:text-neutral-400"
                 placeholder={listingType === "Rentals" ? "0.00 (Per Day)" : "0.00"}
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => setPrice(formatPrice(e.target.value))}
               />
             </div>
 

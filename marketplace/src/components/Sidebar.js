@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -11,8 +12,8 @@ import {
   Clock,
   CalendarClock,
   MessageSquare,
-  ListOrdered,
   Bot,
+  ListOrdered,
   ChevronDown,
   ShoppingBag,
   ShieldAlert,
@@ -20,8 +21,6 @@ import {
   Shield,
   PanelLeftClose,
   PanelLeftOpen,
-  History,
-  ShoppingCart,
   TrendingUp,
   Building2,
   ShieldCheck,
@@ -43,52 +42,97 @@ const ICON_BTN =
 // Slim icon size on mobile, normal size from md up
 const COLLAPSED = "justify-center w-9 h-9 md:w-10 md:h-10 mx-auto";
 
-// Single nav link. Handles the open/collapsed layouts and the unread badge.
-function NavLink({ href, title, label, icon: Icon, active, isOpen, iconClassName = "", badge = 0 }) {
+// Custom hover tooltip that shows the item's name (replaces the browser's
+// default title tooltip, so no element should use a title attribute).
+// Rendered in a portal with fixed positioning so the sidebar's
+// overflow-hidden can't clip it.
+// Pass enabled={!isOpen} so it only appears while the sidebar is collapsed.
+function Tip({ label, enabled, children, tipClassName = "" }) {
+  const [pos, setPos] = useState(null);
+
+  // Clear any visible tooltip if the sidebar opens while the mouse is still
+  // over an icon (e.g. after clicking a group icon in the collapsed rail).
+  useEffect(() => {
+    if (!enabled) setPos(null);
+  }, [enabled]);
+
+  const show = (e) => {
+    if (!enabled) return;
+    const target = e.currentTarget.firstElementChild || e.currentTarget;
+    const r = target.getBoundingClientRect();
+    setPos({ top: r.top + r.height / 2, left: r.right + 10 });
+  };
+  const hide = () => setPos(null);
+
   return (
-    <Link
-      href={href}
-      prefetch={false}
-      title={title || label}
-      aria-current={active ? "page" : undefined}
-      className={`${ITEM_BASE} relative ${active ? ITEM_ON : ITEM_OFF} ${isOpen ? "px-3" : COLLAPSED}`}
-    >
-      <Icon size={18} className={`shrink-0 ${iconClassName}`} />
-      {isOpen && <span className="truncate flex-1">{label}</span>}
-      {isOpen && badge > 0 && (
-        <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-          {badge}
-        </span>
-      )}
-      {!isOpen && badge > 0 && (
-        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-600 rounded-full ring-2 ring-stone-200 dark:ring-neutral-900" />
-      )}
-    </Link>
+    <div onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
+      {children}
+      {enabled &&
+        pos &&
+        createPortal(
+          <div
+            role="tooltip"
+            style={{ top: pos.top, left: pos.left }}
+            className={`fixed z-[100] -translate-y-1/2 pointer-events-none px-3 py-1.5 rounded-xl border shadow-lg text-xs font-bold whitespace-nowrap ${tipClassName || "bg-emerald-600 border-emerald-600 text-white"}`}
+          >
+            {label}
+          </div>,
+          document.body
+        )}
+    </div>
   );
 }
 
-// Button that opens a group of sub-links (Categories, My Transactions)
+// Single nav link. Handles the open/collapsed layouts and the unread badge.
+function NavLink({ href, title, label, icon: Icon, active, isOpen, iconClassName = "", badge = 0 }) {
+  return (
+    <Tip label={title || label} enabled={!isOpen}>
+      <Link
+        href={href}
+        prefetch={false}
+        aria-label={title || label}
+        aria-current={active ? "page" : undefined}
+        className={`${ITEM_BASE} relative ${active ? ITEM_ON : ITEM_OFF} ${isOpen ? "px-3" : COLLAPSED}`}
+      >
+        <Icon size={18} className={`shrink-0 ${iconClassName}`} />
+        {isOpen && <span className="truncate flex-1">{label}</span>}
+        {isOpen && badge > 0 && (
+          <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+            {badge}
+          </span>
+        )}
+        {!isOpen && badge > 0 && (
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-600 rounded-full ring-2 ring-stone-200 dark:ring-neutral-900" />
+        )}
+      </Link>
+    </Tip>
+  );
+}
+
+// Button that opens a group of sub-links (Categories)
 function GroupButton({ title, label, icon: Icon, active, isOpen, expanded, onClick }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      aria-expanded={isOpen ? expanded : undefined}
-      className={`${ITEM_BASE} cursor-pointer ${active ? "bg-emerald-600 text-white font-bold [&_svg]:text-white" : ITEM_OFF
-        } ${isOpen ? "w-full justify-between px-3" : COLLAPSED}`}
-    >
-      <div className="flex items-center gap-3">
-        <Icon size={18} className="shrink-0" />
-        {isOpen && <span>{label}</span>}
-      </div>
-      {isOpen && (
-        <ChevronDown
-          size={16}
-          className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-        />
-      )}
-    </button>
+    <Tip label={title || label} enabled={!isOpen}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={title || label}
+        aria-expanded={isOpen ? expanded : undefined}
+        className={`${ITEM_BASE} cursor-pointer ${active ? "bg-emerald-600 text-white font-bold [&_svg]:text-white" : ITEM_OFF
+          } ${isOpen ? "w-full justify-between px-3" : COLLAPSED}`}
+      >
+        <div className="flex items-center gap-3">
+          <Icon size={18} className="shrink-0" />
+          {isOpen && <span>{label}</span>}
+        </div>
+        {isOpen && (
+          <ChevronDown
+            size={16}
+            className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+          />
+        )}
+      </button>
+    </Tip>
   );
 }
 
@@ -111,17 +155,19 @@ function SubLink({ href, active, children }) {
 function AdminLink({ href, title, label, icon: Icon, theme, pathname, isOpen }) {
   const active = pathname.startsWith(href);
   return (
-    <Link
-      href={href}
-      prefetch={false}
-      title={title}
-      aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 py-2 rounded-xl text-sm font-semibold transition-all border ${active ? theme.activeLink : theme.inactiveLink
-        } ${isOpen ? "px-3" : COLLAPSED}`}
-    >
-      <Icon size={18} className={`${active ? "text-white" : theme.icon} shrink-0`} />
-      {isOpen && <span className="truncate">{label}</span>}
-    </Link>
+    <Tip label={title || label} enabled={!isOpen} tipClassName={theme.tip}>
+      <Link
+        href={href}
+        prefetch={false}
+        aria-label={title || label}
+        aria-current={active ? "page" : undefined}
+        className={`flex items-center gap-3 py-2 rounded-xl text-sm font-semibold transition-all border ${active ? theme.activeLink : theme.inactiveLink
+          } ${isOpen ? "px-3" : COLLAPSED}`}
+      >
+        <Icon size={18} className={`${active ? "text-white" : theme.icon} shrink-0`} />
+        {isOpen && <span className="truncate">{label}</span>}
+      </Link>
+    </Tip>
   );
 }
 
@@ -129,9 +175,6 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const [isTransactionOpen, setIsTransactionOpen] = useState(
-    pathname === "/purchase-history" || pathname === "/sales-history"
-  );
   const [role, setRole] = useState(null);
   const unreadCount = useUnreadCount();
 
@@ -208,7 +251,6 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
   const isAdminUser = role && allowedAdminRoles.includes(role);
 
   const categoryGroupActive = pathname.startsWith("/categories");
-  const transactionGroupActive = pathname === "/purchase-history" || pathname === "/sales-history";
 
   return (
     // Wrapper reserves only the slim rail width on mobile; the open drawer
@@ -248,26 +290,27 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                 >
                   Marketplace
                 </Link>
+                {/* No tooltip here: this button only renders while the sidebar is open */}
                 <button
                   onClick={toggleSidebar}
                   type="button"
                   className={ICON_BTN}
-                  title="Collapse Sidebar"
                   aria-label="Collapse sidebar"
                 >
                   <PanelLeftClose size={18} />
                 </button>
               </>
             ) : (
-              <button
-                onClick={toggleSidebar}
-                type="button"
-                className={`${ICON_BTN} flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-stone-100 dark:bg-neutral-800 border ${LINE} shadow-sm mx-auto`}
-                title="Expand Sidebar"
-                aria-label="Expand sidebar"
-              >
-                <PanelLeftOpen size={20} />
-              </button>
+              <Tip label="Expand Sidebar" enabled>
+                <button
+                  onClick={toggleSidebar}
+                  type="button"
+                  className={`${ICON_BTN} flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-stone-100 dark:bg-neutral-800 border ${LINE} shadow-sm mx-auto`}
+                  aria-label="Expand sidebar"
+                >
+                  <PanelLeftOpen size={20} />
+                </button>
+              </Tip>
             )}
           </div>
 
@@ -327,33 +370,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
             />
 
             <NavLink href="/ai-chat" title="AI Support" label="AI Support" icon={Bot} active={isActive("/ai-chat")} isOpen={isOpen} />
-            <NavLink href="/mylistings" label="My Listings" icon={ListOrdered} active={isActive("/mylistings")} isOpen={isOpen} />
 
-            {/* TRANSACTIONS DROPDOWN MENU */}
-            <div className="space-y-1">
-              <GroupButton
-                title="My Transactions"
-                label="My Transactions"
-                icon={History}
-                active={transactionGroupActive}
-                isOpen={isOpen}
-                expanded={isTransactionOpen}
-                onClick={() => toggleGroup(isTransactionOpen, setIsTransactionOpen)}
-              />
-
-              {isOpen && isTransactionOpen && (
-                <div className="pl-9 pr-2 space-y-1 animate-in slide-in-from-top-1 duration-150">
-                  <SubLink href="/purchase-history" active={pathname === "/purchase-history"}>
-                    <ShoppingCart size={14} className="shrink-0" />
-                    <span>Purchase History</span>
-                  </SubLink>
-                  <SubLink href="/sales-history" active={pathname === "/sales-history"}>
-                    <ShoppingBag size={14} className="shrink-0" />
-                    <span>Sales History</span>
-                  </SubLink>
-                </div>
-              )}
-            </div>
           </nav>
 
           {/* DYNAMIC ROLE ADMIN SECTION */}
@@ -374,6 +391,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                   inactiveLink:
                     "bg-purple-50/80 text-purple-900 border-purple-200 hover:bg-purple-100 dark:bg-purple-950/30 dark:text-purple-200 dark:border-purple-900/40 dark:hover:bg-purple-900/50",
                   icon: "text-purple-600 dark:text-purple-400",
+                  tip: "bg-purple-600 border-purple-600 text-white",
                   label: "Superadmin Mode",
                 }
                 : isAdmin
@@ -387,6 +405,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                     inactiveLink:
                       "bg-blue-50/80 text-blue-900 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-200 dark:border-blue-900/40 dark:hover:bg-blue-900/50",
                     icon: "text-blue-600 dark:text-blue-400",
+                    tip: "bg-blue-600 border-blue-600 text-white",
                     label: "Admin Mode",
                   }
                   : {
@@ -399,6 +418,7 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
                     inactiveLink:
                       "bg-emerald-50/80 text-emerald-900 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-200 dark:border-emerald-900/40 dark:hover:bg-emerald-900/50",
                     icon: "text-emerald-600 dark:text-emerald-400",
+                    tip: "bg-emerald-600 border-emerald-600 text-white",
                     label: "Moderator Mode",
                   };
 

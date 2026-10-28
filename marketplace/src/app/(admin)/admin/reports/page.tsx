@@ -1,7 +1,8 @@
 'use client';
 
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from "sonner";
-import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { banUserAction } from './actions';
@@ -20,7 +21,68 @@ import {
   MessageCircle,
   Ban,
   Trash2,
+  Search,
+  ArrowRight,
+  Flame,
 } from 'lucide-react';
+
+// "[Product Report: "Title"]" is added to the reason by the report form. Used to find the item
+// when a report has no product_id, and removed from the text we show.
+const PRODUCT_TAG_RE = /\[Product Report:\s*"([^"]+)"\]\s*/i;
+const productTitleFromReason = (reason?: string | null) => reason?.match(PRODUCT_TAG_RE)?.[1] ?? null;
+const cleanReason = (reason?: string | null) => (reason || '').replace(PRODUCT_TAG_RE, '').trim();
+
+function Avatar({ name, url, size = 36 }: { name: string; url?: string | null; size?: number }) {
+  const initials =
+    name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
+  return url ? (
+    <img
+      src={url}
+      alt=""
+      style={{ width: size, height: size }}
+      className="rounded-full object-cover shrink-0 border border-line bg-tint"
+    />
+  ) : (
+    <div
+      style={{ width: size, height: size }}
+      className="rounded-full shrink-0 flex items-center justify-center bg-tint text-ink-soft text-[11px] font-black border border-line"
+    >
+      {initials}
+    </div>
+  );
+}
+
+// One person in a report (the reporter or the reported user)
+function Party({
+  label,
+  name,
+  profile,
+  tone,
+  extra,
+}: {
+  label: string;
+  name: string;
+  profile?: any;
+  tone: 'reporter' | 'reported';
+  extra?: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`flex-1 min-w-0 flex items-center gap-3 p-3 rounded-xl border ${tone === 'reported'
+        ? 'border-rose-500/25 bg-rose-500/5'
+        : 'border-line bg-tint'
+        }`}
+    >
+      <Avatar name={name} url={profile?.avatar_url} size={40} />
+      <div className="min-w-0">
+        <p className="text-[10px] font-black uppercase tracking-wider text-ink-soft">{label}</p>
+        <p className="text-sm font-bold text-foreground truncate">{name}</p>
+        {profile?.email && <p className="text-[11px] text-ink-soft truncate">{profile.email}</p>}
+        {extra}
+      </div>
+    </div>
+  );
+}
 
 const CONFIRM_COPY = {
   resolve: {
@@ -43,9 +105,11 @@ const CONFIRM_COPY = {
   },
 };
 
-export default function ReportsPage() {
+function ReportsContent() {
   const [reports, setReports] = useState([]);
-  const [productLinks, setProductLinks] = useState({});
+  // Items found by the title in the report reason (for reports saved without a product_id)
+  const [linkedProducts, setLinkedProducts] = useState<Record<string, any>>({});
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
 
@@ -68,36 +132,43 @@ export default function ReportsPage() {
           created_at,
           reporter:reporter_id ( id, full_name, email, avatar_url, "First_Name", "Last_Name" ),
           reported:reported_id ( id, full_name, email, avatar_url, "First_Name", "Last_Name" ),
-          product:product_id ( id, title, image_urls )
+          product:product_id ( id, title, image_urls, status, seller_id )
         `)
         .order('created_at', { ascending: false })
         .limit(200);
 
       if (error) throw error;
-      const fetchedReports = data || [];
+      const fetchedReports: any[] = (data as any[]) || [];
       setReports(fetchedReports);
 
-      const linksMap = {};
+      // Reports saved without a product_id: find the item from the title in the reason
+      const titles = [
+        ...new Set(
+          fetchedReports
+            .filter((r) => !r.product_id && !r.product?.id)
+            .map((r) => productTitleFromReason(r.reason))
+            .filter(Boolean)
+        ),
+      ] as string[];
+      const byTitle: Record<string, any> = {};
+      await Promise.all(
+        titles.map(async (title) => {
+          const { data: rows } = await supabase
+            .from('products')
+            .select('id, title, image_urls, status, seller_id')
+            .ilike('title', title.replace(/[%_\\]/g, (m) => '\\' + m))
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (rows && rows[0]) byTitle[title.toLowerCase()] = rows[0];
+        })
+      );
+      const linksMap: Record<string, any> = {};
       for (const r of fetchedReports) {
-        if (r.product_id) {
-          linksMap[r.id] = r.product_id;
-        } else if (r.reason && r.reason.includes('[Product Report:')) {
-          const match = r.reason.match(/\[Product Report:\s*"([^"]+)"\]/);
-          if (match && match[1]) {
-            const productTitle = match[1];
-            const { data: prodData } = await supabase
-              .from('products')
-              .select('id')
-              .ilike('title', productTitle)
-              .maybeSingle();
-
-            if (prodData) {
-              linksMap[r.id] = prodData.id;
-            }
-          }
-        }
+        if (r.product_id || r.product?.id) continue;
+        const t = productTitleFromReason(r.reason);
+        if (t && byTitle[t.toLowerCase()]) linksMap[r.id] = byTitle[t.toLowerCase()];
       }
-      setProductLinks(linksMap);
+      setLinkedProducts(linksMap);
     } catch (err) {
       console.error('Error fetching reports:', err.message || err);
     } finally {
@@ -108,6 +179,40 @@ export default function ReportsPage() {
   useEffect(() => {
     fetchReports();
   }, []);
+
+  // ---- Jump to a specific report (from the notification bell: /admin/reports?report=<id>) ----
+  const searchParams = useSearchParams();
+  const targetId = searchParams?.get('report') ?? null;
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const handledRef = useRef<string | null>(null);
+
+  // Switch to the report's tab and status, clear the search, then highlight it
+  useEffect(() => {
+    if (!targetId || loading || handledRef.current === targetId) return;
+    const r: any = reports.find((x: any) => String(x.id) === targetId);
+    handledRef.current = targetId;
+    if (!r) {
+      toast.error(`Report ${targetId} was not found (only the latest 200 reports are loaded).`);
+      return;
+    }
+    setReportCategory(isProductReport(r) ? 'product' : 'chat');
+    setFilterStatus(r.status || 'pending');
+    setSearch('');
+    setHighlightId(targetId);
+  }, [targetId, reports, loading]);
+
+  // Scroll to it once the right tab has rendered, then fade the highlight
+  useEffect(() => {
+    if (!highlightId) return;
+    const t1 = setTimeout(() => {
+      document.getElementById(`report-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    const t2 = setTimeout(() => setHighlightId(null), 6000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [highlightId]);
 
   const [modal, setModal] = useState(null); // { type: 'ban' | 'remove', report }
   const [chatView, setChatView] = useState(null); // { report, messages, loading }
@@ -165,7 +270,7 @@ export default function ReportsPage() {
       await runAction(
         report.id,
         () => supabase.rpc('moderate_remove_listing', {
-          p_product_id: report.product_id || report.product?.id,
+          p_product_id: productIdOf(report),
           p_reason: reason,
           p_report_id: report.id,
         }),
@@ -185,23 +290,53 @@ export default function ReportsPage() {
     setChatView({ report, messages: data || [], loading: false });
   };
 
+  // The reported item for a report: from product_id, else found by the title in the reason
+  const productOf = (r) => r.product || linkedProducts[r.id] || null;
+  const productIdOf = (r) => r.product_id || r.product?.id || linkedProducts[r.id]?.id || null;
+
   const isProductReport = (r) => {
     return Boolean(r.product_id || r.product?.id || (r.reason && r.reason.includes('[Product Report')));
   };
-
-  const filteredReports = reports.filter((r) => {
-    const status = r.status || 'pending';
-    const matchesStatus = status === filterStatus;
-    const matchesCategory = reportCategory === 'product' ? isProductReport(r) : !isProductReport(r);
-
-    return matchesStatus && matchesCategory;
-  });
 
   const resolveName = (p) => {
     if (!p) return 'Unknown User';
     const derived = `${p.First_Name || ''} ${p.Last_Name || ''}`.trim();
     return p.full_name || (derived.length > 0 ? derived : null) || p.email || 'Unknown User';
   };
+
+  const inCategory = (r, cat) => (cat === 'product' ? isProductReport(r) : !isProductReport(r));
+  const countOf = (cat, status) =>
+    reports.filter((r) => (r.status || 'pending') === status && inCategory(r, cat)).length;
+
+  // How many reports each user has received (to spot repeat offenders)
+  const againstUser: Record<string, { total: number; pending: number }> = {};
+  reports.forEach((r) => {
+    const id = r.reported?.id;
+    if (!id) return;
+    if (!againstUser[id]) againstUser[id] = { total: 0, pending: 0 };
+    againstUser[id].total += 1;
+    if ((r.status || 'pending') === 'pending') againstUser[id].pending += 1;
+  });
+
+  const query = search.trim().toLowerCase();
+  const filteredReports = reports.filter((r) => {
+    const status = r.status || 'pending';
+    if (status !== filterStatus || !inCategory(r, reportCategory)) return false;
+    if (!query) return true;
+    const haystack = [
+      resolveName(r.reporter),
+      resolveName(r.reported),
+      r.reporter?.email,
+      r.reported?.email,
+      cleanReason(r.reason),
+      productOf(r)?.title,
+      productTitleFromReason(r.reason),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(query);
+  });
 
   return (
     <div className={ui.page}>
@@ -212,7 +347,7 @@ export default function ReportsPage() {
             <ShieldAlert className={ui.titleIcon} size={28} /> Moderation Queue
           </h1>
           <p className={ui.subtitle}>
-            Review separated chat and product reports, inspect targets, and manage archives.
+            Review user and listing reports, inspect the reported item or chat, and manage archives.
           </p>
         </div>
       </div>
@@ -227,7 +362,10 @@ export default function ReportsPage() {
             }`}
         >
           <MessageCircle size={16} />
-          Chat Reports
+          User & Chat Reports
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${reportCategory === 'chat' ? 'bg-white/20' : 'bg-rose-500/15 text-rose-600'}`}>
+            {countOf('chat', 'pending')}
+          </span>
         </button>
 
         <button
@@ -239,6 +377,9 @@ export default function ReportsPage() {
         >
           <Package size={16} />
           Product Listing Reports
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${reportCategory === 'product' ? 'bg-white/20' : 'bg-rose-500/15 text-rose-600'}`}>
+            {countOf('product', 'pending')}
+          </span>
         </button>
       </div>
 
@@ -251,7 +392,7 @@ export default function ReportsPage() {
             : 'bg-tint text-ink-soft border-line hover:text-brand-deep'
             }`}
         >
-          Pending ({reports.filter((r) => (r.status || 'pending') === 'pending' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
+          Pending ({countOf(reportCategory, 'pending')})
         </button>
         <button
           onClick={() => setFilterStatus('resolved')}
@@ -260,7 +401,7 @@ export default function ReportsPage() {
             : 'bg-tint text-ink-soft border-line hover:text-brand-deep'
             }`}
         >
-          Resolved Archive ({reports.filter((r) => r.status === 'resolved' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
+          Resolved Archive ({countOf(reportCategory, 'resolved')})
         </button>
         <button
           onClick={() => setFilterStatus('dismissed')}
@@ -269,8 +410,20 @@ export default function ReportsPage() {
             : 'bg-tint text-ink-soft border-line hover:text-brand-deep'
             }`}
         >
-          Dismissed Archive ({reports.filter((r) => r.status === 'dismissed' && (reportCategory === 'product' ? isProductReport(r) : !isProductReport(r))).length})
+          Dismissed Archive ({countOf(reportCategory, 'dismissed')})
         </button>
+      </div>
+
+      {/* SEARCH */}
+      <div className="relative">
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={reportCategory === 'product' ? 'Search by item, seller, reporter or reason...' : 'Search by user, email or reason...'}
+          className={`${ui.input} w-full pl-10 text-xs`}
+        />
       </div>
 
       {/* QUEUE CONTENT */}
@@ -284,7 +437,9 @@ export default function ReportsPage() {
           <CheckCircle2 size={48} className="text-ink-soft/40 mb-2" />
           <h3 className="text-base font-bold text-foreground">Queue Cleared</h3>
           <p className="text-sm text-ink-soft">
-            No {filterStatus} {reportCategory} reports recorded right now.
+            {query
+              ? 'No reports match your search.'
+              : `No ${filterStatus} ${reportCategory === 'product' ? 'product listing' : 'user & chat'} reports recorded right now.`}
           </p>
         </div>
       ) : (
@@ -294,13 +449,25 @@ export default function ReportsPage() {
             const reportedName = resolveName(report.reported);
             const isUpdating = updatingId === report.id;
             const status = report.status || 'pending';
-            const resolvedProductId = report.product_id || report.product?.id || productLinks[report.id];
+            const product = productOf(report);
+            const resolvedProductId = productIdOf(report);
+            const isProduct = isProductReport(report);
+            const productImage = product?.image_urls?.[0];
+            const productTitle = product?.title || productTitleFromReason(report.reason);
+            const against = report.reported?.id ? againstUser[report.reported.id] : null;
+            const details = cleanReason(report.reason);
 
             return (
               <div
                 key={report.id}
+                id={`report-${report.id}`}
+                style={
+                  String(highlightId) === String(report.id)
+                    ? { boxShadow: '0 0 0 3px #f43f5e, 0 0 0 7px rgba(244,63,94,0.25), 0 0 28px rgba(244,63,94,0.45)' }
+                    : undefined
+                }
                 className={`bg-surface border border-line rounded-2xl p-5 shadow-sm space-y-4 transition-all ${isUpdating ? 'opacity-50 pointer-events-none' : ''
-                  }`}
+                  } ${String(highlightId) === String(report.id) ? 'animate-pulse' : ''}`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-line">
                   <div className="flex items-center gap-3">
@@ -314,7 +481,16 @@ export default function ReportsPage() {
                     </span>
                     <div>
                       <h4 className="text-sm font-bold text-foreground">
-                        Reported User: <span className="text-rose-600 dark:text-rose-400">{reportedName}</span>
+                        {isProduct ? (
+                          <>
+                            Reported Listing:{' '}
+                            <span className="text-rose-600 dark:text-rose-400">{productTitle || 'Unknown listing'}</span>
+                          </>
+                        ) : (
+                          <>
+                            Reported User: <span className="text-rose-600 dark:text-rose-400">{reportedName}</span>
+                          </>
+                        )}
                       </h4>
                       <p className="text-xs text-ink-soft flex items-center gap-2 mt-0.5">
                         <span>Submitted by: <strong>{reporterName}</strong></span>
@@ -338,13 +514,74 @@ export default function ReportsPage() {
                   </span>
                 </div>
 
+                {/* REPORTED ITEM (product listing reports) */}
+                {isProduct && (
+                  <div className="flex gap-4 p-3 rounded-xl border border-line bg-tint">
+                    {resolvedProductId ? (
+                      <Link href={`/products/${resolvedProductId}`} className="shrink-0">
+                        {productImage ? (
+                          <img src={productImage} alt={productTitle || 'Reported item'} className="w-24 h-24 rounded-xl object-cover border border-line bg-surface" />
+                        ) : (
+                          <div className="w-24 h-24 rounded-xl border border-line bg-surface flex items-center justify-center text-ink-soft">
+                            <Package size={28} />
+                          </div>
+                        )}
+                      </Link>
+                    ) : (
+                      <div className="w-24 h-24 rounded-xl border border-dashed border-line bg-surface flex items-center justify-center text-ink-soft shrink-0">
+                        <Package size={28} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-ink-soft">Reported item</p>
+                      {resolvedProductId ? (
+                        <Link href={`/products/${resolvedProductId}`} className="text-base font-bold text-foreground hover:underline line-clamp-2">
+                          {productTitle || 'View listing'}
+                        </Link>
+                      ) : (
+                        <p className="text-base font-bold text-foreground line-clamp-2">{productTitle || 'Listing not found'}</p>
+                      )}
+                      {!resolvedProductId && (
+                        <p className="text-xs text-ink-soft">This listing could not be found. It may have been deleted.</p>
+                      )}
+                      {product?.status && (
+                        <span className="w-fit px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-line bg-surface text-ink-soft">
+                          Listing {String(product.status).replaceAll('_', ' ')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* PEOPLE INVOLVED */}
+                <div className="flex flex-col sm:flex-row sm:items-stretch gap-2">
+                  <Party label="Reported by" name={reporterName} profile={report.reporter} tone="reporter" />
+                  <div className="hidden sm:flex items-center text-ink-soft">
+                    <ArrowRight size={16} />
+                  </div>
+                  <Party
+                    label={isProduct ? 'Seller' : 'Reported user'}
+                    name={reportedName}
+                    profile={report.reported}
+                    tone="reported"
+                    extra={
+                      against && against.total > 1 ? (
+                        <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                          <Flame size={12} /> {against.total} reports against this user
+                          {against.pending > 0 ? ` (${against.pending} pending)` : ''}
+                        </p>
+                      ) : null
+                    }
+                  />
+                </div>
+
                 {/* REASON BOX */}
                 <div className="p-3.5 rounded-xl bg-tint border border-line">
                   <p className="text-xs font-bold text-ink-soft uppercase tracking-wider mb-1">
                     Report Reason / Details
                   </p>
                   <p className="text-sm text-foreground leading-relaxed whitespace-pre-line font-medium">
-                    "{report.reason}"
+                    {details ? `"${details}"` : 'No details were provided.'}
                   </p>
                 </div>
 
@@ -358,7 +595,7 @@ export default function ReportsPage() {
                 {/* ACTION BUTTONS & LINKS */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    {report.context_room_id && (
+                    {report.context_room_id ? (
                       <button
                         type="button"
                         onClick={() => openChat(report)}
@@ -366,6 +603,8 @@ export default function ReportsPage() {
                       >
                         <MessageSquare size={14} /> Inspect Chat Context
                       </button>
+                    ) : (
+                      !isProduct && <span className="text-xs text-ink-soft">No chat was attached to this report.</span>
                     )}
 
                     {resolvedProductId && (
@@ -466,7 +705,7 @@ export default function ReportsPage() {
             <h3 className="text-lg font-bold mb-1">
               {modal.type === 'ban'
                 ? `Ban ${resolveName(modal.report.reported)}?`
-                : `Remove "${modal.report.product?.title || 'this listing'}"?`}
+                : `Remove "${productOf(modal.report)?.title || productTitleFromReason(modal.report.reason) || 'this listing'}"?`}
             </h3>
             <p className="text-xs text-ink-soft mb-4">
               {modal.type === 'ban'
@@ -505,8 +744,11 @@ export default function ReportsPage() {
             <div className="p-4 border-b border-line flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold">Reported chat (read-only)</h3>
-                <p className="text-[11px] text-ink-soft">
-                  {resolveName(chatView.report.reporter)} (reporter) · {resolveName(chatView.report.reported)} (reported)
+                <p className="text-[11px] text-ink-soft flex items-center gap-1.5">
+                  <Avatar name={resolveName(chatView.report.reporter)} url={chatView.report.reporter?.avatar_url} size={18} />
+                  {resolveName(chatView.report.reporter)} (reporter) ·
+                  <Avatar name={resolveName(chatView.report.reported)} url={chatView.report.reported?.avatar_url} size={18} />
+                  {resolveName(chatView.report.reported)} (reported)
                 </p>
               </div>
               <button onClick={() => setChatView(null)} className={btn("outline", "sm")}>Close</button>
@@ -544,5 +786,13 @@ export default function ReportsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReportsContent />
+    </Suspense>
   );
 }

@@ -13,7 +13,8 @@ import {
   ShoppingBag,
   Heart,
   Bell,
-  MessageSquare
+  MessageSquare,
+  ListOrdered
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -129,8 +130,6 @@ export default function Navbar() {
 
         {user && (
           <>
-            <NotificationBell count={notifCount} />
-
             {/* MESSAGES BUTTON WITH BADGE (phones use the menu instead, see the dot on the avatar) */}
             <Link
               href="/chat"
@@ -146,15 +145,8 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* FAVORITES BUTTON (phones use the menu instead) */}
-            <Link
-              href="/favorites"
-              className="hidden sm:inline-flex p-2.5 rounded-full bg-white dark:bg-neutral-900 border border-black dark:border-white hover:bg-neutral-200 dark:hover:bg-neutral-800 text-foreground transition-all relative cursor-pointer"
-              title="Saved Favorites"
-              aria-label="Saved Favorites"
-            >
-              <Heart size={20} className="text-rose-500 fill-rose-500/20" />
-            </Link>
+            {/* NOTIFICATIONS (now sits after Messages) */}
+            <NotificationBell count={notifCount} />
           </>
         )}
 
@@ -218,6 +210,7 @@ export default function Navbar() {
                       My Profile
                     </Link>
 
+                    {/* Phones only: the Notifications and Messages buttons are hidden there */}
                     <Link href="/notifications" role="menuitem" className={`${MENU_ITEM} justify-between sm:hidden`} onClick={() => setDropdownOpen(false)}>
                       <div className="flex items-center gap-3">
                         <Bell size={18} className="text-amber-500" />
@@ -230,7 +223,7 @@ export default function Navbar() {
                       )}
                     </Link>
 
-                    <Link href="/chat" role="menuitem" className={`${MENU_ITEM} justify-between`} onClick={() => setDropdownOpen(false)}>
+                    <Link href="/chat" role="menuitem" className={`${MENU_ITEM} justify-between sm:hidden`} onClick={() => setDropdownOpen(false)}>
                       <div className="flex items-center gap-3">
                         <MessageSquare size={18} className="text-sky-500 dark:text-sky-400" />
                         Messages
@@ -245,6 +238,11 @@ export default function Navbar() {
                     <Link href="/favorites" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
                       <Heart size={18} className="text-rose-600" />
                       Saved Favorites
+                    </Link>
+
+                    <Link href="/mylistings" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
+                      <ListOrdered size={18} className="text-emerald-600 dark:text-emerald-400" />
+                      My Listings
                     </Link>
 
                     <Link href="/purchase-history" role="menuitem" className={MENU_ITEM} onClick={() => setDropdownOpen(false)}>
