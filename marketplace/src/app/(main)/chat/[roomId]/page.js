@@ -1,7 +1,7 @@
 "use client";
 
 import { toast } from "sonner";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
@@ -22,6 +22,7 @@ import {
 import ChatInput from "./ChatInput";
 import ConfirmModal from "@/components/ConfirmModal";
 import ChatProductBanner from "./ChatProductBanner";
+import { useChatShell } from "../ChatShellContext";
 
 // Explicit light/dark colors instead of theme tokens (border-border, bg-muted,
 // bg-card, text-muted-foreground...). Those tokens are too light to see against
@@ -44,12 +45,28 @@ const MENU_DANGER = `${MENU_BASE} text-rose-600 dark:text-rose-400 hover:bg-rose
 const ROOM_PRODUCT_SELECT =
   "product_id, products(id, title, price, image_urls, seller_id, status, is_available, expires_at, tags, stock_quantity, categories(name))";
 
+// A centered time label appears when there's a long pause between messages
+const SEPARATOR_GAP_MS = 60 * 60 * 1000;
+
+// "Today 3:43 AM" or "05/07 3:43 AM" (adds the year if it's not this year)
+function formatSeparator(timestamp) {
+  const d = new Date(timestamp);
+  const now = new Date();
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  if (d.toDateString() === now.toDateString()) return `Today ${time}`;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear() !== now.getFullYear() ? `/${d.getFullYear()}` : "";
+  return `${dd}/${mm}${year} ${time}`;
+}
+
 export default function ChatRoom() {
   const router = useRouter();
   const { roomId } = useParams();
   const searchParams = useSearchParams();
   const sellerId = searchParams.get("sellerId");
   const productId = searchParams.get("productId");
+  const { onlineUserIds, setSelectedRoomId } = useChatShell();
 
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -75,6 +92,7 @@ export default function ChatRoom() {
 
   const messagesEndRef = useRef(null);
   const currentUserIdRef = useRef(null);
+  const activeRoomIdRef = useRef(null);
 
   const showToast = (message, type = "info") => {
     if (type === "success") toast.success(message);
@@ -94,9 +112,34 @@ export default function ChatRoom() {
     }
   }, [messages]);
 
+  // Tell the inbox on the left which conversation is open (so it can highlight it),
+  // and clear it when this panel closes.
+  useEffect(() => {
+    setSelectedRoomId(activeRoomId);
+  }, [activeRoomId, setSelectedRoomId]);
+
+  useEffect(() => {
+    return () => setSelectedRoomId(null);
+  }, [setSelectedRoomId]);
+
   // Load user session, room information, and block status
   useEffect(() => {
     async function loadChat() {
+      // Switching to a different conversation: clear the old one so it never flashes
+      if (
+        activeRoomIdRef.current &&
+        roomId !== "new" &&
+        activeRoomIdRef.current !== roomId
+      ) {
+        setLoading(true);
+        setMessages([]);
+        setOtherUser(null);
+        setProductContext(null);
+        setIBlocked(false);
+        setBlockedMe(false);
+        setShowMenu(false);
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -117,14 +160,18 @@ export default function ChatRoom() {
           console.error("RPC Error:", rpcErr);
         } else if (existingRoomId) {
           resolvedRoomId = existingRoomId;
+          activeRoomIdRef.current = existingRoomId;
           setActiveRoomId(existingRoomId);
           window.history.replaceState(
             null,
             "",
             `/chat/${existingRoomId}?sellerId=${sellerId}${productId ? `&productId=${productId}` : ""}`
           );
+          // Make a brand-new room show up in the inbox on the left
+          window.dispatchEvent(new Event("unread-refresh"));
         }
       } else {
+        activeRoomIdRef.current = roomId;
         setActiveRoomId(roomId);
       }
 
@@ -425,9 +472,10 @@ export default function ChatRoom() {
     setShowTimestampId(showTimestampId === id ? null : id);
   };
 
+  // Fills the right-hand panel (not the whole screen anymore)
   if (loading) {
     return (
-      <div className="text-foreground w-full h-screen flex items-center justify-center">
+      <div className="text-foreground w-full h-full flex items-center justify-center">
         <Loader2 className="animate-spin text-foreground" size={40} />
       </div>
     );
@@ -439,174 +487,210 @@ export default function ChatRoom() {
     (derivedName.length > 0 ? derivedName : null) ||
     otherUser?.email ||
     "Unknown User";
+  const otherOnline = !!otherUser?.id && onlineUserIds.has(String(otherUser.id));
+
+  const statusLine = (
+    <p className={`text-[11px] ${MUTED} font-semibold truncate flex items-center gap-1.5`}>
+      <span
+        className={`w-2 h-2 rounded-full shrink-0 ${otherOnline ? "bg-green-500" : "bg-neutral-400"}`}
+      />
+      {otherOnline ? "Online" : "Offline"}
+    </p>
+  );
+
+  // Small avatar shown next to the other person's messages
+  const MiniAvatar = (
+    <div
+      className={`w-7 h-7 rounded-full overflow-hidden shrink-0 border ${LINE} ${SURFACE} flex items-center justify-center text-[11px] font-bold ${TEXT}`}
+    >
+      {otherUser?.avatar_url ? (
+        <img src={otherUser.avatar_url} alt="" className="w-full h-full object-cover" />
+      ) : (
+        otherName.charAt(0).toUpperCase()
+      )}
+    </div>
+  );
 
   return (
     <div
-      className="text-foreground w-full h-[calc(100dvh-4rem)] max-h-screen overflow-hidden flex flex-col transition-colors"
+      className="text-foreground w-full h-full min-h-0 overflow-hidden flex flex-col transition-colors"
       onClick={() => showMenu && setShowMenu(false)}
     >
-      <div className={`max-w-3xl w-full mx-auto h-full flex flex-col border-x ${LINE} overflow-hidden`}>
-        {/* HEADER BAR */}
-        <div className={`p-4 border-b ${LINE} ${BAR} flex items-center gap-4 relative z-40 shrink-0`}>
-          <button
-            onClick={() => router.push("/chat")}
-            className={ICON_BTN}
-            title="Back to messages"
-            aria-label="Back to messages"
+      {/* HEADER BAR */}
+      <div className={`px-3 py-3 md:px-4 border-b ${LINE} ${BAR} flex items-center gap-3 relative z-40 shrink-0`}>
+        {/* Back button only on mobile, where the inbox and the chat are separate screens */}
+        <button
+          onClick={() => router.push("/chat")}
+          className={`${ICON_BTN} md:hidden`}
+          title="Back to messages"
+          aria-label="Back to messages"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
+        {/* Clickable Profile Link */}
+        {otherUser?.id ? (
+          <Link
+            href={`/profile/${otherUser.id}`}
+            className="flex items-center gap-3 flex-1 min-w-0 group hover:opacity-80 transition-opacity"
           >
-            <ArrowLeft size={20} />
+            <div className={`w-10 h-10 ${SURFACE} rounded-full flex items-center justify-center ${TEXT} font-bold overflow-hidden shrink-0 border ${LINE}`}>
+              {otherUser?.avatar_url ? (
+                <img
+                  src={otherUser.avatar_url}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                otherName.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0">
+              <h2 className={`text-base font-bold ${TEXT} truncate group-hover:underline`}>
+                {otherName}
+              </h2>
+              {statusLine}
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className={`w-10 h-10 ${SURFACE} rounded-full flex items-center justify-center ${TEXT} font-bold overflow-hidden shrink-0 border ${LINE}`}>
+              {otherName.charAt(0).toUpperCase()}
+            </div>
+            <h2 className={`text-base font-bold ${TEXT} truncate`}>{otherName}</h2>
+          </div>
+        )}
+
+        <div className="relative ml-auto shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            className={ICON_BTN}
+            aria-label="Chat options"
+            aria-haspopup="menu"
+            aria-expanded={showMenu}
+          >
+            <MoreVertical size={20} />
           </button>
 
-          {/* Clickable Profile Link */}
-          {otherUser?.id ? (
-            <Link
-              href={`/profile/${otherUser.id}`}
-              className="flex items-center gap-3 flex-1 min-w-0 group hover:opacity-80 transition-opacity"
+          {/* SOLID OPAQUE DROPDOWN */}
+          {showMenu && (
+            <div
+              role="menu"
+              className={`absolute right-0 top-full mt-2 w-52 bg-stone-100 dark:bg-neutral-900 border ${LINE} rounded-xl shadow-2xl overflow-hidden z-50 py-1`}
             >
-              <div className={`w-10 h-10 ${SURFACE} rounded-full flex items-center justify-center ${TEXT} font-bold overflow-hidden shrink-0 border ${LINE}`}>
-                {otherUser?.avatar_url ? (
-                  <img
-                    src={otherUser.avatar_url}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  otherName.charAt(0).toUpperCase()
-                )}
-              </div>
-              <div className="min-w-0">
-                <h2 className={`text-base font-bold ${TEXT} truncate group-hover:underline`}>
-                  {otherName}
-                </h2>
-                <p className={`text-[11px] ${MUTED} font-semibold truncate`}>
-                  {productContext ? `Re: ${productContext.title}` : "View Profile →"}
-                </p>
-              </div>
-            </Link>
-          ) : (
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className={`w-10 h-10 ${SURFACE} rounded-full flex items-center justify-center ${TEXT} font-bold overflow-hidden shrink-0 border ${LINE}`}>
-                {otherName.charAt(0).toUpperCase()}
-              </div>
-              <h2 className={`text-base font-bold ${TEXT} truncate`}>{otherName}</h2>
-            </div>
-          )}
-
-          <div className="relative ml-auto shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMenu(!showMenu);
-              }}
-              className={ICON_BTN}
-              aria-label="Chat options"
-              aria-haspopup="menu"
-              aria-expanded={showMenu}
-            >
-              <MoreVertical size={20} />
-            </button>
-
-            {/* SOLID OPAQUE DROPDOWN */}
-            {showMenu && (
-              <div
-                role="menu"
-                className={`absolute right-0 top-full mt-2 w-52 bg-stone-100 dark:bg-neutral-900 border ${LINE} rounded-xl shadow-2xl overflow-hidden z-50 py-1`}
+              <button
+                role="menuitem"
+                className={MENU_NEUTRAL}
+                onClick={() => {
+                  setShowMenu(false);
+                  executeMarkUnread();
+                }}
               >
-                <button
-                  role="menuitem"
-                  className={MENU_NEUTRAL}
-                  onClick={() => {
-                    setShowMenu(false);
-                    executeMarkUnread();
-                  }}
-                >
-                  <Mail size={15} /> Mark as unread
-                </button>
-                <button
-                  role="menuitem"
-                  className={MENU_NEUTRAL}
-                  onClick={() => {
-                    setShowMenu(false);
-                    executeToggleArchive();
-                  }}
-                >
-                  {isArchived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
-                  {isArchived ? "Unarchive" : "Archive"}
-                </button>
-                <button
-                  role="menuitem"
-                  className={MENU_NEUTRAL}
-                  onClick={() => {
-                    setActiveModal("report");
-                    setShowMenu(false);
-                  }}
-                >
-                  <Flag size={15} className="text-rose-500" /> Report user
-                </button>
+                <Mail size={15} /> Mark as unread
+              </button>
+              <button
+                role="menuitem"
+                className={MENU_NEUTRAL}
+                onClick={() => {
+                  setShowMenu(false);
+                  executeToggleArchive();
+                }}
+              >
+                {isArchived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                {isArchived ? "Unarchive" : "Archive"}
+              </button>
+              <button
+                role="menuitem"
+                className={MENU_NEUTRAL}
+                onClick={() => {
+                  setActiveModal("report");
+                  setShowMenu(false);
+                }}
+              >
+                <Flag size={15} className="text-rose-500" /> Report user
+              </button>
 
-                {iBlocked ? (
-                  <button
-                    role="menuitem"
-                    className={MENU_SAFE}
-                    onClick={() => {
-                      setActiveModal("unblock");
-                      setShowMenu(false);
-                    }}
-                  >
-                    <Check size={15} /> Unblock user
-                  </button>
-                ) : (
-                  <button
-                    role="menuitem"
-                    className={MENU_DANGER}
-                    onClick={() => {
-                      setActiveModal("block");
-                      setShowMenu(false);
-                    }}
-                  >
-                    <Ban size={15} /> Block user
-                  </button>
-                )}
-
+              {iBlocked ? (
+                <button
+                  role="menuitem"
+                  className={MENU_SAFE}
+                  onClick={() => {
+                    setActiveModal("unblock");
+                    setShowMenu(false);
+                  }}
+                >
+                  <Check size={15} /> Unblock user
+                </button>
+              ) : (
                 <button
                   role="menuitem"
                   className={MENU_DANGER}
                   onClick={() => {
-                    setActiveModal("delete");
+                    setActiveModal("block");
                     setShowMenu(false);
                   }}
                 >
-                  <Trash2 size={15} /> Delete conversation
+                  <Ban size={15} /> Block user
                 </button>
-              </div>
-            )}
-          </div>
+              )}
+
+              <button
+                role="menuitem"
+                className={MENU_DANGER}
+                onClick={() => {
+                  setActiveModal("delete");
+                  setShowMenu(false);
+                }}
+              >
+                <Trash2 size={15} /> Delete conversation
+              </button>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* ITEM CONTEXT BANNER: only for chats that were started from a listing */}
-        {productContext && (
-          <ChatProductBanner
-            product={productContext}
-            currentUserId={currentUser?.id}
-            otherUser={otherUser}
-            otherName={otherName}
-            onChanged={refreshProductContext}
-            showToast={showToast}
-          />
-        )}
+      {/* ITEM CONTEXT BANNER: only for chats that were started from a listing */}
+      {productContext && (
+        <ChatProductBanner
+          product={productContext}
+          currentUserId={currentUser?.id}
+          otherUser={otherUser}
+          otherName={otherName}
+          onChanged={refreshProductContext}
+          showToast={showToast}
+        />
+      )}
 
-        {/* MESSAGE THREAD */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 bg-stone-100 dark:bg-neutral-950 scrollbar-thin">
-          {messages.map((m) => {
-            const isMine = m.sender_id === currentUser?.id;
-            const isTimestampOpen = showTimestampId === m.id;
-            const hasText = m.body && m.body !== "Sent an image";
+      {/* MESSAGE THREAD */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 bg-stone-100 dark:bg-neutral-950 scrollbar-thin">
+        {messages.map((m, i) => {
+          const prev = messages[i - 1];
+          const next = messages[i + 1];
+          const isMine = m.sender_id === currentUser?.id;
+          const isTimestampOpen = showTimestampId === m.id;
+          const hasText = m.body && m.body !== "Sent an image";
 
-            if (m.is_unsent || m.body === "Message was unsent") {
-              const unsentTime = m.unsent_at || m.created_at;
-              return (
+          // Centered time label after a long pause or on a new day
+          const needsSeparator =
+            !prev ||
+            new Date(m.created_at) - new Date(prev.created_at) > SEPARATOR_GAP_MS ||
+            new Date(m.created_at).toDateString() !== new Date(prev.created_at).toDateString();
+
+          const separator = needsSeparator ? (
+            <div className={`text-center text-xs font-bold ${MUTED} py-1 select-none`}>
+              {formatSeparator(m.created_at)}
+            </div>
+          ) : null;
+
+          if (m.is_unsent || m.body === "Message was unsent") {
+            const unsentTime = m.unsent_at || m.created_at;
+            return (
+              <Fragment key={m.id}>
+                {separator}
                 <div
-                  key={m.id}
                   className="flex flex-col items-center justify-center my-4 space-y-1 cursor-pointer select-none"
                   onClick={() => toggleTimestamp(m.id)}
                 >
@@ -619,141 +703,150 @@ export default function ChatRoom() {
                     </span>
                   )}
                 </div>
-              );
-            }
+              </Fragment>
+            );
+          }
 
-            return (
-              <div
-                key={m.id}
-                className={`flex flex-col ${isMine ? "items-end" : "items-start"} space-y-1 group relative`}
-              >
-                {/* ATTACHMENT IMAGE */}
-                {m.image_url && (
-                  <div
-                    className={`relative my-1 max-w-[240px] sm:max-w-xs rounded-2xl overflow-hidden border ${LINE} bg-stone-200 dark:bg-neutral-800 shadow-sm cursor-pointer hover:opacity-95 transition-opacity`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveOverlayImage(m.image_url);
-                    }}
-                  >
-                    <img
-                      src={m.image_url}
-                      alt="Message attachment"
-                      className="w-full h-auto max-h-[280px] object-cover block"
-                      onLoad={scrollToBottom}
-                    />
-                  </div>
-                )}
+          // Avatar sits on the last message of a run from the other person
+          const showAvatar = !isMine && (!next || next.sender_id !== m.sender_id);
 
-                {/* TEXT BUBBLE */}
-                {hasText && (
-                  <div
-                    onClick={() => toggleTimestamp(m.id)}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      handleCopyText(m.body, m.id);
-                    }}
-                    className={`p-3 rounded-2xl max-w-[80%] shadow-sm relative cursor-pointer select-text transition-all duration-150 active:scale-[0.99] ${isMine
-                      ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-medium rounded-br-xs"
-                      : "bg-white text-neutral-900 border border-stone-300 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 font-medium rounded-bl-xs"
-                      }`}
-                  >
-                    <p className="text-sm break-words whitespace-pre-wrap px-0.5 pointer-events-none">
-                      {m.body}
-                    </p>
+          return (
+            <Fragment key={m.id}>
+              {separator}
+              <div className={`flex items-end gap-2 ${isMine ? "justify-end" : "justify-start"}`}>
+                {!isMine && (showAvatar ? MiniAvatar : <span className="w-7 shrink-0" />)}
 
-                    {/* Desktop hover actions (mobile uses the buttons under the tapped message) */}
+                <div
+                  className={`flex flex-col ${isMine ? "items-end" : "items-start"} space-y-1 group relative min-w-0 max-w-[80%]`}
+                >
+                  {/* ATTACHMENT IMAGE */}
+                  {m.image_url && (
                     <div
-                      className={`absolute top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 transition-all opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${isMine ? "-left-16" : "-right-16"
-                        }`}
-                      onClick={(e) => e.stopPropagation()}
+                      className={`relative my-1 max-w-[240px] sm:max-w-xs rounded-2xl overflow-hidden border ${LINE} bg-stone-200 dark:bg-neutral-800 shadow-sm cursor-pointer hover:opacity-95 transition-opacity`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveOverlayImage(m.image_url);
+                      }}
                     >
-                      <button
-                        onClick={() => handleCopyText(m.body, m.id)}
-                        className={`p-1.5 rounded-md bg-white dark:bg-neutral-800 shadow-sm border ${LINE} text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white cursor-pointer`}
-                        title="Copy text"
-                        aria-label="Copy text"
-                      >
-                        {copiedId === m.id ? (
-                          <Check size={13} className="text-emerald-500" />
-                        ) : (
-                          <Copy size={13} />
-                        )}
-                      </button>
-
-                      {isMine && (
-                        <button
-                          onClick={() => {
-                            setSelectedMessageId(m.id);
-                            setActiveModal("unsend");
-                          }}
-                          className={`p-1.5 rounded-md bg-white dark:bg-neutral-800 shadow-sm border ${LINE} text-neutral-600 dark:text-neutral-300 hover:text-rose-500 dark:hover:text-rose-400 cursor-pointer`}
-                          title="Unsend message"
-                          aria-label="Unsend message"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
+                      <img
+                        src={m.image_url}
+                        alt="Message attachment"
+                        className="w-full h-auto max-h-[280px] object-cover block"
+                        onLoad={scrollToBottom}
+                      />
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {isTimestampOpen && (
-                  <div
-                    className={`flex flex-col gap-1.5 px-1 pt-1 animate-in fade-in slide-in-from-top-1 duration-150 ${isMine ? "items-end text-right" : "items-start text-left"
-                      }`}
-                  >
-                    <span className={`text-[10px] ${MUTED}`}>
-                      Sent {formatDateTime(m.created_at)}
-                    </span>
+                  {/* TEXT BUBBLE */}
+                  {hasText && (
+                    <div
+                      onClick={() => toggleTimestamp(m.id)}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyText(m.body, m.id);
+                      }}
+                      className={`p-3 rounded-2xl max-w-full shadow-sm relative cursor-pointer select-text transition-all duration-150 active:scale-[0.99] ${isMine
+                        ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-medium rounded-br-xs"
+                        : "bg-white text-neutral-900 border border-stone-300 dark:bg-neutral-800 dark:text-white dark:border-neutral-700 font-medium rounded-bl-xs"
+                        }`}
+                    >
+                      <p className="text-sm break-words whitespace-pre-wrap px-0.5 pointer-events-none">
+                        {m.body}
+                      </p>
 
-                    {/* Mobile actions: the hover buttons above don't exist on touch screens */}
-                    {hasText && (
-                      <div className="flex items-center gap-2 sm:hidden">
+                      {/* Desktop hover actions (mobile uses the buttons under the tapped message) */}
+                      <div
+                        className={`absolute top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 transition-all opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${isMine ? "-left-16" : "-right-16"
+                          }`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
                           onClick={() => handleCopyText(m.body, m.id)}
-                          className={`${SMALL_BTN} text-neutral-700 dark:text-neutral-200`}
+                          className={`p-1.5 rounded-md bg-white dark:bg-neutral-800 shadow-sm border ${LINE} text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white cursor-pointer`}
+                          title="Copy text"
+                          aria-label="Copy text"
                         >
                           {copiedId === m.id ? (
-                            <Check size={12} className="text-emerald-500" />
+                            <Check size={13} className="text-emerald-500" />
                           ) : (
-                            <Copy size={12} />
+                            <Copy size={13} />
                           )}
-                          {copiedId === m.id ? "Copied" : "Copy"}
                         </button>
+
                         {isMine && (
                           <button
                             onClick={() => {
                               setSelectedMessageId(m.id);
                               setActiveModal("unsend");
                             }}
-                            className={`${SMALL_BTN} text-rose-600 dark:text-rose-400`}
+                            className={`p-1.5 rounded-md bg-white dark:bg-neutral-800 shadow-sm border ${LINE} text-neutral-600 dark:text-neutral-300 hover:text-rose-500 dark:hover:text-rose-400 cursor-pointer`}
+                            title="Unsend message"
+                            aria-label="Unsend message"
                           >
-                            <Trash2 size={12} /> Unsend
+                            <Trash2 size={13} />
                           </button>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
+                    </div>
+                  )}
 
-        {/* FOOTER CONTROL BAR */}
-        <div className={`shrink-0 ${BAR} border-t ${LINE}`}>
-          {isBlocked ? (
-            <div className={`p-4 bg-stone-300/60 dark:bg-neutral-800/60 text-center text-xs font-semibold ${MUTED} italic select-none`}>
-              {iBlocked
-                ? "You have blocked this user. Unblock them to resume conversation."
-                : "You cannot send or reply to messages in this conversation."}
-            </div>
-          ) : (
-            <ChatInput roomId={activeRoomId} sellerId={sellerId} />
-          )}
-        </div>
+                  {isTimestampOpen && (
+                    <div
+                      className={`flex flex-col gap-1.5 px-1 pt-1 animate-in fade-in slide-in-from-top-1 duration-150 ${isMine ? "items-end text-right" : "items-start text-left"
+                        }`}
+                    >
+                      <span className={`text-[10px] ${MUTED}`}>
+                        Sent {formatDateTime(m.created_at)}
+                      </span>
+
+                      {/* Mobile actions: the hover buttons above don't exist on touch screens */}
+                      {hasText && (
+                        <div className="flex items-center gap-2 sm:hidden">
+                          <button
+                            onClick={() => handleCopyText(m.body, m.id)}
+                            className={`${SMALL_BTN} text-neutral-700 dark:text-neutral-200`}
+                          >
+                            {copiedId === m.id ? (
+                              <Check size={12} className="text-emerald-500" />
+                            ) : (
+                              <Copy size={12} />
+                            )}
+                            {copiedId === m.id ? "Copied" : "Copy"}
+                          </button>
+                          {isMine && (
+                            <button
+                              onClick={() => {
+                                setSelectedMessageId(m.id);
+                                setActiveModal("unsend");
+                              }}
+                              className={`${SMALL_BTN} text-rose-600 dark:text-rose-400`}
+                            >
+                              <Trash2 size={12} /> Unsend
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Fragment>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* FOOTER CONTROL BAR */}
+      <div className={`shrink-0 ${BAR} border-t ${LINE}`}>
+        {isBlocked ? (
+          <div className={`p-4 bg-stone-300/60 dark:bg-neutral-800/60 text-center text-xs font-semibold ${MUTED} italic select-none`}>
+            {iBlocked
+              ? "You have blocked this user. Unblock them to resume conversation."
+              : "You cannot send or reply to messages in this conversation."}
+          </div>
+        ) : (
+          <ChatInput roomId={activeRoomId} sellerId={sellerId} />
+        )}
       </div>
 
       {/* OVERLAY IMAGE VIEWPORT */}
