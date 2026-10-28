@@ -129,6 +129,7 @@ export default function OrgApplyPage() {
     }
 
     const isRejected = existingApp?.status === "rejected";
+    const isRevoked = existingApp?.status === "revoked";
 
     return (
         <div className="min-h-screen text-foreground p-4 sm:p-6 md:p-10 transition-colors">
@@ -186,6 +187,15 @@ export default function OrgApplyPage() {
                                 <XCircle size={18} className="shrink-0 mt-0.5" />
                                 <span>
                                     Your previous application for <strong>{existingApp.org_name}</strong> was not approved. You can update the details below and apply again.
+                                </span>
+                            </div>
+                        )}
+
+                        {isRevoked && (
+                            <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-start gap-3 text-xs text-orange-700 dark:text-orange-400 font-semibold leading-relaxed">
+                                <XCircle size={18} className="shrink-0 mt-0.5" />
+                                <span>
+                                    The verified status of <strong>{existingApp.org_name}</strong> was revoked. You can update the details below and apply again.
                                 </span>
                             </div>
                         )}

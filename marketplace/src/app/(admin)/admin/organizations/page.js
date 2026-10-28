@@ -34,12 +34,17 @@ const CONFIRM_COPY = {
         message: (name) => `Reject the application from "${name}"?`,
         confirmText: "Reject",
     },
-    "approved->rejected": {
+    "approved->revoked": {
         title: "Revoke verification?",
         message: (name) => `Remove verified status from "${name}"? They will lose their verified badge.`,
         confirmText: "Revoke",
     },
     "rejected->approved": {
+        title: "Re-approve organization?",
+        message: (name) => `Re-approve "${name}" and restore verified status?`,
+        confirmText: "Re-Approve",
+    },
+    "revoked->approved": {
         title: "Re-approve organization?",
         message: (name) => `Re-approve "${name}" and restore verified status?`,
         confirmText: "Re-Approve",
@@ -65,6 +70,12 @@ const STATUS_STYLE = {
         iconBox: "bg-rose-500/10 text-rose-600 border-rose-500/20",
         chip: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
         label: "rejected",
+    },
+    revoked: {
+        icon: ShieldOff,
+        iconBox: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+        chip: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+        label: "revoked",
     },
 };
 
@@ -232,6 +243,7 @@ export default function AdminOrganizationsPage() {
         ["pending", "Pending"],
         ["approved", "Approved"],
         ["rejected", "Rejected"],
+        ["revoked", "Revoked"],
     ];
 
     if (loading) {
@@ -416,7 +428,7 @@ export default function AdminOrganizationsPage() {
 
                                         {status === "approved" && (
                                             <button
-                                                onClick={() => requestStatusChange(app, "rejected")}
+                                                onClick={() => requestStatusChange(app, "revoked")}
                                                 disabled={busy}
                                                 className={btn("dangerOutline", "sm")}
                                             >
@@ -424,7 +436,7 @@ export default function AdminOrganizationsPage() {
                                             </button>
                                         )}
 
-                                        {status === "rejected" && (
+                                        {(status === "rejected" || status === "revoked") && (
                                             <>
                                                 <button
                                                     onClick={() => deleteApplication(app)}
