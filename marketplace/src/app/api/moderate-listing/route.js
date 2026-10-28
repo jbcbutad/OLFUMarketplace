@@ -52,9 +52,12 @@ IMAGE RULES:
 - "flagged": drugs, vapes, alcohol, personal documents such as IDs/bank cards, memes, chat screenshots, unrelated selfies, or unclear/borderline images.
 - "approved": a normal photo of an item for sale.
 
-For weapons/firearms:
-- A real firearm or a listing clearly offering a firearm for sale is rejected.
-- A toy, game image, educational illustration, or clearly non-functional replica may be considered based on context.
+For weapons and blades (applies to text, tags and images):
+- A real firearm, or a listing clearly offering a firearm, is "rejected".
+- Knives and blades marketed as weapons are "rejected": switchblades, butterfly or balisong knives, daggers, combat, tactical or survival knives, throwing knives, brass knuckles, and swords or machetes sold as weapons.
+- Ordinary tools used for their normal purpose are "approved": kitchen and chef knives, culinary or dissection kits, scissors, box cutters, craft or art knives, when the title, description and photo all present them that way.
+- Ambiguous blades are "flagged": hunting knives, locking utility knives, large knives with no clear kitchen use, or any knife whose text hints at fighting or protection ("self defense", "for protection").
+- Toy, airsoft or prop replicas of weapons are "flagged" so a human can confirm. A game image or educational illustration may be approved based on context.
 - If you cannot confidently determine whether something is prohibited, use "flagged" rather than guessing.
 
 ITEM CHECK (applies to the whole listing):
@@ -63,6 +66,7 @@ Use "flagged" with category "not_an_item" when:
 - the image is mainly a person, scenery, or a screenshot rather than the item for sale
 - the image is a drawing, illustration, digital art, or generic picture rather than a photo of the actual item
 - the title or description describes something different from what the images show
+- If no images were provided, skip this check and judge the text and tags only.
 Use "flagged" with category "live_animal" when the image shows a live animal or pet, or the text offers one.
 Never use "rejected" for these; they need a human decision.
 
@@ -283,11 +287,11 @@ export async function POST(req) {
             ? parsed.text_verdict
             : "flagged";
 
-        const imageVerdict = VERDICTS.includes(
-            parsed?.image_verdict
-        )
-            ? parsed.image_verdict
-            : "flagged";
+        const imageVerdict = files.length === 0
+            ? "approved"
+            : VERDICTS.includes(parsed?.image_verdict)
+                ? parsed.image_verdict
+                : "flagged";
 
         // No tags submitted = nothing to judge. Otherwise fail closed on a missing verdict.
         const tagVerdict = tags.length === 0
