@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Loader2, Flag, CheckCircle2, Trash2, ExternalLink } from "lucide-react";
+import { isMerch } from "@/lib/merch";
 import { ui, btn } from "../ui";
 
 const REASON_LABELS = {
@@ -53,7 +54,7 @@ export default function AdminFlaggedPage() {
                 .from("moderation_flags")
                 .select(`
           id, product_id, image_url, categories, reason, created_at,
-          products ( id, title, price, tags, status, profiles ( full_name, email ) )
+          products ( id, title, price, tags, status, expires_at, stock_quantity, profiles ( full_name, email ) )
         `)
                 .eq("status", "pending")
                 .order("created_at", { ascending: false });
@@ -88,18 +89,23 @@ export default function AdminFlaggedPage() {
             } = await supabase.auth.getSession();
 
             // Restore the listing to the state it would have had without the flag
-            const isMerch = Array.isArray(group.product?.tags) && group.product.tags.includes("official-merch");
             const cleanTags = Array.isArray(group.product?.tags)
                 ? group.product.tags.filter((t) => String(t).toLowerCase() !== "flagged")
                 : null;
+            const p = group.product;
+            const merch = isMerch(p);
+            const hasExpiry = !!p?.expires_at;
+            const stillPaid = hasExpiry && new Date(p.expires_at) > new Date();
+
+            let restored;
+            if (!merch) restored = { status: "active", is_available: true };
+            else if (stillPaid) restored = { status: "active", is_available: (p.stock_quantity ?? 0) > 0 };
+            else if (!hasExpiry) restored = { status: "pending", is_available: false };
+            else restored = { status: "expired", is_available: false };
+
             const productUpdate =
                 action === "approve"
-                    ? {
-                        status: isMerch ? "pending" : "active",
-                        is_published: true,
-                        is_available: true,
-                        ...(cleanTags ? { tags: cleanTags } : {}),
-                    }
+                    ? { ...restored, is_published: true, ...(cleanTags ? { tags: cleanTags } : {}) }
                     : { status: "rejected", is_published: false, is_available: false };
             const { data: updated, error: productError } = await supabase
                 .from("products")

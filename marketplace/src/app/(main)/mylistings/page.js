@@ -349,6 +349,20 @@ function MyListingsContent() {
                     </div>
                   )}
 
+                  {/* PAYMENT DUE NOTICE FOR PENDING MERCH */}
+                  {isPendingAdmin && isMerchandise && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2.5 text-xs space-y-0.5">
+                      <p className="font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                        Payment needed: ₱{Number(item.listing_fee || 0).toFixed(2)}
+                        {item.listing_duration ? ` (${item.listing_duration})` : ""}
+                      </p>
+                      <p className="text-neutral-600 dark:text-neutral-300">
+                        Send to GCash <strong>09277549105</strong>, then email the receipt and the item title
+                        to <strong>olfumarketplace@gmail.com</strong>. An admin approves the drop once it is verified.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Mobile: image + info side by side, buttons on the next row. Desktop: one row. */}
                   <div className="flex flex-wrap md:flex-nowrap items-center gap-3 md:gap-6">
                     <Link href={`/products/${item.id}`} className="shrink-0 relative">
@@ -479,6 +493,8 @@ function MyListingsContent() {
                 </div>
               );
             })
+
+
           ) : (
             <div className="text-center py-16 md:py-24 px-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 animate-in fade-in duration-500">
               <p className="text-neutral-400 text-sm font-bold uppercase tracking-wider">No listings found in this tab.</p>
