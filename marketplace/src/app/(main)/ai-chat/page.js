@@ -58,7 +58,7 @@ const dayLabel = (iso) => {
 function AssistantAvatar({ className = 'w-7 h-7 sm:w-8 sm:h-8', iconSize = 15 }) {
   return (
     <div
-      className={${className} rounded-full shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-sm}
+      className={`${className} rounded-full shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-sm`}
     >
       <Bot size={iconSize} />
     </div>
@@ -164,7 +164,7 @@ export default function AiChatPage() {
     const el = inputRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = ${Math.min(el.scrollHeight, 160)}px;
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [input]);
   if (authChecked && !currentUser) {
     return (
@@ -407,7 +407,7 @@ export default function AiChatPage() {
                     </div>
                   )}
                   <div
-                    className={group flex items-start gap-2 sm:gap-3 ${isUser ? 'flex-row-reverse' : ''}}
+                    className={`group flex items-start gap-2 sm:gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
                   >
                     {/* AVATAR */}
                     {isUser ? (
@@ -487,7 +487,7 @@ export default function AiChatPage() {
                   <span
                     key={i}
                     className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce"
-                    style={{ animationDelay: ${i * 150}ms }}
+                    style={{ animationDelay: `${i * 150}ms` }}
                   />
                 ))}
               </div>
