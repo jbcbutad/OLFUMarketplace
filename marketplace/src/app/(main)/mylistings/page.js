@@ -137,11 +137,7 @@ function MyListingsContent() {
         setIsProcessing(false);
         return;
       }
-      if (!Number.isInteger(stockNum) || stockNum < 1 || stockNum > MAX_STOCK) {
-        toast.error(`Stock must be between 1 and ${MAX_STOCK}.`);
-        setIsProcessing(false);
-        return;
-      }
+
 
       const { data: fee, error } = await supabase.rpc("request_merch_renewal", {
         p_product_id: activeItem.id,
