@@ -25,6 +25,7 @@ const REASON_LABELS = {
     moderation_unavailable: "The automatic check was unavailable, so this needs a manual look.",
     unclear_result: "The automatic check gave an unclear result, so this needs a manual look.",
     could_not_read_image: "This photo could not be read by the automatic check.",
+    seller_resubmitted: "The seller edited and resubmitted this listing after it was removed.",
 };
 
 // Popup text for each action
@@ -298,6 +299,7 @@ function FlaggedContent() {
                                 ),
                             ];
                             const categories = [...new Set(group.flags.flatMap((f) => f.categories || []))];
+                            const resubmitted = group.flags.some((f) => f.reason === "seller_resubmitted");
 
                             return (
                                 <div
@@ -379,8 +381,12 @@ function FlaggedContent() {
                                         <div className="flex-1 min-w-0 flex items-center gap-3 p-3 rounded-xl border border-line bg-tint">
                                             <ScanSearch size={20} className="text-ink-soft shrink-0" />
                                             <div className="min-w-0">
-                                                <p className="text-[10px] font-black uppercase tracking-wider text-ink-soft">Flagged by</p>
-                                                <p className="text-sm font-bold text-foreground">Automatic photo check</p>
+                                                <p className="text-[10px] font-black uppercase tracking-wider text-ink-soft">
+                                                    {resubmitted ? "Sent for review by" : "Flagged by"}
+                                                </p>
+                                                <p className="text-sm font-bold text-foreground">
+                                                    {resubmitted ? "Seller resubmission" : "Automatic photo check"}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="hidden sm:flex items-center text-ink-soft">
