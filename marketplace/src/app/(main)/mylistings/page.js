@@ -163,7 +163,7 @@ function MyListingsContent() {
     setResubmittingId(null);
 
     if (error) {
-      toast.error("Couldn't resubmit: " + error.message);
+      toast.error("Couldn't resubmit: " + error.message, { duration: 7000 });
       return;
     }
 
