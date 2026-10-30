@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Camera, Loader2, Tag, PhilippinePeso, FileText,
-  X, ImagePlus, ListFilter, Hash, ChevronLeft, Info, Plus, Sparkles, ShieldCheck, Layers, Calendar, CreditCard
+  X, ImagePlus, ListFilter, Hash, ChevronLeft, Info, Plus, Sparkles, ShieldCheck, Layers, Calendar, CreditCard, ShoppingBag
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -94,6 +94,10 @@ const checkImage = (file) => {
   }
   return null;
 };
+// Formats a number like ₱280.00
+const formatPeso = (n) =>
+  `₱${Number(n).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 function CreateListingContent() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -507,7 +511,10 @@ function CreateListingContent() {
           title: title.trim(),
           fee: calculatedFee,
           stock: parsedStock,
-          duration: listingDuration.trim()
+          days: totalDays,
+          duration: listingDuration.trim(),
+          image: uploadedUrls[0] || null,
+          price: numericPrice,
         });
       } else {
         router.push("/mylistings");
@@ -841,10 +848,10 @@ function CreateListingContent() {
           </div>
         </form>
 
-        {/* 👉 PAYMENT INSTRUCTIONS MODAL (Placed INSIDE the main wrapper, but AFTER the form) */}
+        {/* PAYMENT INSTRUCTIONS MODAL */}
         {submittedMerch && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl space-y-6">
+            <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-6">
 
               <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-4">
                 <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl">
@@ -856,11 +863,52 @@ function CreateListingContent() {
                 </div>
               </div>
 
+              {/* The item being listed */}
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">Your Item:</p>
+                <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 p-3">
+                  {submittedMerch.image ? (
+                    <img
+                      src={submittedMerch.image}
+                      alt=""
+                      className="w-16 h-16 rounded-xl object-cover shrink-0 border border-neutral-200 dark:border-neutral-800"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/15 text-amber-500">
+                      <ShoppingBag size={24} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-foreground line-clamp-2">{submittedMerch.title}</p>
+                    <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                      Selling price:{" "}
+                      <span className="font-bold text-foreground">{formatPeso(submittedMerch.price)}</span>
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+                      <span className="inline-flex items-center gap-1">
+                        <Layers size={12} />
+                        <span className="font-bold text-foreground">{submittedMerch.stock}</span>{" "}
+                        {submittedMerch.stock === 1 ? "unit" : "units"}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar size={12} />
+                        <span className="font-bold text-foreground">
+                          {submittedMerch.days} {submittedMerch.days === 1 ? "day" : "days"}
+                        </span>
+                      </span>
+                    </div>
+                    <span className="mt-1.5 inline-block text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                      Awaiting payment
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-1 text-xs">
                 <p className="font-bold text-amber-700 dark:text-amber-400">Total Listing Fee to Settle:</p>
                 <p className="text-2xl font-black text-amber-600 dark:text-amber-300">₱{submittedMerch.fee.toFixed(2)}</p>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                  ({submittedMerch.duration} duration fee)
+                  ({submittedMerch.days} {submittedMerch.days === 1 ? "day" : "days"} duration fee)
                 </p>
               </div>
 
@@ -878,7 +926,7 @@ function CreateListingContent() {
                   <ol className="list-decimal pl-4 space-y-1 text-[11px]">
                     <li>Take a screenshot of your GCash payment receipt.</li>
                     <li>Send an email to <strong className="text-foreground">olfumarketplace@gmail.com</strong>.</li>
-                    <li>Include your item title (<span className="italic">"{submittedMerch.title}"</span>) and attach the receipt screenshot.</li>
+                    <li>Include your item title (<span className="italic">&quot;{submittedMerch.title}&quot;</span>) and attach the receipt screenshot.</li>
                   </ol>
                 </div>
               </div>

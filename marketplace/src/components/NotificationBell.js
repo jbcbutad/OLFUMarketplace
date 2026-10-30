@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
     Bell, Flag, ShoppingBag, Tag, Loader2, CreditCard, CheckCircle2, AlertTriangle, ShieldCheck,
-    MoreHorizontal, Archive, ArchiveRestore, Trash2, Mail, MailOpen, MessageSquare, ChevronDown, Clock, XCircle, ShieldOff
+    MoreHorizontal, Archive, ArchiveRestore, Trash2, Mail, MailOpen, MessageSquare, ChevronDown, Clock, XCircle, ShieldOff, Layers, Calendar
 } from "lucide-react";
 
 // How many notifications load at a time. More load automatically as you scroll down.
@@ -37,6 +37,23 @@ const REPORT_MATCH_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
 const NOT_APPROVED_STATUSES = ["pending", "flagged", "rejected", "removed", "deleted"];
 const isApprovedStatus = (status) =>
     !!status && !NOT_APPROVED_STATUSES.includes(String(status).toLowerCase());
+
+// Formats a price like ₱280.00
+const formatPeso = (v) => {
+    const n = Number(v);
+    if (v === null || v === undefined || v === "" || Number.isNaN(n)) return null;
+    return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+// "7" or 7 -> "7 days", "7 Days" stays as written
+const formatDuration = (v) => {
+    if (v === null || v === undefined || v === "") return null;
+    if (/^\d+$/.test(String(v).trim())) {
+        const n = Number(v);
+        return `${n} ${n === 1 ? "day" : "days"}`;
+    }
+    return String(v);
+};
 
 // Fallback icon when a notification has no photo
 const pickIcon = (title = "") => {
@@ -273,6 +290,8 @@ export default function NotificationBell({ count = 0, userId }) {
     const [productIds, setProductIds] = useState({}); // notification id -> product id
     const [productTitles, setProductTitles] = useState({}); // notification id -> product title
     const [productStatuses, setProductStatuses] = useState({}); // notification id -> product status
+    const [productPrices, setProductPrices] = useState({}); // notification id -> product price
+    const [productExtras, setProductExtras] = useState({}); // notification id -> { stock, duration }
     const [adminStates, setAdminStates] = useState({}); // admin notification id -> { resolved, label }
     const [reportInfo, setReportInfo] = useState({}); // report notification id -> { type, summary }
     const [reportIds, setReportIds] = useState({}); // report notification id -> reports.id (for deep-linking)
@@ -389,7 +408,7 @@ export default function NotificationBell({ count = 0, userId }) {
             if (idList.length > 0) {
                 const { data: prods } = await supabase
                     .from("products")
-                    .select("id, title, status, image_urls")
+                    .select("id, title, status, image_urls, price, stock_quantity, listing_duration")
                     .in("id", idList);
                 (prods || []).forEach((pr) => (byId[pr.id] = pr));
             }
@@ -405,7 +424,7 @@ export default function NotificationBell({ count = 0, userId }) {
             if (titles.length > 0) {
                 const { data: rows } = await supabase
                     .from("products")
-                    .select("id, title, status, image_urls, created_at, seller_id")
+                    .select("id, title, status, image_urls, price, stock_quantity, listing_duration, created_at, seller_id")
                     .in("title", titles)
                     .order("created_at", { ascending: false });
                 (rows || []).forEach((pr) => {
@@ -424,7 +443,7 @@ export default function NotificationBell({ count = 0, userId }) {
             if (unmatchedPayments.length > 0) {
                 const { data: mine } = await supabase
                     .from("products")
-                    .select("id, title, status, image_urls, created_at")
+                    .select("id, title, status, image_urls, price, stock_quantity, listing_duration, created_at")
                     .eq("seller_id", uid)
                     .order("created_at", { ascending: false })
                     .limit(50);
@@ -620,15 +639,21 @@ export default function NotificationBell({ count = 0, userId }) {
             const pids = {};
             const ptitles = {};
             const pstatuses = {};
+            const pprices = {};
+            const pextras = {};
             live.forEach((n) => {
                 const pr = productOf(n);
                 if (pr?.id) pids[n.id] = pr.id;
                 if (pr?.title) ptitles[n.id] = pr.title;
                 if (pr?.status) pstatuses[n.id] = pr.status;
+                if (pr?.price !== undefined && pr?.price !== null) pprices[n.id] = pr.price;
+                if (pr) pextras[n.id] = { stock: pr.stock_quantity ?? null, duration: pr.listing_duration ?? null };
             });
             setProductIds((prev) => (append ? { ...prev, ...pids } : pids));
             setProductTitles((prev) => (append ? { ...prev, ...ptitles } : ptitles));
             setProductStatuses((prev) => (append ? { ...prev, ...pstatuses } : pstatuses));
+            setProductPrices((prev) => (append ? { ...prev, ...pprices } : pprices));
+            setProductExtras((prev) => (append ? { ...prev, ...pextras } : pextras));
         }
         loadingRef.current = false;
         setLoading(false);
@@ -715,6 +740,10 @@ export default function NotificationBell({ count = 0, userId }) {
             setPayment({
                 ...parsePayment(item),
                 title: productTitles[item.id] || null,
+                image: images[item.id] || null,
+                price: formatPeso(productPrices[item.id]),
+                stock: productExtras[item.id]?.stock ?? null,
+                duration: formatDuration(productExtras[item.id]?.duration),
                 approved: isApprovedStatus(productStatuses[item.id]),
             });
             return;
@@ -984,8 +1013,8 @@ export default function NotificationBell({ count = 0, userId }) {
                             )}
                             <span
                                 className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${pendingList.length > 0
-                                        ? "bg-amber-500/15 text-amber-500 dark:text-amber-400"
-                                        : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                    ? "bg-amber-500/15 text-amber-500 dark:text-amber-400"
+                                    : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                                     }`}
                             >
                                 {pendingList.length > 0 ? `${pendingList.length} pending` : "All done"}
@@ -1029,8 +1058,8 @@ export default function NotificationBell({ count = 0, userId }) {
                 aria-expanded={open}
                 title="Notifications"
                 className={`relative p-2.5 rounded-full border border-black dark:border-white text-foreground transition-all cursor-pointer ${open
-                        ? "bg-emerald-500/15"
-                        : "bg-white dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    ? "bg-emerald-500/15"
+                    : "bg-white dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     }`}
             >
                 <Bell size={20} className={open ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"} />
@@ -1071,10 +1100,10 @@ export default function NotificationBell({ count = 0, userId }) {
                                         type="button"
                                         onClick={() => setTab(key)}
                                         className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${tab === key
-                                                ? adminTab
-                                                    ? "bg-purple-500/15 text-purple-500 dark:text-purple-400"
-                                                    : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                                : "text-muted-foreground hover:bg-muted"
+                                            ? adminTab
+                                                ? "bg-purple-500/15 text-purple-500 dark:text-purple-400"
+                                                : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                            : "text-muted-foreground hover:bg-muted"
                                             }`}
                                     >
                                         {label}
@@ -1129,10 +1158,10 @@ export default function NotificationBell({ count = 0, userId }) {
                                                     type="button"
                                                     onClick={() => setAdminFilter(key)}
                                                     className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${activeFilter === key
-                                                            ? key === "all"
-                                                                ? "bg-purple-500/15 text-purple-500 dark:text-purple-400"
-                                                                : ADMIN_KINDS[key].chip
-                                                            : "bg-muted text-muted-foreground hover:text-foreground"
+                                                        ? key === "all"
+                                                            ? "bg-purple-500/15 text-purple-500 dark:text-purple-400"
+                                                            : ADMIN_KINDS[key].chip
+                                                        : "bg-muted text-muted-foreground hover:text-foreground"
                                                         }`}
                                                 >
                                                     {label} ({n})
@@ -1289,6 +1318,64 @@ export default function NotificationBell({ count = 0, userId }) {
                                     </p>
                                 </div>
                             </div>
+
+                            {/* The item being listed */}
+                            {(payment.title || payment.image) && (
+                                <div className="mt-5">
+                                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                                        Your Item:
+                                    </p>
+                                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/50 p-3">
+                                        {payment.image ? (
+                                            <img
+                                                src={payment.image}
+                                                alt=""
+                                                className="w-16 h-16 rounded-xl object-cover shrink-0 bg-muted border border-border"
+                                            />
+                                        ) : (
+                                            <div className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/15 text-amber-500">
+                                                <ShoppingBag size={24} />
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold text-foreground line-clamp-2">
+                                                {payment.title || "Merchandise drop"}
+                                            </p>
+                                            {payment.price && (
+                                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                                    Selling price:{" "}
+                                                    <span className="font-bold text-foreground">{payment.price}</span>
+                                                </p>
+                                            )}
+                                            {(payment.stock || payment.duration) && (
+                                                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                    {payment.stock && (
+                                                        <span className="inline-flex items-center gap-1">
+                                                            <Layers size={12} />
+                                                            <span className="font-bold text-foreground">{payment.stock}</span>{" "}
+                                                            {Number(payment.stock) === 1 ? "unit" : "units"}
+                                                        </span>
+                                                    )}
+                                                    {payment.duration && (
+                                                        <span className="inline-flex items-center gap-1">
+                                                            <Calendar size={12} />
+                                                            <span className="font-bold text-foreground">{payment.duration}</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                            <span
+                                                className={`mt-1.5 inline-block text-[10px] font-black px-2 py-0.5 rounded-full ${payment.approved
+                                                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                                        : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                                    }`}
+                                            >
+                                                {payment.approved ? "Live" : "Awaiting payment"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {payment.approved ? (
                                 <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4">
