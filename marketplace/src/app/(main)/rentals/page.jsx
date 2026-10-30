@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
-import RentalsClawBanner from "@/components/RentalsClawBanner";
+import RentalsBanner from "@/components/RentalsBanner";
 import { isMerch } from "@/lib/merch";
 import SortSelect from "@/components/SortSelect";
 import { SORT_OPTIONS, parseSort, sortProducts } from "@/lib/sort";
@@ -212,7 +212,7 @@ export default async function RentalsPage({ searchParams }) {
         <div className="text-foreground w-full min-h-screen flex flex-col justify-between transition-colors overflow-x-hidden">
             {/* pb-28 keeps the last row clear of the fixed Superadmin footer on mobile */}
             <div className="max-w-screen-2xl w-full mx-auto px-3 sm:px-6 pt-4 pb-28 md:py-10 flex-grow">
-                <RentalsClawBanner />
+                <RentalsBanner count={rentals.length} />
 
                 {/* Search (keeps the category and tag filters) */}
                 <form action={BASE_PATH} method="get" className="mb-5 md:mb-8 flex gap-2">

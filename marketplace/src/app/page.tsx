@@ -268,6 +268,23 @@ export default function LandingPage() {
         .olfu .bento .t2 .num {
           color: #8a6a1f !important;
         }
+        /* Stat numbers: big and consistent. The Counter's <span> inherits the number style
+           instead of the small gray label style. */
+        .olfu .stat b {
+          font-size: clamp(36px, 4.4vw, 52px) !important;
+          line-height: 1.05;
+          white-space: nowrap;
+        }
+        .olfu .stat b span {
+          font: inherit !important;
+          color: inherit !important;
+        }
+        @media (max-width: 900px) {
+          .olfu .stat b { font-size: 34px !important; }
+        }
+        @media (max-width: 400px) {
+          .olfu .stat b { font-size: 28px !important; }
+        }
         @media (max-width: 760px) {
           .olfu .bento .t1, .olfu .bento .t2, .olfu .bento .t3,
           .olfu .bento .t4, .olfu .bento .t5, .olfu .bento .t6 {
@@ -283,7 +300,8 @@ export default function LandingPage() {
       `}</style>
             <div className="topbar">
                 {/* The logo image already includes the "O.L.F.U Marketplace" text,
-            so we swap between the light and dark versions by theme. */}
+            so we swap between the light and dark versions by theme.
+            `unoptimized` serves the file straight from /public and skips the Next.js image cache. */}
                 <Link href="/marketplace" className="brand" aria-label="OLFU Marketplace home">
                     <Image
                         src={isDark ? "/marketplacelogo_dark.png" : "/marketplacelogo_light.png"}
@@ -291,6 +309,7 @@ export default function LandingPage() {
                         width={400}
                         height={100}
                         priority
+                        unoptimized
                         style={{ height: "clamp(44px, 6vw, 64px)", width: "auto" }}
                     />
                 </Link>
@@ -413,7 +432,7 @@ export default function LandingPage() {
                         </div>
                         <div className="badge-list">
                             <div className="badge"><Check />OLFU-credential login &amp; email verification</div>
-                            <div className="badge"><Check />Block users and report listings that don't belong</div>
+                            <div className="badge"><Check />Block users and report listings that don&apos;t belong</div>
                             <div className="badge"><Check />Only approved partners sell official merchandise</div>
                         </div>
                     </Reveal>

@@ -13,15 +13,16 @@ type Suggested = { id: number; name: string };
 type TagRow = { key: string; label: string; count: number; isProtected: boolean };
 type Result = { error: string | null; count?: number };
 
-const card = "bg-surface border border-line rounded-2xl p-5 sm:p-6";
+const card = "bg-surface border border-line rounded-2xl p-4 sm:p-6";
 const input =
-    "bg-background border border-line rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-ink-soft outline-none focus:ring-2 focus:ring-brand";
+    "bg-background border border-line rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-ink-soft outline-none focus:ring-2 focus:ring-brand min-w-0";
 const btnPrimary =
     "inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-on-brand text-sm font-bold hover:opacity-90 disabled:opacity-50 transition cursor-pointer";
+// Bigger tap target on phones, compact from sm up
 const btnGhost =
-    "p-2 rounded-lg text-ink-soft hover:bg-tint hover:text-brand-deep disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer";
+    "p-2.5 sm:p-2 rounded-lg text-ink-soft hover:bg-tint hover:text-brand-deep disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shrink-0";
 const btnDanger =
-    "px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 cursor-pointer";
+    "px-3 py-2 sm:py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold hover:bg-red-700 disabled:opacity-50 cursor-pointer";
 
 const EMOJIS = [
     "📚", "📖", "✏️", "🎒", "💻", "🖥️", "⌨️", "🖱️", "🎧", "📱", "🔌", "🔋",
@@ -33,11 +34,11 @@ const EMOJIS = [
 function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string) => void }) {
     const [open, setOpen] = useState(false);
     return (
-        <div className="relative">
+        <div className="relative shrink-0">
             <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
-                className="w-14 h-[42px] rounded-xl border border-line bg-background text-xl hover:bg-tint cursor-pointer"
+                className="w-12 sm:w-14 h-[42px] rounded-xl border border-line bg-background text-xl hover:bg-tint cursor-pointer"
                 aria-label="Choose icon"
                 title="Choose icon"
             >
@@ -46,13 +47,14 @@ function EmojiPicker({ value, onChange }: { value: string; onChange: (e: string)
             {open && (
                 <>
                     <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-                    <div className="absolute left-0 z-20 mt-2 w-72 p-2 grid grid-cols-8 gap-1 bg-surface border border-line rounded-xl shadow-lg">
+                    {/* Fits the screen on phones (never wider than the viewport) */}
+                    <div className="absolute left-0 z-20 mt-2 w-[calc(100vw-3rem)] max-w-72 p-2 grid grid-cols-6 min-[380px]:grid-cols-8 gap-1 bg-surface border border-line rounded-xl shadow-lg">
                         {EMOJIS.map((e) => (
                             <button
                                 key={e}
                                 type="button"
                                 onClick={() => { onChange(e); setOpen(false); }}
-                                className="text-xl p-1 rounded-lg hover:bg-tint cursor-pointer"
+                                className="text-xl p-1.5 rounded-lg hover:bg-tint cursor-pointer"
                             >
                                 {e}
                             </button>
@@ -98,9 +100,9 @@ export default function CategoriesManager({
     );
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-8 min-w-0">
             <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-brand-deep">Categories & Tags</h1>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-brand-deep">Categories & Tags</h1>
                 <p className="text-sm text-ink-soft mt-1">
                     Manage the categories sellers can pick and the tags used across listings.
                 </p>
@@ -112,13 +114,14 @@ export default function CategoriesManager({
                     <Tag size={18} className="text-brand" /> Categories
                 </h2>
 
-                <div className="flex flex-col sm:flex-row gap-2 mb-5">
+                {/* Add row: icon + name on one line, button full-width on phones */}
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-5">
                     <EmojiPicker value={newIcon} onChange={setNewIcon} />
-                    <input className={`${input} flex-1`} placeholder="New category name" maxLength={30}
+                    <input className={`${input} flex-1 basis-0 min-w-0`} placeholder="New category name" maxLength={30}
                         value={newName} onChange={(e) => setNewName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && newName.trim() &&
                             run(() => addCategory(newName, newIcon), () => "Category added", () => { setNewName(""); setNewIcon(""); })} />
-                    <button className={btnPrimary} disabled={pending || newName.trim().length < 2}
+                    <button className={`${btnPrimary} w-full sm:w-auto`} disabled={pending || newName.trim().length < 2}
                         onClick={() => run(() => addCategory(newName, newIcon), () => "Category added",
                             () => { setNewName(""); setNewIcon(""); })}>
                         <Plus size={16} /> Add
@@ -140,59 +143,71 @@ export default function CategoriesManager({
                                     : "";
 
                         return (
-                            <li key={c.id} className="flex flex-wrap items-center gap-3 px-4 py-3 bg-background first:rounded-t-xl last:rounded-b-xl">
+                            <li key={c.id} className="px-3 sm:px-4 py-3 bg-background first:rounded-t-xl last:rounded-b-xl">
                                 {editing ? (
-                                    <>
+                                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                                         <EmojiPicker value={editIcon} onChange={setEditIcon} />
-                                        <input className={`${input} flex-1 min-w-[140px]`} value={editName} maxLength={30}
+                                        <input className={`${input} flex-1 basis-0 min-w-0`} value={editName} maxLength={30}
                                             disabled={locked} onChange={(e) => setEditName(e.target.value)} aria-label="Name" />
-                                        <button className={btnGhost} disabled={pending} title="Save"
-                                            onClick={() => run(() => updateCategory(c.id, editName, editIcon),
-                                                () => "Category updated", () => setEditingId(null))}>
-                                            <Check size={16} />
-                                        </button>
-                                        <button className={btnGhost} title="Cancel" onClick={() => setEditingId(null)}>
-                                            <X size={16} />
-                                        </button>
-                                    </>
+                                        <div className="flex items-center gap-1 ml-auto">
+                                            <button className={btnGhost} disabled={pending} title="Save" aria-label="Save"
+                                                onClick={() => run(() => updateCategory(c.id, editName, editIcon),
+                                                    () => "Category updated", () => setEditingId(null))}>
+                                                <Check size={18} />
+                                            </button>
+                                            <button className={btnGhost} title="Cancel" aria-label="Cancel" onClick={() => setEditingId(null)}>
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
                                 ) : (
-                                    <>
-                                        <span className="text-xl w-8 text-center" aria-hidden>{c.icon || "🏷️"}</span>
-                                        <span className="font-semibold text-foreground">{c.name}</span>
-                                        {locked && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-soft text-gold border border-gold/40">
-                                                <Lock size={10} /> Locked
-                                            </span>
-                                        )}
-                                        <span className="text-xs text-ink-soft ml-auto">
-                                            {count} listing{count === 1 ? "" : "s"}
-                                        </span>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                                        {/* name block */}
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <span className="text-xl w-8 text-center shrink-0" aria-hidden>{c.icon || "🏷️"}</span>
+                                            <span className="font-semibold text-foreground break-words min-w-0">{c.name}</span>
+                                            {locked && (
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-soft text-gold border border-gold/40 shrink-0">
+                                                    <Lock size={10} /> Locked
+                                                </span>
+                                            )}
+                                        </div>
 
-                                        {confirming ? (
-                                            <span className="flex items-center gap-2">
-                                                <span className="text-xs text-ink-soft">Delete?</span>
-                                                <button className={btnDanger} disabled={pending}
-                                                    onClick={() => run(() => deleteCategory(c.id), () => "Category deleted",
-                                                        () => setConfirmCatId(null))}>
-                                                    Yes, delete
-                                                </button>
-                                                <button className={btnGhost} onClick={() => setConfirmCatId(null)}><X size={16} /></button>
+                                        {/* count + actions */}
+                                        <div className="flex items-center justify-between sm:justify-end gap-2 pl-11 sm:pl-0">
+                                            <span className="text-xs text-ink-soft whitespace-nowrap">
+                                                {count} listing{count === 1 ? "" : "s"}
                                             </span>
-                                        ) : (
-                                            <span className="flex items-center">
-                                                <button className={btnGhost} title="Edit"
-                                                    onClick={() => { setEditingId(c.id); setEditName(c.name); setEditIcon(c.icon ?? ""); }}>
-                                                    <Pencil size={16} />
-                                                </button>
-                                                <button className={btnGhost}
-                                                    title={deleteBlockedReason || "Delete category"}
-                                                    disabled={!!deleteBlockedReason}
-                                                    onClick={() => setConfirmCatId(c.id)}>
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </span>
-                                        )}
-                                    </>
+
+                                            {confirming ? (
+                                                <span className="flex flex-wrap items-center justify-end gap-2">
+                                                    <span className="text-xs text-ink-soft">Delete?</span>
+                                                    <button className={btnDanger} disabled={pending}
+                                                        onClick={() => run(() => deleteCategory(c.id), () => "Category deleted",
+                                                            () => setConfirmCatId(null))}>
+                                                        Yes, delete
+                                                    </button>
+                                                    <button className={btnGhost} aria-label="Cancel" onClick={() => setConfirmCatId(null)}>
+                                                        <X size={18} />
+                                                    </button>
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center">
+                                                    <button className={btnGhost} title="Edit" aria-label="Edit"
+                                                        onClick={() => { setEditingId(c.id); setEditName(c.name); setEditIcon(c.icon ?? ""); }}>
+                                                        <Pencil size={18} />
+                                                    </button>
+                                                    <button className={btnGhost}
+                                                        title={deleteBlockedReason || "Delete category"}
+                                                        aria-label="Delete category"
+                                                        disabled={!!deleteBlockedReason}
+                                                        onClick={() => setConfirmCatId(c.id)}>
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
                             </li>
                         );
@@ -212,12 +227,12 @@ export default function CategoriesManager({
                     These appear as quick-add chips when sellers create a listing.
                 </p>
 
-                <div className="flex gap-2 mb-4">
-                    <input className={`${input} flex-1`} placeholder="Add a suggested tag (e.g. engineering)" maxLength={30}
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-4">
+                    <input className={`${input} flex-1 basis-full sm:basis-0`} placeholder="Add a suggested tag (e.g. engineering)" maxLength={30}
                         value={tagInput} onChange={(e) => setTagInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && tagInput.trim() &&
                             run(() => addSuggestedTag(tagInput), () => "Suggested tag added", () => setTagInput(""))} />
-                    <button className={btnPrimary} disabled={pending || tagInput.trim().length < 2}
+                    <button className={`${btnPrimary} w-full sm:w-auto`} disabled={pending || tagInput.trim().length < 2}
                         onClick={() => run(() => addSuggestedTag(tagInput), () => "Suggested tag added", () => setTagInput(""))}>
                         <Plus size={16} /> Add
                     </button>
@@ -226,10 +241,10 @@ export default function CategoriesManager({
                 <div className="flex flex-wrap gap-2">
                     {suggested.map((t) => (
                         <span key={t.id}
-                            className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-lg bg-tint text-brand-deep text-xs font-semibold border border-line">
-                            #{t.name}
-                            <button type="button" disabled={pending} title="Remove"
-                                className="p-1 rounded hover:bg-background hover:text-red-600 cursor-pointer"
+                            className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-lg bg-tint text-brand-deep text-xs font-semibold border border-line max-w-full">
+                            <span className="break-all">#{t.name}</span>
+                            <button type="button" disabled={pending} title="Remove" aria-label={`Remove ${t.name}`}
+                                className="p-1.5 sm:p-1 rounded hover:bg-background hover:text-red-600 cursor-pointer shrink-0"
                                 onClick={() => run(() => removeSuggestedTag(t.id), () => "Suggested tag removed")}>
                                 <X size={12} />
                             </button>
@@ -258,35 +273,45 @@ export default function CategoriesManager({
                     {filteredTags.map((t) => {
                         const confirming = confirmTagKey === t.key;
                         return (
-                            <li key={t.key} className="flex flex-wrap items-center gap-3 px-4 py-2.5 bg-background">
-                                <span className="text-sm font-semibold text-foreground">#{t.label}</span>
-                                {t.isProtected && (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-soft text-gold border border-gold/40">
-                                        <Lock size={10} /> Protected
-                                    </span>
-                                )}
-                                <span className="text-xs text-ink-soft ml-auto">
-                                    {t.count} listing{t.count === 1 ? "" : "s"}
-                                </span>
+                            <li key={t.key} className="px-3 sm:px-4 py-2.5 bg-background">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                                    <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                                        <span className="text-sm font-semibold text-foreground break-all">#{t.label}</span>
+                                        {t.isProtected && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gold-soft text-gold border border-gold/40 shrink-0">
+                                                <Lock size={10} /> Protected
+                                            </span>
+                                        )}
+                                    </div>
 
-                                {confirming ? (
-                                    <span className="flex items-center gap-2">
-                                        <span className="text-xs text-ink-soft">Remove from {t.count}?</span>
-                                        <button className={btnDanger} disabled={pending}
-                                            onClick={() => run(() => removeTagEverywhere(t.label),
-                                                (r) => `Removed from ${r.count ?? 0} listing${r.count === 1 ? "" : "s"}`,
-                                                () => setConfirmTagKey(null))}>
-                                            Yes, remove
-                                        </button>
-                                        <button className={btnGhost} onClick={() => setConfirmTagKey(null)}><X size={16} /></button>
-                                    </span>
-                                ) : (
-                                    <button className={btnGhost} disabled={t.isProtected}
-                                        title={t.isProtected ? "Protected tag" : "Remove from all listings"}
-                                        onClick={() => setConfirmTagKey(t.key)}>
-                                        <Trash2 size={16} />
-                                    </button>
-                                )}
+                                    <div className="flex items-center justify-between sm:justify-end gap-2">
+                                        <span className="text-xs text-ink-soft whitespace-nowrap">
+                                            {t.count} listing{t.count === 1 ? "" : "s"}
+                                        </span>
+
+                                        {confirming ? (
+                                            <span className="flex flex-wrap items-center justify-end gap-2">
+                                                <span className="text-xs text-ink-soft">Remove from {t.count}?</span>
+                                                <button className={btnDanger} disabled={pending}
+                                                    onClick={() => run(() => removeTagEverywhere(t.label),
+                                                        (r) => `Removed from ${r.count ?? 0} listing${r.count === 1 ? "" : "s"}`,
+                                                        () => setConfirmTagKey(null))}>
+                                                    Yes, remove
+                                                </button>
+                                                <button className={btnGhost} aria-label="Cancel" onClick={() => setConfirmTagKey(null)}>
+                                                    <X size={18} />
+                                                </button>
+                                            </span>
+                                        ) : (
+                                            <button className={btnGhost} disabled={t.isProtected}
+                                                aria-label="Remove from all listings"
+                                                title={t.isProtected ? "Protected tag" : "Remove from all listings"}
+                                                onClick={() => setConfirmTagKey(t.key)}>
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </li>
                         );
                     })}

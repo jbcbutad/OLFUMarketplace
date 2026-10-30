@@ -7,7 +7,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   Package, Edit3, Trash2, Plus, Loader2, AlertTriangle,
-  PhilippinePeso, X, Tag, Layers, Hash, FileText, ChevronDown, Clock, RefreshCcw, CreditCard
+  PhilippinePeso, X, Tag, Layers, Hash, FileText, ChevronDown, Clock, RefreshCcw, CreditCard,
+  Send, XCircle
 } from "lucide-react";
 import MarkAsTransactedModal from "@/components/MarkAsTransactedModal";
 import RelistButton from "@/components/RelistButton";
@@ -26,6 +27,7 @@ function MyListingsContent() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [resubmittingId, setResubmittingId] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const dropdownRef = useRef(null);
@@ -152,6 +154,30 @@ function MyListingsContent() {
     }
   };
 
+  // Send a rejected listing back to the admin review queue
+  const handleResubmit = async (item) => {
+    setResubmittingId(item.id);
+    const { error } = await supabase.rpc("resubmit_listing", {
+      p_product_id: item.id,
+    });
+    setResubmittingId(null);
+
+    if (error) {
+      toast.error("Couldn't resubmit: " + error.message);
+      return;
+    }
+
+    setListings((prev) =>
+      prev.map((l) => (l.id === item.id ? { ...l, status: "pending", is_available: false } : l))
+    );
+    setActiveTab("pending");
+    toast.success(
+      isMerch(item)
+        ? "Resubmitted. Your drop is back in the payment review queue."
+        : "Resubmitted. Your listing is back in the review queue."
+    );
+  };
+
   const handleStatusChange = async (item, targetStatusChoice) => {
     setOpenDropdownId(null);
 
@@ -164,7 +190,7 @@ function MyListingsContent() {
       const isMerchandise = isMerch(item);
 
       if (item.status === "rejected") {
-        toast.error("This listing was rejected by an admin.");
+        toast.error("This listing was rejected by an admin. Use 'Resubmit' to send it for review again.");
         return;
       }
 
@@ -229,12 +255,14 @@ function MyListingsContent() {
   const filteredListings = listings.filter(item => {
     const isPendingAdminReview = item.status === "pending";
     const isFlagged = item.status === "flagged";
+    const isRejected = item.status === "rejected";
     const isExpiredTag = getListingState(item) === "expired";
 
-    if (activeTab === "expired") return isExpiredTag;
+    if (activeTab === "expired") return isExpiredTag && !isRejected;
     if (activeTab === "pending") return isPendingAdminReview;
     if (activeTab === "flagged") return isFlagged;
-    if (activeTab === "active") return !isPendingAdminReview && !isFlagged && !isExpiredTag && item.is_available;
+    if (activeTab === "rejected") return isRejected;
+    if (activeTab === "active") return !isPendingAdminReview && !isFlagged && !isRejected && !isExpiredTag && item.is_available;
     return true;
   });
 
@@ -284,6 +312,12 @@ function MyListingsContent() {
             <Clock size={14} /> Pending Payment
           </button>
           <button
+            onClick={() => setActiveTab("rejected")}
+            className={`${TAB_BASE} flex items-center gap-1.5 ${activeTab === "rejected" ? "bg-red-600 text-white shadow-sm font-black" : TAB_OFF}`}
+          >
+            <XCircle size={14} /> Rejected
+          </button>
+          <button
             onClick={() => setActiveTab("expired")}
             className={`${TAB_BASE} flex items-center gap-1.5 ${activeTab === "expired" ? "bg-red-600 text-white shadow-sm font-black" : TAB_OFF}`}
           >
@@ -300,8 +334,9 @@ function MyListingsContent() {
               const isMerchandise = isMerch(item);
               const isExpiredTag = getListingState(item) === "expired";
 
-              // Pending, flagged and rejected listings cannot be edited
-              const editLocked = isPendingAdmin || isFlagged || isRejected;
+              // Pending and flagged listings cannot be edited.
+              // Rejected ones can, so the seller can fix them before resubmitting.
+              const editLocked = isPendingAdmin || isFlagged;
 
               const isUnavailable = !item.is_available || isExpiredTag;
 
@@ -310,11 +345,10 @@ function MyListingsContent() {
                 !isMerchandise && item.status === "active" && item.is_available &&
                 msLeft !== null && msLeft > 0 && msLeft <= 3 * 24 * 60 * 60 * 1000;
 
-
-
               let cardBgStyles = "bg-neutral-50 dark:bg-neutral-900 border-neutral-900 dark:border-white shadow-sm hover:shadow-md";
               if (isFlagged) cardBgStyles = "bg-neutral-100/60 dark:bg-neutral-900/30 border-neutral-900 dark:border-white opacity-75";
               else if (isPendingAdmin) cardBgStyles = "bg-amber-50/40 dark:bg-amber-950/20 border-neutral-900 dark:border-white shadow-sm";
+              else if (isRejected) cardBgStyles = "bg-red-500/5 dark:bg-red-950/20 border-red-500/40";
               else if (isExpiredTag) cardBgStyles = "bg-red-500/10 dark:bg-red-950/30 border-red-500/40";
               // No card-level opacity here: it would also fade the status dropdown and trap it under the next card.
               else if (isUnavailable) cardBgStyles = "bg-neutral-100 dark:bg-neutral-900/60 border-neutral-900 dark:border-white";
@@ -346,6 +380,16 @@ function MyListingsContent() {
                     <div className="bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-xl flex items-start gap-2 text-rose-600 dark:text-rose-400 text-xs font-bold">
                       <AlertTriangle size={15} className="shrink-0 mt-0.5 text-rose-500" />
                       <span><strong className="text-rose-600 dark:text-rose-400">Under Safety Review (Flagged):</strong> This listing has triggered moderation checks and is hidden from the marketplace.</span>
+                    </div>
+                  )}
+
+                  {/* REJECTED BANNER */}
+                  {isRejected && (
+                    <div className="bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800 px-3 py-2 rounded-xl flex items-start gap-2 text-red-600 dark:text-red-400 text-xs font-bold">
+                      <XCircle size={15} className="shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Rejected by admin:</strong> Edit your listing if needed, then resubmit it for review.
+                      </span>
                     </div>
                   )}
 
@@ -387,11 +431,12 @@ function MyListingsContent() {
                       <div className="flex items-center justify-start gap-1.5 md:gap-2 mb-1.5 flex-wrap">
                         <span className="text-[9px] bg-neutral-200 dark:bg-neutral-800 border text-foreground px-2 py-0.5 rounded font-bold uppercase tracking-widest">{item.categories?.name}</span>
                         {isFlagged && <span className="text-[9px] bg-rose-100 dark:bg-rose-950/60 border border-rose-300 text-rose-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Safety Flag</span>}
+                        {isRejected && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Rejected</span>}
                         {isExpiredTag && <span className="text-[9px] bg-red-100 dark:bg-red-950/60 border border-red-300 text-red-600 px-2 py-0.5 rounded font-bold uppercase tracking-widest">{isMerchandise ? "Duration Expired" : "Listing Expired"}</span>}
                       </div>
 
                       <Link href={`/products/${item.id}`}>
-                        <h3 className={`text-base md:text-xl font-black uppercase tracking-tight break-words ${isUnavailable && !isExpiredTag && !isFlagged ? "text-neutral-500 line-through" : "text-foreground hover:opacity-80"} transition-colors inline-block`}>{item.title}</h3>
+                        <h3 className={`text-base md:text-xl font-black uppercase tracking-tight break-words ${isUnavailable && !isExpiredTag && !isFlagged && !isRejected ? "text-neutral-500 line-through" : "text-foreground hover:opacity-80"} transition-colors inline-block`}>{item.title}</h3>
                       </Link>
 
                       <p className="font-bold flex items-center justify-start gap-1 mt-1 text-foreground">
@@ -408,7 +453,18 @@ function MyListingsContent() {
                           className="flex-1 md:flex-none px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-black rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all"
                         />
                       )}
-                      {isExpiredTag ? (
+                      {isRejected ? (
+                        <button
+                          type="button"
+                          onClick={() => handleResubmit(item)}
+                          disabled={resubmittingId === item.id}
+                          className="flex-1 md:flex-none justify-center px-4 py-2.5 bg-foreground text-background rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
+                        >
+                          {resubmittingId === item.id
+                            ? <Loader2 className="animate-spin" size={14} />
+                            : <><Send size={14} /> Resubmit</>}
+                        </button>
+                      ) : isExpiredTag ? (
                         isMerchandise ? (
                           <button
                             onClick={() => { setActiveItem(item); setIsRenewModalOpen(true); }}
@@ -466,7 +522,7 @@ function MyListingsContent() {
                         </div>
                       )}
 
-                      {/* EDIT: disabled for pending / flagged / rejected */}
+                      {/* EDIT: disabled for pending / flagged. Rejected listings can be edited. */}
                       <button
                         type="button"
                         onClick={() => {
@@ -476,7 +532,7 @@ function MyListingsContent() {
                         }}
                         disabled={editLocked}
                         aria-label="Edit listing"
-                        title={editLocked ? "Listings that are pending, flagged or rejected can't be edited" : "Edit listing"}
+                        title={editLocked ? "Listings that are pending or flagged can't be edited" : "Edit listing"}
                         className={`shrink-0 p-2.5 bg-background border border-foreground rounded-xl text-foreground transition-all ${editLocked ? "opacity-40 cursor-not-allowed" : "hover:opacity-80 active:scale-95"}`}
                       >
                         <Edit3 size={16} />
@@ -493,8 +549,6 @@ function MyListingsContent() {
                 </div>
               );
             })
-
-
           ) : (
             <div className="text-center py-16 md:py-24 px-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-3xl border border-dashed border-neutral-300 dark:border-neutral-800 animate-in fade-in duration-500">
               <p className="text-neutral-400 text-sm font-bold uppercase tracking-wider">No listings found in this tab.</p>

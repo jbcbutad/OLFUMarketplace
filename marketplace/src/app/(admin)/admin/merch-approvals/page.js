@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { isMerch } from "@/lib/merch";
-import { Loader2, CheckCircle2, XCircle, ShieldCheck, Layers, Calendar, PhilippinePeso } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, ShieldCheck, Layers, Calendar, Tag } from "lucide-react";
 import { ui, btn } from "../ui";
 
 // Popup text for each action
@@ -20,6 +20,40 @@ const CONFIRM_COPY = {
         confirmText: "Reject",
     },
 };
+
+// Applicant avatar: shows the profile photo, or initials if there is none
+function ApplicantAvatar({ name, src, size = 32 }) {
+    const [failed, setFailed] = useState(false);
+
+    const initials = (name || "?")
+        .split(" ")
+        .filter(Boolean)
+        .map((w) => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+
+    if (src && !failed) {
+        return (
+            <img
+                src={src}
+                alt={name || "Applicant"}
+                style={{ width: size, height: size }}
+                className="rounded-full object-cover border border-line shrink-0"
+                onError={() => setFailed(true)}
+            />
+        );
+    }
+
+    return (
+        <div
+            style={{ width: size, height: size }}
+            className="rounded-full bg-brand/10 text-brand border border-line flex items-center justify-center text-[11px] font-bold shrink-0"
+        >
+            {initials}
+        </div>
+    );
+}
 
 export default function AdminMerchApprovals() {
     const [pendingItems, setPendingItems] = useState([]);
@@ -46,13 +80,18 @@ export default function AdminMerchApprovals() {
                 .from("products")
                 .select(`
           *,
-          profiles(full_name, org_name),
+          profiles(full_name, org_name, avatar_url),
           categories(name)
         `)
                 .eq("status", "pending")
                 .order("created_at", { ascending: false });
 
-            if (!error) setPendingItems((data || []).filter((p) => isMerch(p)));
+            if (error) {
+                console.error("Fetch error:", error);
+                toast.error("Failed to load pending items: " + error.message);
+            } else {
+                setPendingItems((data || []).filter((p) => isMerch(p)));
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -140,70 +179,99 @@ export default function AdminMerchApprovals() {
                 ) : (
                     <div className="grid gap-6">
                         {pendingItems.map((item) => {
-                            const orgName = item.profiles?.org_name || item.profiles?.full_name || "Organization";
+                            const orgName = item.profiles?.org_name || "Organization";
+                            const applicantName = item.profiles?.full_name || "Unknown user";
+                            const applicantAvatar = item.profiles?.avatar_url;
+                            const categoryName = item.categories?.name;
+                            const submitted = item.created_at
+                                ? new Date(item.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
+                                : "—";
+                            const busy = processingId === item.id;
+
                             return (
-                                <div key={item.id} className={`${ui.card} p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6`}>
+                                <article key={item.id} className={`${ui.card} overflow-hidden`}>
 
-                                    <div className="flex items-center gap-5">
-                                        <img
-                                            src={item.image_urls?.[0] || "/placeholder.png"}
-                                            alt={item.title}
-                                            className="w-24 h-24 rounded-2xl object-cover border border-line"
-                                        />
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-2.5 py-0.5 rounded-md font-bold uppercase tracking-widest">
-                                                {orgName}
-                                            </span>
-                                            <h3 className="text-lg font-bold text-foreground">{item.title}</h3>
-                                            <p className="text-xs text-ink-soft flex items-center gap-1 font-bold">
-                                                Item Selling Price: <PhilippinePeso size={12} />{item.price}
-                                            </p>
+                                    {/* Applicant header */}
+                                    <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-line">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <ApplicantAvatar name={applicantName} src={applicantAvatar} size={40} />
+                                            <div className="leading-tight min-w-0">
+                                                <p className="text-sm font-bold text-foreground truncate">{applicantName}</p>
+                                                <p className="text-xs text-ink-soft truncate">{orgName}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right leading-tight">
+                                            <p className="text-[11px] text-ink-soft">Submitted</p>
+                                            <p className="text-xs font-semibold text-foreground">{submitted}</p>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-4 p-4 bg-background border border-line rounded-2xl w-full lg:w-auto text-xs">
-                                        <div>
-                                            <p className="text-[10px] uppercase font-bold text-ink-soft flex items-center gap-1">
-                                                <Layers size={12} /> Stock
-                                            </p>
-                                            <p className="font-extrabold text-foreground text-sm mt-0.5">{item.stock_quantity || 1} Units</p>
+                                    {/* Body */}
+                                    <div className="p-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+
+                                        {/* Product */}
+                                        <div className="flex items-center gap-5 min-w-0">
+                                            <img
+                                                src={item.image_urls?.[0] || "/placeholder.png"}
+                                                alt={item.title}
+                                                className="w-28 h-28 rounded-2xl object-cover border border-line shrink-0"
+                                            />
+                                            <div className="min-w-0 space-y-2">
+                                                {categoryName && (
+                                                    <span className="inline-flex items-center gap-1 text-[11px] text-ink-soft border border-line rounded-md px-2 py-0.5">
+                                                        <Tag size={11} /> {categoryName}
+                                                    </span>
+                                                )}
+                                                <h3 className="text-lg font-bold leading-snug text-foreground">{item.title}</h3>
+                                                <p className="text-2xl font-extrabold text-foreground">
+                                                    ₱{item.price}
+                                                    <span className="ml-2 text-xs font-semibold text-ink-soft">selling price</span>
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        <div>
-                                            <p className="text-[10px] uppercase font-bold text-ink-soft flex items-center gap-1">
-                                                <Calendar size={12} /> Duration
-                                            </p>
-                                            <p className="font-extrabold text-foreground text-sm mt-0.5">{item.listing_duration || "N/A"}</p>
+                                        {/* Listing details + actions */}
+                                        <div className="flex flex-col gap-3 w-full lg:w-[360px]">
+                                            <div className="grid grid-cols-3 divide-x divide-line bg-background border border-line rounded-2xl text-xs">
+                                                <div className="p-3">
+                                                    <p className="text-[11px] font-semibold text-ink-soft flex items-center gap-1">
+                                                        <Layers size={12} /> Stock
+                                                    </p>
+                                                    <p className="font-extrabold text-foreground text-sm mt-1">{item.stock_quantity || 1} units</p>
+                                                </div>
+                                                <div className="p-3">
+                                                    <p className="text-[11px] font-semibold text-ink-soft flex items-center gap-1">
+                                                        <Calendar size={12} /> Duration
+                                                    </p>
+                                                    <p className="font-extrabold text-foreground text-sm mt-1">{item.listing_duration || "N/A"}</p>
+                                                </div>
+                                                <div className="p-3 bg-amber-500/5 rounded-r-2xl">
+                                                    <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Listing fee</p>
+                                                    <p className="font-black text-amber-600 dark:text-amber-400 text-sm mt-1">₱{item.listing_fee || 0}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => requestAction(item, "approve")}
+                                                    disabled={busy}
+                                                    className={`${btn("primary", "md")} flex-1`}
+                                                >
+                                                    {busy ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle2 size={16} /> Approve & Publish</>}
+                                                </button>
+                                                <button
+                                                    title="Reject merchandise"
+                                                    onClick={() => requestAction(item, "reject")}
+                                                    disabled={busy}
+                                                    className={btn("dangerOutline", "md")}
+                                                >
+                                                    <XCircle size={18} /> Reject
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        <div>
-                                            <p className="text-[10px] uppercase font-bold text-amber-500 flex items-center gap-1">
-                                                Required Fee
-                                            </p>
-                                            <p className="font-black text-amber-600 dark:text-amber-400 text-sm mt-0.5">₱{item.listing_fee || 0}</p>
-                                        </div>
                                     </div>
-
-                                    <div className="flex items-center gap-3 w-full lg:w-auto">
-                                        <button
-                                            onClick={() => requestAction(item, "approve")}
-                                            disabled={processingId === item.id}
-                                            className={`${btn("primary", "md")} flex-1 lg:flex-initial`}
-                                        >
-                                            {processingId === item.id ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle2 size={16} /> Approve & Publish</>}
-                                        </button>
-
-                                        <button
-                                            title="Reject merchandise"
-                                            onClick={() => requestAction(item, "reject")}
-                                            disabled={processingId === item.id}
-                                            className={btn("dangerOutline", "md")}
-                                        >
-                                            <XCircle size={18} />
-                                        </button>
-                                    </div>
-
-                                </div>
+                                </article>
                             );
                         })}
                     </div>
@@ -231,6 +299,23 @@ export default function AdminMerchApprovals() {
                         >
                             <h2 className="text-lg font-bold text-foreground">{copy.title}</h2>
                             <p className="mt-2 text-sm text-ink-soft">{copy.message(item.title)}</p>
+
+                            {/* Applicant in popup */}
+                            <div className="mt-4 flex items-center gap-3 rounded-xl border border-line p-3">
+                                <ApplicantAvatar
+                                    name={item.profiles?.full_name}
+                                    src={item.profiles?.avatar_url}
+                                    size={36}
+                                />
+                                <div className="leading-tight">
+                                    <p className="text-sm font-semibold text-foreground">
+                                        {item.profiles?.full_name || "Unknown user"}
+                                    </p>
+                                    <p className="text-xs text-ink-soft">
+                                        {item.profiles?.org_name || "Organization"}
+                                    </p>
+                                </div>
+                            </div>
 
                             <div className="mt-6 flex justify-end gap-2">
                                 <button

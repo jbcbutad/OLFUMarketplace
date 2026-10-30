@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Archivo } from "next/font/google";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import TermsModal from "@/components/TermsModal";
 import styles from "./login.module.css";
+
+// Where the back button goes. Change this if your landing page is not the home route.
+const LANDING_PATH = "/";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -109,6 +113,16 @@ function AuthPortalContent() {
 
   return (
     <div className={`${styles.page} ${archivo.variable}`}>
+      {/* BACK TO LANDING PAGE */}
+      <Link
+        href={LANDING_PATH}
+        aria-label="Back to landing page"
+        className="absolute top-3 left-3 min-[821px]:top-4 min-[821px]:left-4 z-30 inline-flex items-center justify-center gap-2 w-10 h-10 min-[821px]:w-auto min-[821px]:h-auto min-[821px]:px-3.5 min-[821px]:py-2 rounded-full bg-white/95 text-neutral-900 border border-black/20 shadow-md text-sm font-semibold hover:bg-white hover:shadow-lg transition"
+      >
+        <ArrowLeft size={18} />
+        <span className="hidden min-[821px]:inline">Back</span>
+      </Link>
+
       <main className={styles.left}>
         <div className={styles.box}>
           <h1 className={styles.title}>User Login</h1>
