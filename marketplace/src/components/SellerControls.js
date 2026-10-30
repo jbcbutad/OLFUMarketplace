@@ -210,7 +210,7 @@ export default function SellerControls({ product, currentUserId }) {
         return (
             <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl my-4 flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
-                    This listing was rejected by an admin and can't be edited.
+                    This listing was rejected by an admin.
                 </span>
                 <button
                     onClick={() => router.push("/mylistings")}
