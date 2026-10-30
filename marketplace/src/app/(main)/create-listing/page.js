@@ -486,7 +486,10 @@ function CreateListingContent() {
         return publicUrl;
       });
 
-      const uploadedUrls = await Promise.all(uploadPromises);
+      const uploadResults = await Promise.allSettled(uploadPromises);
+      const failedUpload = uploadResults.find((r) => r.status === "rejected");
+      if (failedUpload) throw failedUpload.reason;
+      const uploadedUrls = uploadResults.map((r) => r.value);
 
       let finalCategoryId = categoryId;
       let finalTags = [
