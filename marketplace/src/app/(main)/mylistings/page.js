@@ -157,7 +157,7 @@ function MyListingsContent() {
   // Send a rejected listing back to the admin review queue
   const handleResubmit = async (item) => {
     setResubmittingId(item.id);
-    const { error } = await supabase.rpc("resubmit_listing", {
+    const { data: newStatus, error } = await supabase.rpc("resubmit_listing", {
       p_product_id: item.id,
     });
     setResubmittingId(null);
@@ -167,14 +167,17 @@ function MyListingsContent() {
       return;
     }
 
+    // Merch drops go back to "pending" (payment review).
+    // Regular listings go back to "flagged" (moderator review).
+    const nextStatus = newStatus === "flagged" ? "flagged" : "pending";
     setListings((prev) =>
-      prev.map((l) => (l.id === item.id ? { ...l, status: "pending", is_available: false } : l))
+      prev.map((l) => (l.id === item.id ? { ...l, status: nextStatus, is_available: false } : l))
     );
-    setActiveTab("pending");
+    setActiveTab(nextStatus);
     toast.success(
-      isMerch(item)
+      nextStatus === "pending"
         ? "Resubmitted. Your drop is back in the payment review queue."
-        : "Resubmitted. Your listing is back in the review queue."
+        : "Resubmitted. A moderator will review your listing again."
     );
   };
 
