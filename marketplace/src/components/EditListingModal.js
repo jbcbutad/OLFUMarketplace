@@ -9,6 +9,7 @@ import { getListingState } from "@/lib/listingStatus";
 
 const MAX_DESCRIPTION = 1000;
 const MAX_STOCK = 999;
+const MAX_PRICE = 100000;
 
 export default function EditListingModal({ product, onClose, onSaved }) {
     const merch = isMerch(product);
@@ -28,6 +29,11 @@ export default function EditListingModal({ product, onClose, onSaved }) {
         e.preventDefault();
         if (form.description.trim().length > MAX_DESCRIPTION) {
             toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
+            return;
+        }
+        const priceNum = Number(form.price);
+        if (form.price === "" || !Number.isFinite(priceNum) || priceNum < 0 || priceNum > MAX_PRICE) {
+            toast.error(`Price must be between 0 and ${MAX_PRICE.toLocaleString()}.`);
             return;
         }
         if (canEditStock) {
@@ -75,6 +81,10 @@ export default function EditListingModal({ product, onClose, onSaved }) {
             if (needsReview) {
                 is_available = false;
                 status = "flagged";
+            } else if (product.status === "rejected") {
+                // still rejected: only the Resubmit button moves it forward
+                is_available = false;
+                status = "rejected";
             } else if (wasFlagged) {
                 // merch goes back to the admin queue, everything else goes live
                 is_available = !merch;
@@ -89,7 +99,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
 
             const changes = {
                 title: form.title.trim(),
-                price: parseFloat(form.price),
+                price: Math.round(priceNum * 100) / 100,
                 description: form.description.trim(),
                 tags,
                 is_available,
@@ -155,16 +165,25 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><PhilippinePeso size={14} /> Price (₱)</label>
-                            <input required type="number" step="0.01" className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
-                                value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+                            <input required type="text" inputMode="decimal" autoComplete="off"
+                                className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
+                                value={form.price}
+                                onChange={(e) => {
+                                    let v = e.target.value.replace(/[^\d.]/g, "");
+                                    const [whole, ...rest] = v.split(".");
+                                    v = rest.length ? `${whole.slice(0, 6)}.${rest.join("").slice(0, 2)}` : whole.slice(0, 6);
+                                    setForm({ ...form, price: v });
+                                }} />
                         </div>
 
                         {canEditStock && (
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Layers size={14} /> Total Stock Units Left (max 999)</label>
-                                <input required type="number" min="0" max={MAX_STOCK} className="w-full bg-muted/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                                    value={form.stock_quantity} onChange={(e) => {
-                                        const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                                <input required type="text" inputMode="numeric" autoComplete="off"
+                                    className="w-full bg-muted/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                                    value={form.stock_quantity}
+                                    onChange={(e) => {
+                                        const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
                                         setForm({
                                             ...form,
                                             stock_quantity: digits === "" ? "" : String(Math.min(Number(digits), MAX_STOCK)),
