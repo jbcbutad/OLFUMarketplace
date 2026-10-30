@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Camera, Loader2, Tag, PhilippinePeso, FileText,
-  X, ImagePlus, ListFilter, Hash, ChevronLeft, Info, Plus, Sparkles, ShieldCheck, Layers, Calendar, CreditCard, ShoppingBag
+  Loader2, Tag, FileText,
+  X, ImagePlus, ListFilter, ChevronLeft, Info, Plus, Sparkles, ShieldCheck, Layers, Calendar, CreditCard, ShoppingBag
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -13,7 +13,8 @@ import { toast } from "sonner";
 const compressAndConvertToBase64 = (file, maxWidth = 1024, quality = 0.75) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.src = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
     img.onload = () => {
       const canvas = document.createElement("canvas");
       let { width, height } = img;
@@ -34,13 +35,17 @@ const compressAndConvertToBase64 = (file, maxWidth = 1024, quality = 0.75) => {
       ctx.drawImage(img, 0, 0, width, height);
 
       const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+      URL.revokeObjectURL(objectUrl);
       resolve(compressedBase64);
     };
-    img.onerror = (err) => reject(err);
+    img.onerror = (err) => {
+      URL.revokeObjectURL(objectUrl);
+      reject(err);
+    };
   });
 };
 
-// NEW: shrinks a photo to a small JPEG so a whole listing fits in one moderation request
+// Shrinks a photo to a small JPEG so a whole listing fits in one moderation request
 const compressToBlob = (file, maxSize = 768, quality = 0.7) =>
   new Promise((resolve, reject) => {
     const img = new Image();
@@ -67,10 +72,17 @@ const compressToBlob = (file, maxSize = 768, quality = 0.7) =>
 
 // Tags the app controls: users can't add these by hand, and they aren't sent to AI moderation
 const RESERVED_TAGS = ["official-merch", "flagged", "pending", "expired"];
+
+// Only these photo formats are accepted (Gemini-safe; everything is re-encoded to JPEG later)
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
+const MAX_IMAGE_MB = 10;
+const MAX_TITLE = 100;
 const MAX_DESCRIPTION = 1000;
+const MAX_TAGS = 10;
+const MAX_TAG_LENGTH = 30;
 const MAX_STOCK = 999;
+const MAX_DAYS = 90;
 const MAX_PRICE = 999999999;
 
 // Formats a price as you type: commas, max 9 whole digits, max 2 decimals
@@ -82,7 +94,6 @@ const formatPrice = (value) => {
   const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return rest.length > 0 ? `${withCommas}.${decimals}` : withCommas;
 };
-const MAX_IMAGE_MB = 10;
 
 const checkImage = (file) => {
   const ext = file.name.split(".").pop()?.toLowerCase();
@@ -94,6 +105,24 @@ const checkImage = (file) => {
   }
   return null;
 };
+
+// Validates one tag against a list. Returns { list, error }.
+const tryAddTag = (currentTags, raw) => {
+  const cleanTag = String(raw).trim().toLowerCase();
+  if (!cleanTag) return { list: currentTags, error: null };
+  if (RESERVED_TAGS.includes(cleanTag)) {
+    return { list: currentTags, error: `"${cleanTag}" is a reserved tag and can't be added manually.` };
+  }
+  if (currentTags.includes(cleanTag)) return { list: currentTags, error: null };
+  if (cleanTag.length > MAX_TAG_LENGTH) {
+    return { list: currentTags, error: `Tags can be at most ${MAX_TAG_LENGTH} characters.` };
+  }
+  if (currentTags.length >= MAX_TAGS) {
+    return { list: currentTags, error: `You can add up to ${MAX_TAGS} tags.` };
+  }
+  return { list: [...currentTags, cleanTag], error: null };
+};
+
 // Formats a number like ₱280.00
 const formatPeso = (n) =>
   `₱${Number(n).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -116,10 +145,11 @@ function CreateListingContent() {
 
   // Merch-specific fields
   const [stockQuantity, setStockQuantity] = useState("1");
-  const [listingDuration, setListingDuration] = useState("");
+  const [durationDays, setDurationDays] = useState("");
 
   const [images, setImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
+  const previewUrlsRef = useRef([]);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [user, setUser] = useState(null);
@@ -132,19 +162,25 @@ function CreateListingContent() {
 
   const suggestedTags = ["nursing", "medtech", "uniform", "secondhand", "calculator", "books", "brand new"];
 
-  // 👉 Helper to extract number of days from duration input text (defaults to 1 day if not specified)
-  const parseDays = (durationStr) => {
-    const match = durationStr.match(/\d+/);
-    return match ? parseInt(match[0]) : 1;
-  };
+  // Number of days is a plain number now (no free text), so the fee can't be miscalculated
+  const totalDays = parseInt(durationDays, 10) || 0;
+  const parsedStock = parseInt(stockQuantity, 10);
 
-  const totalDays = parseDays(listingDuration);
-  const parsedStock = parseInt(stockQuantity) || 1;
-
-  // ₱1.00 per item per day calculation formula
+  // Flat ₱1.00 per day (stock quantity does not change the fee)
   const calculatedFee = isOfficialOrgMerch ? totalDays * 1 : 0;
 
   const handleOfficialOrgMerchToggle = (checked) => setIsOfficialOrgMerch(checked);
+
+  // Keep a ref of the preview URLs so they can be revoked when the page unmounts
+  useEffect(() => {
+    previewUrlsRef.current = previewUrls;
+  }, [previewUrls]);
+
+  useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   useEffect(() => {
     const initializeForm = async () => {
@@ -179,30 +215,12 @@ function CreateListingContent() {
   }, [router, isMerchParam]);
 
   const addTag = (tagToAdd) => {
-    const cleanTag = tagToAdd.trim().toLowerCase();
-    if (RESERVED_TAGS.includes(cleanTag)) {
-      toast.error(`"${cleanTag}" is a reserved tag and can't be added manually.`);
+    const { list, error } = tryAddTag(tags, tagToAdd);
+    if (error) {
+      toast.error(error);
       return;
     }
-    if (cleanTag && !tags.includes(cleanTag)) {
-      setTags([...tags, cleanTag]);
-    }
-  };
-
-  // Only these photo formats are accepted (Gemini-safe; everything is re-encoded to JPEG later)
-  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-  const ALLOWED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
-  const MAX_IMAGE_MB = 10;
-
-  const checkImage = (file) => {
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type) || !ALLOWED_IMAGE_EXTS.includes(ext)) {
-      return `"${file.name}" isn't allowed. Please use JPG, PNG or WEBP photos only.`;
-    }
-    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-      return `"${file.name}" is larger than ${MAX_IMAGE_MB} MB.`;
-    }
-    return null;
+    if (list !== tags) setTags(list);
   };
 
   const handleTagKeyDown = (e) => {
@@ -239,6 +257,8 @@ function CreateListingContent() {
   };
 
   const removeImage = (indexToRemove) => {
+    const urlToRevoke = previewUrls[indexToRemove];
+    if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
     setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
     setPreviewUrls((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
@@ -271,15 +291,19 @@ function CreateListingContent() {
       if (data.success && data.listing) {
         const { title: aiTitle, description: aiDesc, price: aiPrice, suggestedTags: aiTags } = data.listing;
 
-        if (aiTitle) setTitle(aiTitle);
+        if (aiTitle) setTitle(String(aiTitle).slice(0, MAX_TITLE));
         if (aiDesc) setDescription(String(aiDesc).slice(0, MAX_DESCRIPTION));
         if (aiPrice !== undefined && aiPrice !== null) setPrice(formatPrice(aiPrice));
 
         if (aiTags && Array.isArray(aiTags)) {
-          const cleanAiTags = aiTags
-            .map(t => t.trim().toLowerCase())
-            .filter(t => t && !RESERVED_TAGS.includes(t));
-          setTags(prev => [...new Set([...prev, ...cleanAiTags])]);
+          setTags((prev) => {
+            let next = prev;
+            for (const t of aiTags) {
+              if (typeof t !== "string") continue;
+              next = tryAddTag(next, t).list; // silently skips reserved / too long / over the limit
+            }
+            return next;
+          });
         }
       } else {
         toast.error(data.error || "Failed to generate details with AI.");
@@ -292,17 +316,15 @@ function CreateListingContent() {
     }
   };
 
-  // NEW: sends every photo to /api/moderate-image in one request.
-  // Returns one { verdict, categories, reason } per photo, in the same order as `files`.
-  // Anything that cannot be checked is held for review ("flagged") instead of passing through.
-  const moderateListing = async () => {
+  // Sends the listing text, tags and every photo to /api/moderate-listing in one request.
+  const moderateListing = async (tagList) => {
     const form = new FormData();
 
     form.append("title", title.trim());
     form.append("description", description.trim());
     form.append(
       "tags",
-      JSON.stringify(tags.filter((t) => !RESERVED_TAGS.includes(t.toLowerCase())))
+      JSON.stringify(tagList.filter((t) => !RESERVED_TAGS.includes(t.toLowerCase())))
     );
 
     const blobs = await Promise.all(
@@ -339,17 +361,34 @@ function CreateListingContent() {
     return await res.json();
   };
 
+  // Best-effort removal of photos that were uploaded for a listing that didn't get saved
+  const cleanupUploads = async (paths) => {
+    if (!paths || paths.length === 0) return;
+    try {
+      await supabase.storage.from("product-images").remove(paths);
+    } catch (cleanupErr) {
+      console.error("Could not clean up uploaded images:", cleanupErr);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (images.length === 0) return toast.error("Please upload at least one image!");
+    if (!title.trim()) return toast.error("Please enter a product title!");
+    if (title.trim().length > MAX_TITLE) {
+      return toast.error(`Title is too long (max ${MAX_TITLE} characters).`);
+    }
     if (!categoryId) return toast.error("Please select a category!");
     if (isOfficialOrgMerch) {
-      const stockNum = parseInt(stockQuantity, 10);
-      if (!Number.isInteger(stockNum) || stockNum < 1 || stockNum > MAX_STOCK) {
+      if (!Number.isInteger(parsedStock) || parsedStock < 1 || parsedStock > MAX_STOCK) {
         return toast.error(`Stock must be between 1 and ${MAX_STOCK}.`);
       }
+      const days = parseInt(durationDays, 10);
+      if (!Number.isInteger(days) || days < 1 || days > MAX_DAYS) {
+        return toast.error(`Listing duration must be between 1 and ${MAX_DAYS} days.`);
+      }
     }
+    if (!description.trim()) return toast.error("Please enter a description!");
     if (description.trim().length > MAX_DESCRIPTION) {
       return toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
     }
@@ -361,11 +400,27 @@ function CreateListingContent() {
     if (numericPrice > MAX_PRICE) {
       return toast.error("Price can't be more than ₱999,999,999.");
     }
+
+    // A tag that was typed but not confirmed with Enter/comma is included instead of silently dropped
+    let currentTags = tags;
+    if (tagInput.trim()) {
+      const { list, error } = tryAddTag(tags, tagInput);
+      if (error) return toast.error(error);
+      currentTags = list;
+      setTags(list);
+      setTagInput("");
+    }
+
     setLoading(true);
+
+    // Tracked outside the try block so the catch block can clean up after a partial failure
+    const productId = crypto.randomUUID();
+    const uploadedPaths = [];
+    let productInserted = false;
 
     try {
       // 1. Run safety moderation check
-      const moderation = await moderateListing();
+      const moderation = await moderateListing(currentTags);
 
       // Bad tags: block the post and strip the offending tags so the seller can fix and retry
       const badTags = Array.isArray(moderation.bad_tags) ? moderation.bad_tags : [];
@@ -407,9 +462,9 @@ function CreateListingContent() {
         return;
       }
 
-      // If it's official org merch, we prioritize the "pending" merchandise status 
-      // unless it was explicitly rejected by safety guidelines.
-      const isActuallyFlagged = moderation.verdict === "flagged" && !isOfficialOrgMerch;
+      // A flagged listing always gets a moderation_flags row, merch included,
+      // so a moderator sees it before the listing can go live.
+      const isFlagged = moderation.verdict === "flagged";
 
       const uploadPromises = images.map(async (image) => {
         // Re-encode to JPEG so AVIF/HEIC/etc. never hit the bucket's MIME limits
@@ -422,6 +477,7 @@ function CreateListingContent() {
           .upload(filePath, jpeg, { contentType: "image/jpeg" });
 
         if (uploadError) throw uploadError;
+        uploadedPaths.push(filePath);
 
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
@@ -435,7 +491,7 @@ function CreateListingContent() {
       let finalCategoryId = categoryId;
       let finalTags = [
         ...new Set([
-          ...tags.filter((t) => !RESERVED_TAGS.includes(t.toLowerCase())),
+          ...currentTags.filter((t) => !RESERVED_TAGS.includes(t.toLowerCase())),
           listingType,
         ]),
       ];
@@ -447,15 +503,16 @@ function CreateListingContent() {
         finalTags.push("official-merch"); // the tag makes it merch; category is the seller's choice
       }
 
-      const productId = crypto.randomUUID();
-
-      // 2. Determine correct status: Official merch defaults to "pending" for payment verification.
+      // 2. Determine correct status: official merch is "pending" until payment is verified,
+      // everything else is "flagged" if moderation flagged it, otherwise "active".
       let finalStatus = "active";
-      if (isActuallyFlagged) {
-        finalStatus = "flagged";
-      } else if (isOfficialOrgMerch) {
+      if (isOfficialOrgMerch) {
         finalStatus = "pending";
+      } else if (isFlagged) {
+        finalStatus = "flagged";
       }
+
+      const isLive = !isFlagged && !isOfficialOrgMerch;
 
       const productPayload = {
         id: productId,
@@ -467,11 +524,13 @@ function CreateListingContent() {
         category_id: finalCategoryId,
         tags: finalTags,
         price_type: 'Fixed',
-        is_available: !isActuallyFlagged && !isOfficialOrgMerch,
-        is_published: !isActuallyFlagged && !isOfficialOrgMerch,
+        is_available: isLive,
+        is_published: isLive,
         status: finalStatus,
         stock_quantity: isOfficialOrgMerch ? parsedStock : null,
-        listing_duration: isOfficialOrgMerch ? listingDuration.trim() : null,
+        listing_duration: isOfficialOrgMerch
+          ? `${totalDays} ${totalDays === 1 ? "day" : "days"}`
+          : null,
         listing_fee: calculatedFee
       };
 
@@ -480,10 +539,10 @@ function CreateListingContent() {
         .insert([productPayload]);
 
       if (dbError) throw dbError;
+      productInserted = true;
 
-      // Only insert into moderation flags if it's genuinely flagged and NOT an official merch override
-      // Only insert into moderation flags if it's genuinely flagged and NOT an official merch override
-      if (isActuallyFlagged) {
+      // Record the moderation flag for ANY flagged listing (merch too)
+      if (isFlagged) {
         const { error: flagError } = await supabase
           .from("moderation_flags")
           .insert([
@@ -500,7 +559,9 @@ function CreateListingContent() {
         if (flagError) throw flagError;
 
         toast.warning(
-          "Your listing was submitted for a moderator review due to safety flags. It will go live once approved.",
+          isOfficialOrgMerch
+            ? "Your merchandise was flagged for moderator review. It will only go live once it is approved and payment is verified."
+            : "Your listing was submitted for a moderator review due to safety flags. It will go live once approved.",
           { duration: 8000 }
         );
       }
@@ -512,7 +573,6 @@ function CreateListingContent() {
           fee: calculatedFee,
           stock: parsedStock,
           days: totalDays,
-          duration: listingDuration.trim(),
           image: uploadedUrls[0] || null,
           price: numericPrice,
         });
@@ -523,6 +583,20 @@ function CreateListingContent() {
 
     } catch (error) {
       console.error("Submission error:", error);
+
+      // Don't leave half-saved data behind. If the product row was already saved
+      // (e.g. the flag record failed), try to remove it first; only delete its photos
+      // if the row is really gone, so a surviving listing never ends up with broken images.
+      if (productInserted) {
+        const { error: deleteError } = await supabase
+          .from("products")
+          .delete()
+          .eq("id", productId);
+        if (!deleteError) await cleanupUploads(uploadedPaths);
+      } else {
+        await cleanupUploads(uploadedPaths);
+      }
+
       toast.error(error.message || "Something went wrong.");
     } finally {
       setLoading(false);
@@ -556,7 +630,11 @@ function CreateListingContent() {
               </button>
               <button
                 type="button"
-                onClick={() => setListingType("Rentals")}
+                onClick={() => {
+                  setListingType("Rentals");
+                  // Merch is sale-only, so turn it off when switching to rentals
+                  setIsOfficialOrgMerch(false);
+                }}
                 className={`py-3 px-4 rounded-xl text-sm font-bold transition-all ${listingType === "Rentals" ? "bg-foreground text-background shadow-lg" : "text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800"}`}
               >
                 For Rent
@@ -564,8 +642,8 @@ function CreateListingContent() {
             </div>
           </section>
 
-          {/* VERIFIED ORG EXCLUSIVE TOGGLE OPTION */}
-          {isVerifiedOrg && (
+          {/* VERIFIED ORG EXCLUSIVE TOGGLE OPTION (sale listings only) */}
+          {isVerifiedOrg && listingType === "Sale" && (
             <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-4 transition-all">
               <div className="flex items-start gap-4">
                 <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-md shrink-0">
@@ -618,16 +696,20 @@ function CreateListingContent() {
 
                     <div className="relative">
                       <label className="text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1.5 block">
-                        Listing Duration
+                        Listing Duration (Days)
                       </label>
                       <Calendar className="absolute left-3.5 top-[38px] text-emerald-600 dark:text-emerald-400" size={16} />
                       <input
                         required={isOfficialOrgMerch}
                         type="text"
+                        inputMode="numeric"
                         className="w-full bg-background border border-emerald-500/30 rounded-xl p-3 pl-10 text-foreground text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="e.g., How many days"
-                        value={listingDuration}
-                        onChange={(e) => setListingDuration(e.target.value)}
+                        placeholder={`Number of days (1–${MAX_DAYS})`}
+                        value={durationDays}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                          setDurationDays(digits === "" ? "" : String(Math.min(Number(digits), MAX_DAYS)));
+                        }}
                       />
                     </div>
                   </div>
@@ -663,7 +745,7 @@ function CreateListingContent() {
               )}
 
               {previewUrls.map((url, index) => (
-                <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 group shadow-sm">
+                <div key={url} className="relative aspect-square rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 group shadow-sm">
                   <img src={url} alt="Preview" className="w-full h-full object-cover" />
                   {index === 0 && <div className="absolute top-2 left-2 bg-foreground text-background text-[9px] px-2 py-0.5 rounded font-bold uppercase">Cover</div>}
                   <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 bg-background/90 p-1.5 rounded-full text-red-500 shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
@@ -707,6 +789,7 @@ function CreateListingContent() {
               <Tag className="absolute left-4 top-[46px] text-neutral-400" size={18} />
               <input
                 required
+                maxLength={MAX_TITLE}
                 className="w-full bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl p-4 pl-12 text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all placeholder:text-neutral-400"
                 placeholder="What are you selling?"
                 value={title}
@@ -783,6 +866,7 @@ function CreateListingContent() {
                   className="bg-transparent outline-none text-foreground text-sm flex-grow min-w-[140px] placeholder:text-neutral-400"
                   placeholder={tags.length === 0 ? "Type tag & press Enter..." : ""}
                   value={tagInput}
+                  maxLength={MAX_TAG_LENGTH}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagKeyDown}
                 />
