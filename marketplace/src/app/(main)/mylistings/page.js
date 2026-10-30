@@ -21,6 +21,7 @@ const TAB_BASE =
   "px-3 py-2 md:px-4 rounded-xl text-[11px] md:text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap";
 const TAB_OFF = "bg-neutral-100 dark:bg-neutral-900 text-neutral-500 hover:text-foreground";
 const MAX_STOCK = 999;
+const MAX_DAYS = 365;
 
 
 function MyListingsContent() {
@@ -124,8 +125,18 @@ function MyListingsContent() {
 
     setIsProcessing(true);
     try {
-      const daysNum = parseInt(renewForm.listing_duration_days) || 7;
+      const daysNum = parseInt(renewForm.listing_duration_days, 10);
       const stockNum = parseInt(renewForm.stock_quantity, 10);
+      if (!Number.isInteger(daysNum) || daysNum < 1 || daysNum > MAX_DAYS) {
+        toast.error(`Duration must be between 1 and ${MAX_DAYS} days.`);
+        setIsProcessing(false);
+        return;
+      }
+      if (!Number.isInteger(stockNum) || stockNum < 1 || stockNum > MAX_STOCK) {
+        toast.error(`Stock must be between 1 and ${MAX_STOCK}.`);
+        setIsProcessing(false);
+        return;
+      }
       if (!Number.isInteger(stockNum) || stockNum < 1 || stockNum > MAX_STOCK) {
         toast.error(`Stock must be between 1 and ${MAX_STOCK}.`);
         setIsProcessing(false);
@@ -607,18 +618,18 @@ function MyListingsContent() {
                 {/* text-base on mobile stops iOS from zooming in on focus */}
                 <input
                   required
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl p-3 text-base md:text-xs font-bold text-foreground outline-none"
                   value={renewForm.stock_quantity}
                   onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
                     setRenewForm({
                       ...renewForm,
                       stock_quantity: digits === "" ? "" : String(Math.min(Number(digits), MAX_STOCK)),
                     });
                   }}
-                  max={MAX_STOCK}
                   placeholder="e.g. 50 (max 999)"
                 />
               </div>
@@ -629,12 +640,19 @@ function MyListingsContent() {
                 </label>
                 <input
                   required
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   className="w-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-xl p-3 text-base md:text-xs font-bold text-foreground outline-none"
                   value={renewForm.listing_duration_days}
-                  onChange={(e) => setRenewForm({ ...renewForm, listing_duration_days: e.target.value })}
-                  placeholder="e.g. 7"
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                    setRenewForm({
+                      ...renewForm,
+                      listing_duration_days: digits === "" ? "" : String(Math.min(Number(digits), MAX_DAYS)),
+                    });
+                  }}
+                  placeholder={`e.g. 7 (max ${MAX_DAYS})`}
                 />
                 <p className="text-[10px] text-neutral-400">Calculated Fee: ₱{(parseInt(renewForm.listing_duration_days || 0) * 1.00).toFixed(2)}</p>
               </div>
