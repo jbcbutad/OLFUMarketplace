@@ -53,7 +53,7 @@ const ACTION_LABELS = {
     'user.role_changed': 'User role changed',
     'report.resolved': 'Report resolved',
     'report.dismissed': 'Report dismissed',
-    'auth.login': 'Staff signed in',
+    'auth.login': 'Signed in',
     'org.approved': 'Organization approved',
     'org.rejected': 'Organization rejected',
 };
