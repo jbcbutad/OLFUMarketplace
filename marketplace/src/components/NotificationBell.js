@@ -760,11 +760,22 @@ export default function NotificationBell({ count = 0, userId }) {
     };
 
     const markAllRead = async () => {
+        if (!uid) return;
         const now = new Date().toISOString();
-        const ids = pool.filter((i) => !i.read_at).map((i) => i.id);
-        if (ids.length === 0) return;
-        setItems((prev) => prev.map((i) => (ids.includes(i.id) ? { ...i, read_at: now } : i)));
-        await supabase.from("notifications").update({ read_at: now }).in("id", ids);
+        const previous = items;
+        // Update everything on screen, then everything unread in the database for this user
+        setItems((prev) => prev.map((i) => (i.read_at ? i : { ...i, read_at: now })));
+        const { error } = await supabase
+            .from("notifications")
+            .update({ read_at: now })
+            .eq("user_id", uid)
+            .is("read_at", null);
+        if (error) {
+            console.error("[NotificationBell] mark all read failed:", error);
+            setItems(previous); // undo
+            flash("Couldn't mark all as read. Try again.");
+            return;
+        }
         notifyChanged();
     };
 
@@ -1366,8 +1377,8 @@ export default function NotificationBell({ count = 0, userId }) {
                                             )}
                                             <span
                                                 className={`mt-1.5 inline-block text-[10px] font-black px-2 py-0.5 rounded-full ${payment.approved
-                                                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                                        : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                                                     }`}
                                             >
                                                 {payment.approved ? "Live" : "Awaiting payment"}
