@@ -185,21 +185,34 @@ export default function OrgApplyPage() {
                         {isRejected && (
                             <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3 text-xs text-red-700 dark:text-red-400 font-semibold leading-relaxed">
                                 <XCircle size={18} className="shrink-0 mt-0.5" />
-                                <span>
-                                    Your previous application for <strong>{existingApp.org_name}</strong> was not approved.{existingApp.review_note ? ` Reason: ${existingApp.review_note}` : ""} You can update the details below and apply again.
-                                </span>
+                                <div>
+                                    <p>
+                                        Your previous application for <strong>{existingApp.org_name}</strong> was not approved. You can update the details below and apply again.
+                                    </p>
+                                    {existingApp.review_note && (
+                                        <p className="mt-1.5 whitespace-pre-line">
+                                            <strong>Reason:</strong> {existingApp.review_note}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         )}
 
                         {isRevoked && (
                             <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-start gap-3 text-xs text-orange-700 dark:text-orange-400 font-semibold leading-relaxed">
                                 <XCircle size={18} className="shrink-0 mt-0.5" />
-                                <span>
-                                    The verified status of <strong>{existingApp.org_name}</strong> was revoked.{existingApp.review_note ? ` Reason: ${existingApp.review_note}` : ""} You can update the details below and apply again.
-                                </span>
+                                <div>
+                                    <p>
+                                        The verified status of <strong>{existingApp.org_name}</strong> was revoked. You can update the details below and apply again.
+                                    </p>
+                                    {existingApp.review_note && (
+                                        <p className="mt-1.5 whitespace-pre-line">
+                                            <strong>Reason:</strong> {existingApp.review_note}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         )}
-
                         {/* Conditional verification requirements notice */}
                         {!isFaculty ? (
                             <div className="p-4 sm:p-5 bg-background border border-neutral-300 dark:border-neutral-700 rounded-xl space-y-3 text-xs text-foreground leading-relaxed">
