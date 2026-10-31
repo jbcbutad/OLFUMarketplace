@@ -23,6 +23,7 @@ const GROUPS = [
     { value: 'report', label: 'Reports' },
     { value: 'moderation', label: 'AI moderation' },
     { value: 'org', label: 'Organizations' },
+    { value: 'auth', label: 'Logins' },
     { value: 'system', label: 'System errors' },
 ];
 
@@ -30,6 +31,48 @@ const SEVERITY_STYLES = {
     info: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
     warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
     error: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+};
+
+const SEVERITY_LABELS = {
+    info: 'Normal',
+    warning: 'Needs attention',
+    error: 'Problem',
+};
+
+// Plain-English names for known actions. Anything not listed is cleaned up automatically.
+const ACTION_LABELS = {
+    'listing.flagged': 'Listing sent for review',
+    'listing.approved': 'Listing approved',
+    'listing.rejected': 'Listing rejected',
+    'listing.removed': 'Listing removed',
+    'listing.deleted': 'Listing deleted',
+    'moderation.flagged': 'AI flagged a listing',
+    'moderation.rejected': 'AI blocked a listing',
+    'user.banned': 'User banned',
+    'user.unbanned': 'User unbanned',
+    'user.role_changed': 'User role changed',
+    'report.resolved': 'Report resolved',
+    'report.dismissed': 'Report dismissed',
+    'auth.login': 'Staff signed in',
+    'org.approved': 'Organization approved',
+    'org.rejected': 'Organization rejected',
+};
+
+const humanize = (s) =>
+    String(s ?? '')
+        .replace(/[._]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^\w/, (c) => c.toUpperCase());
+
+const friendlyAction = (action) => ACTION_LABELS[action] || humanize(action);
+
+const friendlyValue = (v) => {
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+    if (Array.isArray(v)) return v.length ? v.map(friendlyValue).join(', ') : '—';
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
 };
 
 export default function AuditLogsPage() {
@@ -260,9 +303,9 @@ export default function AuditLogsPage() {
 
                 <select value={severity} onChange={(e) => update(setSeverity, e.target.value)} className={inputClass}>
                     <option value="all">All severities</option>
-                    <option value="info">Info</option>
-                    <option value="warning">Warning</option>
-                    <option value="error">Error</option>
+                    <option value="info">Normal</option>
+                    <option value="warning">Needs attention</option>
+                    <option value="error">Problem</option>
                 </select>
 
                 <input
@@ -324,9 +367,9 @@ export default function AuditLogsPage() {
                                     <span
                                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border w-fit shrink-0 ${SEVERITY_STYLES[log.severity] || SEVERITY_STYLES.info}`}
                                     >
-                                        {log.severity}
+                                        {SEVERITY_LABELS[log.severity] || log.severity}
                                     </span>
-                                    <code className="text-xs font-bold text-foreground md:w-56 shrink-0 truncate">{log.action}</code>
+                                    <span title={log.action} className="text-xs font-bold text-foreground md:w-56 shrink-0 truncate">{friendlyAction(log.action)}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm text-foreground truncate">{log.summary || '—'}</p>
                                         <p className="text-[11px] text-ink-soft truncate">
@@ -343,12 +386,25 @@ export default function AuditLogsPage() {
                                 {open && (
                                     <div className="px-4 pb-4 space-y-3">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-ink-soft">
-                                            <p>Actor ID: <span className="font-mono text-foreground">{log.actor_id || '—'}</span></p>
-                                            <p>Target: <span className="font-mono text-foreground">{log.target_type || '—'} {log.target_id || ''}</span></p>
+                                            <p>Done by (user ID): <span className="font-mono text-foreground">{log.actor_id || 'System (automatic)'}</span></p>
+                                            <p>About: <span className="font-mono text-foreground">{humanize(log.target_type) || '—'} {log.target_id || ''}</span></p>
                                         </div>
-                                        <pre className="text-[11px] leading-relaxed bg-tint border border-line rounded-xl p-3 overflow-x-auto text-foreground">
-                                            {JSON.stringify(log.details, null, 2)}
-                                        </pre>
+                                        {log.details && Object.keys(log.details).length > 0 && (
+                                            <dl className="grid grid-cols-1 sm:grid-cols-[170px_1fr] gap-x-4 gap-y-1.5 text-xs bg-tint border border-line rounded-xl p-3">
+                                                {Object.entries(log.details).map(([k, v]) => (
+                                                    <div key={k} className="contents">
+                                                        <dt className="font-bold text-ink-soft">{humanize(k)}</dt>
+                                                        <dd className="text-foreground break-words">{friendlyValue(v)}</dd>
+                                                    </div>
+                                                ))}
+                                            </dl>
+                                        )}
+                                        <details className="text-[11px] text-ink-soft">
+                                            <summary className="cursor-pointer font-bold">Show technical data</summary>
+                                            <pre className="mt-2 leading-relaxed bg-tint border border-line rounded-xl p-3 overflow-x-auto text-foreground">
+                                                {JSON.stringify(log.details, null, 2)}
+                                            </pre>
+                                        </details>
                                     </div>
                                 )}
                             </div>

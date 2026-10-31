@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { friendlyListingError } from "@/lib/listingErrors";
+import { computeDHash, hammingDistance } from "@/lib/imageHash";
 
 const compressAndConvertToBase64 = (file, maxWidth = 1024, quality = 0.75) => {
   return new Promise((resolve, reject) => {
@@ -419,6 +421,61 @@ function CreateListingContent() {
     let productInserted = false;
 
     try {
+      // 0. Duplicate checks (titles + photos) and the daily limit.
+      // Fails open: if this pre-check itself errors, the database still enforces title + daily limit.
+      let imageHashes = [];
+      let crossSellerMatch = false;
+      try {
+        imageHashes = await Promise.all(images.map((f) => computeDHash(f)));
+      } catch (hashErr) {
+        console.error("Photo fingerprint failed:", hashErr);
+        imageHashes = [];
+      }
+
+      // The same photo twice inside this listing
+      for (let i = 0; i < imageHashes.length; i++) {
+        for (let j = i + 1; j < imageHashes.length; j++) {
+          if (hammingDistance(imageHashes[i], imageHashes[j]) <= 5) {
+            toast.error(`Photos ${i + 1} and ${j + 1} look identical. Please remove one of them.`, { duration: 8000 });
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      const { data: check, error: checkError } = await supabase.rpc("check_new_listing", {
+        p_title: title.trim(),
+        p_category_id: Number(categoryId),
+        p_hashes: imageHashes,
+      });
+
+      if (checkError) {
+        console.error("Duplicate pre-check failed:", checkError);
+      } else {
+        if (check.remaining <= 0) {
+          toast.error("You've reached the limit of 30 new listings per day. Please try again tomorrow.", { duration: 8000 });
+          setLoading(false);
+          return;
+        }
+        if (check.exact) {
+          toast.error("You already have a live listing with this title. Edit that one or change the title.", { duration: 8000 });
+          setLoading(false);
+          return;
+        }
+        if (check.same_image_title) {
+          toast.error(`One of these photos is already used in your listing "${check.same_image_title}". Please use different photos or edit that listing.`, { duration: 8000 });
+          setLoading(false);
+          return;
+        }
+        if (
+          check.near_title &&
+          !window.confirm(`You already have a similar listing: "${check.near_title}". Post this one anyway?`)
+        ) {
+          setLoading(false);
+          return;
+        }
+        crossSellerMatch = !!check.other_seller_image;
+      }
       // 1. Run safety moderation check
       const moderation = await moderateListing(currentTags);
 
@@ -464,7 +521,7 @@ function CreateListingContent() {
 
       // A flagged listing always gets a moderation_flags row, merch included,
       // so a moderator sees it before the listing can go live.
-      const isFlagged = moderation.verdict === "flagged";
+      const isFlagged = moderation.verdict === "flagged" || crossSellerMatch;
 
       const uploadPromises = images.map(async (image) => {
         // Re-encode to JPEG so AVIF/HEIC/etc. never hit the bucket's MIME limits
@@ -544,6 +601,15 @@ function CreateListingContent() {
       if (dbError) throw dbError;
       productInserted = true;
 
+      // Save photo fingerprints for future duplicate checks (non-critical: never blocks the listing)
+      if (imageHashes.length > 0) {
+        const { error: hashSaveError } = await supabase.rpc("save_listing_hashes", {
+          p_product_id: productId,
+          p_hashes: imageHashes,
+        });
+        if (hashSaveError) console.error("Couldn't save photo fingerprints:", hashSaveError);
+      }
+
       // Record the moderation flag for ANY flagged listing (merch too)
       if (isFlagged) {
         const { error: flagError } = await supabase
@@ -554,8 +620,16 @@ function CreateListingContent() {
               product_id: productId,
               image_url: uploadedUrls[0] || null,
               verdict: "flagged",
-              categories: moderation.categories || [],
-              reason: moderation.reason || null,
+              categories: [
+                ...(moderation.categories || []),
+                ...(crossSellerMatch ? ["Duplicate photo"] : []),
+              ],
+              reason:
+                crossSellerMatch && moderation.verdict === "flagged"
+                  ? `DUPLICATE PHOTO: a photo in this listing looks the same as a photo from another seller. Please check if it was copied. Also flagged by AI: ${moderation.reason || "needs review"}`
+                  : crossSellerMatch
+                    ? "DUPLICATE PHOTO: a photo in this listing looks the same as a photo from another seller's listing. Please check if the seller copied or stole it. Nothing else was wrong with the listing."
+                    : moderation.reason || null,
             },
           ]);
 
@@ -564,7 +638,9 @@ function CreateListingContent() {
         toast.warning(
           isOfficialOrgMerch
             ? "Your merchandise was flagged for moderator review. It will only go live once it is approved and payment is verified."
-            : "Your listing was submitted for a moderator review due to safety flags. It will go live once approved.",
+            : crossSellerMatch && moderation.verdict !== "flagged"
+              ? "A moderator will check your listing because one of your photos looks the same as another seller's photo. It will go live once approved."
+              : "Your listing was submitted for a moderator review due to safety flags. It will go live once approved.",
           { duration: 8000 }
         );
       }
@@ -600,7 +676,7 @@ function CreateListingContent() {
         await cleanupUploads(uploadedPaths);
       }
 
-      toast.error(error.message || "Something went wrong.");
+      toast.error(friendlyListingError(error));
     } finally {
       setLoading(false);
     }

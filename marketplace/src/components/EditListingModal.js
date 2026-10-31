@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Edit3, X, Tag, PhilippinePeso, FileText, Layers, Loader2, ShieldCheck } from "lucide-react";
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
+import { friendlyListingError } from "@/lib/listingErrors";
 
 const MAX_DESCRIPTION = 1000;
 const MAX_STOCK = 999;
@@ -130,7 +131,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
             onSaved(changes);
         } catch (err) {
             console.error("Update error:", err);
-            toast.error("Failed to update: " + (err.message || "Unknown error"));
+            toast.error("Failed to update: " + friendlyListingError(err));
         } finally {
             setSaving(false);
         }

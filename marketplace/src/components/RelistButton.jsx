@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { friendlyListingError } from "@/lib/listingErrors";
+
 
 export default function RelistButton({
     productId,
@@ -25,7 +27,7 @@ export default function RelistButton({
         setBusy(false);
 
         if (error) {
-            toast.error(error.message);
+            toast.error(friendlyListingError(error));
             return;
         }
 

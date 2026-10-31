@@ -15,6 +15,7 @@ import RelistButton from "@/components/RelistButton";
 import EditListingModal from "@/components/EditListingModal";
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
+import { friendlyListingError } from "@/lib/listingErrors";
 
 // Shared tab styles (smaller on mobile so the tabs wrap neatly)
 const TAB_BASE =
@@ -170,7 +171,7 @@ function MyListingsContent() {
     setResubmittingId(null);
 
     if (error) {
-      toast.error("Couldn't resubmit: " + error.message, { duration: 7000 });
+      toast.error("Couldn't resubmit: " + friendlyListingError(error), { duration: 7000 });
       return;
     }
 
@@ -220,10 +221,15 @@ function MyListingsContent() {
         l.id === item.id ? { ...l, is_available: true, status: "active", tags: updatedTags } : l
       ));
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("products")
         .update({ is_available: true, status: "active", tags: updatedTags })
         .eq("id", item.id);
+
+      if (updateError) {
+        setListings((prev) => prev.map((l) => (l.id === item.id ? item : l))); // undo the optimistic change
+        toast.error(friendlyListingError(updateError), { duration: 8000 });
+      }
 
     } else {
       // PREVENT REDUNDANT CLICKS: If already unavailable and not available, don't re-trigger
