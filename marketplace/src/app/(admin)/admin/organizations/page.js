@@ -107,6 +107,7 @@ export default function AdminOrganizationsPage() {
     const [filterStatus, setFilterStatus] = useState("pending");
     const [processingId, setProcessingId] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null); // { app, newStatus }
+    const [reviewNote, setReviewNote] = useState("");
 
     useEffect(() => {
         fetchApplications();
@@ -140,13 +141,13 @@ export default function AdminOrganizationsPage() {
         }
     }
 
-    const updateOrgStatus = async (app, newStatus) => {
+    const updateOrgStatus = async (app, newStatus, note = null) => {
         setProcessingId(app.id);
         try {
             // 1. Update application status
             const { error: appErr } = await supabase
                 .from("org_applications")
-                .update({ status: newStatus })
+                .update({ status: newStatus, review_note: note })
                 .eq("id", app.id);
 
             if (appErr) throw appErr;
@@ -166,7 +167,7 @@ export default function AdminOrganizationsPage() {
             setApps((prev) =>
                 prev.map((item) =>
                     item.id === app.id
-                        ? { ...item, status: newStatus, profiles: { ...item.profiles, is_verified_org: isApproved } }
+                        ? { ...item, status: newStatus, review_note: note, profiles: { ...item.profiles, is_verified_org: isApproved } }
                         : item
                 )
             );
@@ -178,7 +179,7 @@ export default function AdminOrganizationsPage() {
     };
 
     // ---- confirmation popup helpers ----
-    const requestStatusChange = (app, newStatus) => setConfirmAction({ app, newStatus });
+    const requestStatusChange = (app, newStatus) => { setReviewNote(""); setConfirmAction({ app, newStatus }); };
 
     const closeConfirm = () => {
         if (!processingId) setConfirmAction(null);
@@ -186,7 +187,8 @@ export default function AdminOrganizationsPage() {
 
     const handleConfirm = async () => {
         const { app, newStatus } = confirmAction;
-        await updateOrgStatus(app, newStatus);
+        const needsNote = newStatus === "rejected" || newStatus === "revoked";
+        await updateOrgStatus(app, newStatus, needsNote ? reviewNote.trim() : null);
         setConfirmAction(null);
     };
 
@@ -469,6 +471,8 @@ export default function AdminOrganizationsPage() {
                 const copy = CONFIRM_COPY[`${app.status}->${newStatus}`];
                 const busy = processingId === app.id;
                 const isApprove = newStatus === "approved";
+                const needsNote = newStatus === "rejected" || newStatus === "revoked";
+                const noteMissing = needsNote && !reviewNote.trim();
 
                 return (
                     <div
@@ -482,7 +486,17 @@ export default function AdminOrganizationsPage() {
                             className="w-full max-w-md rounded-2xl border border-line bg-surface text-foreground p-6 shadow-2xl"
                         >
                             <h2 className="text-lg font-bold mb-1">{copy.title}</h2>
-                            <p className="text-sm text-ink-soft mb-6">{copy.message(app.org_name)}</p>
+                            <p className={`text-sm text-ink-soft ${needsNote ? "mb-4" : "mb-6"}`}>{copy.message(app.org_name)}</p>
+                            {needsNote && (
+                                <textarea
+                                    value={reviewNote}
+                                    onChange={(e) => setReviewNote(e.target.value)}
+                                    maxLength={1000}
+                                    rows={3}
+                                    placeholder="Reason (required, shown to the applicant)"
+                                    className={`${ui.input} w-full mb-6 text-sm`}
+                                />
+                            )}
 
                             <div className="flex justify-end gap-3">
                                 <button onClick={closeConfirm} disabled={busy} className={btn("outline", "sm")}>
@@ -490,7 +504,7 @@ export default function AdminOrganizationsPage() {
                                 </button>
                                 <button
                                     onClick={handleConfirm}
-                                    disabled={busy}
+                                    disabled={busy || noteMissing}
                                     className={btn(isApprove ? "primary" : "danger", "sm")}
                                 >
                                     {busy ? <Loader2 size={14} className="animate-spin" /> : null}

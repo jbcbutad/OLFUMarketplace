@@ -398,7 +398,9 @@ function MyListingsContent() {
                     <div className="bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800 px-3 py-2 rounded-xl flex items-start gap-2 text-red-600 dark:text-red-400 text-xs font-bold">
                       <XCircle size={15} className="shrink-0 mt-0.5" />
                       <span>
-                        <strong>Rejected by admin:</strong> Edit your listing if needed, then resubmit it for review.
+                        <strong>{item.removed_by ? "Removed by moderation" : "Not approved"}:</strong>{" "}
+                        {item.removal_reason || "No reason was given."}
+                        <span className="block mt-1 opacity-80">Edit your listing if needed, then resubmit it for review.</span>
                       </span>
                     </div>
                   )}

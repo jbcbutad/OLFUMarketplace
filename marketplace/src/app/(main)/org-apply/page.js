@@ -186,7 +186,7 @@ export default function OrgApplyPage() {
                             <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3 text-xs text-red-700 dark:text-red-400 font-semibold leading-relaxed">
                                 <XCircle size={18} className="shrink-0 mt-0.5" />
                                 <span>
-                                    Your previous application for <strong>{existingApp.org_name}</strong> was not approved. You can update the details below and apply again.
+                                    Your previous application for <strong>{existingApp.org_name}</strong> was not approved.{existingApp.review_note ? ` Reason: ${existingApp.review_note}` : ""} You can update the details below and apply again.
                                 </span>
                             </div>
                         )}
@@ -195,7 +195,7 @@ export default function OrgApplyPage() {
                             <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl flex items-start gap-3 text-xs text-orange-700 dark:text-orange-400 font-semibold leading-relaxed">
                                 <XCircle size={18} className="shrink-0 mt-0.5" />
                                 <span>
-                                    The verified status of <strong>{existingApp.org_name}</strong> was revoked. You can update the details below and apply again.
+                                    The verified status of <strong>{existingApp.org_name}</strong> was revoked.{existingApp.review_note ? ` Reason: ${existingApp.review_note}` : ""} You can update the details below and apply again.
                                 </span>
                             </div>
                         )}
