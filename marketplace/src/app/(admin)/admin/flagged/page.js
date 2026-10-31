@@ -70,6 +70,7 @@ function FlaggedContent() {
     const [search, setSearch] = useState("");
     const [processingId, setProcessingId] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null); // { group, action: "approve" | "remove" }
+    const [removeReason, setRemoveReason] = useState("");
 
     // ---- Jump to a specific listing (from the notification bell: ?product=<id>) ----
     const searchParams = useSearchParams();
@@ -155,6 +156,16 @@ function FlaggedContent() {
                 data: { session },
             } = await supabase.auth.getSession();
 
+            if (action === "remove") {
+                const { error: removeError } = await supabase.rpc("moderate_remove_flagged", {
+                    p_product_id: group.productId,
+                    p_reason: removeReason.trim(),
+                });
+                if (removeError) throw removeError;
+                setGroups((prev) => prev.filter((g) => g.productId !== group.productId));
+                return;
+            }
+
             // Restore the listing to the state it would have had without the flag
             const cleanTags = Array.isArray(group.product?.tags)
                 ? group.product.tags.filter((t) => String(t).toLowerCase() !== "flagged")
@@ -163,6 +174,7 @@ function FlaggedContent() {
             const merch = isMerch(p);
             const hasExpiry = !!p?.expires_at;
             const stillPaid = hasExpiry && new Date(p.expires_at) > new Date();
+
 
             let restored;
             if (!merch) restored = { status: "active", is_available: true };
@@ -207,7 +219,7 @@ function FlaggedContent() {
     };
 
     // ---- confirmation popup helpers ----
-    const requestAction = (group, action) => setConfirmAction({ group, action });
+    const requestAction = (group, action) => { setRemoveReason(""); setConfirmAction({ group, action }); };
 
     const closeConfirm = () => {
         if (!processingId) setConfirmAction(null);
@@ -504,12 +516,21 @@ function FlaggedContent() {
                         >
                             <h2 className="text-lg font-bold mb-1">{copy.title}</h2>
                             <p className="text-sm text-ink-soft mb-6">{copy.message(name)}</p>
-
+                            {action === "remove" && (
+                                <textarea
+                                    value={removeReason}
+                                    onChange={(e) => setRemoveReason(e.target.value)}
+                                    maxLength={1000}
+                                    rows={3}
+                                    placeholder="Reason (required, shown to the seller)"
+                                    className={`${ui.input} w-full mb-6 text-sm`}
+                                />
+                            )}
                             <div className="flex justify-end gap-3">
                                 <button onClick={closeConfirm} disabled={busy} className={btn("outline", "sm")}>
                                     Cancel
                                 </button>
-                                <button onClick={handleConfirm} disabled={busy} className={btn(copy.style, "sm")}>
+                                <button onClick={handleConfirm} disabled={busy || (action === "remove" && !removeReason.trim())} className={btn(copy.style, "sm")}>
                                     {busy ? <Loader2 size={14} className="animate-spin" /> : null}
                                     {copy.confirmText}
                                 </button>

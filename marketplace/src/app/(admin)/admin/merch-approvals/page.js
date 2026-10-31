@@ -60,6 +60,7 @@ export default function AdminMerchApprovals() {
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null); // { item, type: "approve" | "reject" }
+    const [rejectReason, setRejectReason] = useState("");
 
     useEffect(() => {
         fetchPendingMerch();
@@ -114,14 +115,13 @@ export default function AdminMerchApprovals() {
         setProcessingId(null);
     };
 
-    const rejectMerchDrop = async (productId) => {
+    const rejectMerchDrop = async (productId, reason) => {
         setProcessingId(productId);
         try {
-            const { error } = await supabase
-                .from("products")
-                .update({ status: "rejected", is_available: false })
-                .eq("id", productId);
-
+            const { error } = await supabase.rpc("moderate_reject_merch", {
+                p_product_id: productId,
+                p_reason: reason,
+            });
             if (error) throw error;
             setPendingItems((prev) => prev.filter((item) => item.id !== productId));
         } catch (err) {
@@ -133,7 +133,7 @@ export default function AdminMerchApprovals() {
     };
 
     // ---- confirmation popup helpers ----
-    const requestAction = (item, type) => setConfirmAction({ item, type });
+    const requestAction = (item, type) => { setRejectReason(""); setConfirmAction({ item, type }); };
 
     const closeConfirm = () => {
         if (!processingId) setConfirmAction(null);
@@ -142,7 +142,7 @@ export default function AdminMerchApprovals() {
     const handleConfirm = async () => {
         const { item, type } = confirmAction;
         if (type === "approve") await approveMerchDrop(item);
-        else await rejectMerchDrop(item.id);
+        else await rejectMerchDrop(item.id, rejectReason.trim());
         setConfirmAction(null);
     };
 
@@ -317,6 +317,20 @@ export default function AdminMerchApprovals() {
                                 </div>
                             </div>
 
+                            {type === "reject" && (
+                                <div className="mt-4">
+                                    <label className="text-xs font-semibold text-ink-soft">Reason (required, shown to the seller)</label>
+                                    <textarea
+                                        value={rejectReason}
+                                        onChange={(e) => setRejectReason(e.target.value)}
+                                        maxLength={1000}
+                                        rows={3}
+                                        placeholder="e.g. We could not verify your GCash payment"
+                                        className={`${ui.input} w-full mt-1 text-sm`}
+                                    />
+                                </div>
+                            )}
+
                             <div className="mt-6 flex justify-end gap-2">
                                 <button
                                     onClick={closeConfirm}
@@ -327,7 +341,7 @@ export default function AdminMerchApprovals() {
                                 </button>
                                 <button
                                     onClick={handleConfirm}
-                                    disabled={busy}
+                                    disabled={busy || (type === "reject" && !rejectReason.trim())}
                                     className={btn(isApprove ? "primary" : "dangerOutline", "sm")}
                                 >
                                     {busy ? <Loader2 size={14} className="animate-spin" /> : null}

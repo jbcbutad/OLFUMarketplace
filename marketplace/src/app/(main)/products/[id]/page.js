@@ -99,7 +99,7 @@ export default function ProductDetailPage({ params }) {
           is_available,
           status,
           is_published,
-          removal_reason,
+          removal_reason, removed_by,
           updated_at,
           stock_quantity,
           listing_duration,
@@ -177,7 +177,7 @@ export default function ProductDetailPage({ params }) {
     });
     setRemoving(false);
     if (error) { showToast("Failed to remove listing: " + error.message, "error"); return; }
-    setProduct((prev) => ({ ...prev, status: "rejected", is_available: false, is_published: false, removal_reason: reason }));
+    setProduct((prev) => ({ ...prev, status: "rejected", is_available: false, is_published: false, removal_reason: reason, removed_by: currentUser?.id }));
     setShowRemoveModal(false);
     setRemoveReason("");
     showToast("Listing removed and marked unavailable.", "success");
@@ -345,9 +345,9 @@ export default function ProductDetailPage({ params }) {
           </div>
         </div>
 
-        {product.removal_reason && (currentUser?.id === product.seller_id || isStaffViewer) && (
+        {product.removal_reason && ["rejected", "flagged", "pending"].includes(product.status) && (currentUser?.id === product.seller_id || isStaffViewer) && (
           <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl mb-6 text-xs font-bold text-rose-600 dark:text-rose-400">
-            <span className="uppercase tracking-wider block font-black">Removed by moderation</span>
+            <span className="uppercase tracking-wider block font-black">{product.removed_by ? "Removed by moderation" : "Not approved"}</span>
             {product.removal_reason}
           </div>
         )}
