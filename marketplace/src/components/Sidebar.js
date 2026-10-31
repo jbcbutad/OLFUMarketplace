@@ -13,7 +13,6 @@ import {
   CalendarClock,
   MessageSquare,
   Bot,
-  ListOrdered,
   ChevronDown,
   ShoppingBag,
   ShieldAlert,
@@ -370,7 +369,6 @@ function SidebarContent({ isOpen: propIsOpen, toggleSidebar: propToggleSidebar }
             />
 
             <NavLink href="/ai-chat" title="AI Support" label="AI Support" icon={Bot} active={isActive("/ai-chat")} isOpen={isOpen} />
-
           </nav>
 
           {/* DYNAMIC ROLE ADMIN SECTION */}
