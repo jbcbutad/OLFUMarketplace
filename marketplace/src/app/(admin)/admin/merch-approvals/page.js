@@ -153,31 +153,31 @@ export default function AdminMerchApprovals() {
     );
 
     return (
-        <div className="text-foreground">
+        <div className="text-foreground overflow-x-hidden">
             <div className={ui.page}>
 
-                <div className={ui.headerBar}>
-                    <div>
+                <div className={`${ui.headerBar} gap-3`}>
+                    <div className="min-w-0">
                         <h1 className={ui.title}>
-                            <ShieldCheck className={ui.titleIcon} size={28} /> Merchandise Approvals
+                            <ShieldCheck className={`${ui.titleIcon} shrink-0`} size={28} /> Merchandise Approvals
                         </h1>
                         <p className={ui.subtitle}>
                             Verify GCash listing payments and publish organization drops.
                         </p>
                     </div>
-                    <div className={ui.countBadge}>
+                    <div className={`${ui.countBadge} shrink-0 w-fit`}>
                         {pendingItems.length} Pending
                     </div>
                 </div>
 
                 {pendingItems.length === 0 ? (
-                    <div className={`${ui.empty} py-20`}>
+                    <div className={`${ui.empty} py-12 sm:py-20 px-4`}>
                         <p className="text-sm">
                             No pending merchandise drops awaiting payment review.
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-6">
+                    <div className="grid gap-4 sm:gap-6">
                         {pendingItems.map((item) => {
                             const orgName = item.profiles?.org_name || "Organization";
                             const applicantName = item.profiles?.full_name || "Unknown user";
@@ -192,38 +192,41 @@ export default function AdminMerchApprovals() {
                                 <article key={item.id} className={`${ui.card} overflow-hidden`}>
 
                                     {/* Applicant header */}
-                                    <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-line">
-                                        <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 border-b border-line">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <ApplicantAvatar name={applicantName} src={applicantAvatar} size={40} />
                                             <div className="leading-tight min-w-0">
                                                 <p className="text-sm font-bold text-foreground truncate">{applicantName}</p>
                                                 <p className="text-xs text-ink-soft truncate">{orgName}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right leading-tight">
+                                        <div className="text-right leading-tight shrink-0">
                                             <p className="text-[11px] text-ink-soft">Submitted</p>
-                                            <p className="text-xs font-semibold text-foreground">{submitted}</p>
+                                            <p className="text-xs font-semibold text-foreground whitespace-nowrap">{submitted}</p>
                                         </div>
                                     </div>
 
                                     {/* Body */}
-                                    <div className="p-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+                                    <div className="p-4 sm:p-6 grid gap-4 sm:gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
 
                                         {/* Product */}
-                                        <div className="flex items-center gap-5 min-w-0">
+                                        <div className="flex items-center gap-3 sm:gap-5 min-w-0">
                                             <img
                                                 src={item.image_urls?.[0] || "/placeholder.png"}
                                                 alt={item.title}
-                                                className="w-28 h-28 rounded-2xl object-cover border border-line shrink-0"
+                                                className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl object-cover border border-line shrink-0"
                                             />
-                                            <div className="min-w-0 space-y-2">
+                                            <div className="min-w-0 space-y-1.5 sm:space-y-2">
                                                 {categoryName && (
-                                                    <span className="inline-flex items-center gap-1 text-[11px] text-ink-soft border border-line rounded-md px-2 py-0.5">
-                                                        <Tag size={11} /> {categoryName}
+                                                    <span className="inline-flex max-w-full items-center gap-1 text-[11px] text-ink-soft border border-line rounded-md px-2 py-0.5">
+                                                        <Tag size={11} className="shrink-0" />
+                                                        <span className="truncate">{categoryName}</span>
                                                     </span>
                                                 )}
-                                                <h3 className="text-lg font-bold leading-snug text-foreground">{item.title}</h3>
-                                                <p className="text-2xl font-extrabold text-foreground">
+                                                <h3 className="text-base sm:text-lg font-bold leading-snug text-foreground break-words line-clamp-3">
+                                                    {item.title}
+                                                </h3>
+                                                <p className="text-xl sm:text-2xl font-extrabold text-foreground">
                                                     ₱{item.price}
                                                     <span className="ml-2 text-xs font-semibold text-ink-soft">selling price</span>
                                                 </p>
@@ -233,29 +236,36 @@ export default function AdminMerchApprovals() {
                                         {/* Listing details + actions */}
                                         <div className="flex flex-col gap-3 w-full lg:w-[360px]">
                                             <div className="grid grid-cols-3 divide-x divide-line bg-background border border-line rounded-2xl text-xs">
-                                                <div className="p-3">
+                                                <div className="p-2.5 sm:p-3 min-w-0">
                                                     <p className="text-[11px] font-semibold text-ink-soft flex items-center gap-1">
-                                                        <Layers size={12} /> Stock
+                                                        <Layers size={12} className="shrink-0" /> Stock
                                                     </p>
-                                                    <p className="font-extrabold text-foreground text-sm mt-1">{item.stock_quantity || 1} units</p>
+                                                    <p className="font-extrabold text-foreground text-xs sm:text-sm mt-1 break-words">
+                                                        {item.stock_quantity || 1} units
+                                                    </p>
                                                 </div>
-                                                <div className="p-3">
+                                                <div className="p-2.5 sm:p-3 min-w-0">
                                                     <p className="text-[11px] font-semibold text-ink-soft flex items-center gap-1">
-                                                        <Calendar size={12} /> Duration
+                                                        <Calendar size={12} className="shrink-0" /> Duration
                                                     </p>
-                                                    <p className="font-extrabold text-foreground text-sm mt-1">{item.listing_duration || "N/A"}</p>
+                                                    <p className="font-extrabold text-foreground text-xs sm:text-sm mt-1 break-words">
+                                                        {item.listing_duration || "N/A"}
+                                                    </p>
                                                 </div>
-                                                <div className="p-3 bg-amber-500/5 rounded-r-2xl">
+                                                <div className="p-2.5 sm:p-3 min-w-0 bg-amber-500/5 rounded-r-2xl">
                                                     <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Listing fee</p>
-                                                    <p className="font-black text-amber-600 dark:text-amber-400 text-sm mt-1">₱{item.listing_fee || 0}</p>
+                                                    <p className="font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm mt-1 break-words">
+                                                        ₱{item.listing_fee || 0}
+                                                    </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3">
+                                            {/* Stacked on phones so neither button gets squeezed */}
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                                 <button
                                                     onClick={() => requestAction(item, "approve")}
                                                     disabled={busy}
-                                                    className={`${btn("primary", "md")} flex-1`}
+                                                    className={`${btn("primary", "md")} w-full sm:w-auto sm:flex-1 justify-center`}
                                                 >
                                                     {busy ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle2 size={16} /> Approve & Publish</>}
                                                 </button>
@@ -263,7 +273,7 @@ export default function AdminMerchApprovals() {
                                                     title="Reject merchandise"
                                                     onClick={() => requestAction(item, "reject")}
                                                     disabled={busy}
-                                                    className={btn("dangerOutline", "md")}
+                                                    className={`${btn("dangerOutline", "md")} w-full sm:w-auto justify-center`}
                                                 >
                                                     <XCircle size={18} /> Reject
                                                 </button>
@@ -288,17 +298,17 @@ export default function AdminMerchApprovals() {
 
                 return (
                     <div
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm"
                         onClick={closeConfirm}
                     >
                         <div
                             role="dialog"
                             aria-modal="true"
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md rounded-2xl border border-line bg-white dark:bg-neutral-900 p-6 shadow-2xl"
+                            className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-white dark:bg-neutral-900 p-5 sm:p-6 shadow-2xl"
                         >
                             <h2 className="text-lg font-bold text-foreground">{copy.title}</h2>
-                            <p className="mt-2 text-sm text-ink-soft">{copy.message(item.title)}</p>
+                            <p className="mt-2 text-sm text-ink-soft break-words">{copy.message(item.title)}</p>
 
                             {/* Applicant in popup */}
                             <div className="mt-4 flex items-center gap-3 rounded-xl border border-line p-3">
@@ -307,16 +317,17 @@ export default function AdminMerchApprovals() {
                                     src={item.profiles?.avatar_url}
                                     size={36}
                                 />
-                                <div className="leading-tight">
-                                    <p className="text-sm font-semibold text-foreground">
+                                <div className="leading-tight min-w-0">
+                                    <p className="text-sm font-semibold text-foreground truncate">
                                         {item.profiles?.full_name || "Unknown user"}
                                     </p>
-                                    <p className="text-xs text-ink-soft">
+                                    <p className="text-xs text-ink-soft truncate">
                                         {item.profiles?.org_name || "Organization"}
                                     </p>
                                 </div>
                             </div>
 
+                            {/* Reject reason (required, sent to the seller) */}
                             {type === "reject" && (
                                 <div className="mt-4">
                                     <label className="text-xs font-semibold text-ink-soft">Reason (required, shown to the seller)</label>
@@ -331,18 +342,19 @@ export default function AdminMerchApprovals() {
                                 </div>
                             )}
 
-                            <div className="mt-6 flex justify-end gap-2">
+                            {/* Full-width buttons on phones, confirm on top */}
+                            <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                                 <button
                                     onClick={closeConfirm}
                                     disabled={busy}
-                                    className="px-4 py-2 rounded-xl border border-line text-sm font-semibold text-foreground hover:bg-tint transition-colors cursor-pointer disabled:opacity-50"
+                                    className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl border border-line text-sm font-semibold text-foreground hover:bg-tint transition-colors cursor-pointer disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleConfirm}
                                     disabled={busy || (type === "reject" && !rejectReason.trim())}
-                                    className={btn(isApprove ? "primary" : "dangerOutline", "sm")}
+                                    className={`${btn(isApprove ? "primary" : "dangerOutline", "sm")} w-full sm:w-auto justify-center`}
                                 >
                                     {busy ? <Loader2 size={14} className="animate-spin" /> : null}
                                     {copy.confirmText}
