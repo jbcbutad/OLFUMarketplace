@@ -40,6 +40,16 @@ async function computeDHashServer(buf) {
     return BigInt.asIntN(64, bits);
 }
 
+function hamming(a, b) {
+    let x = BigInt.asUintN(64, a ^ b);
+    let n = 0;
+    while (x) {
+        n += Number(x & 1n);
+        x >>= 1n;
+    }
+    return n;
+}
+
 export async function POST(req) {
     let uploadedPath = null;
     const admin = createAdminClient();
@@ -101,6 +111,29 @@ export async function POST(req) {
 
 
         const crossSeller = !!dup?.other_seller_image;
+
+        // The same photo twice on one listing is always a mistake (merch variants are exempt).
+        // Stored fingerprints may have been made by the browser, so compare against the real files.
+        if (!isMerch) {
+            const supaHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host;
+            const marker = `/storage/v1/object/public/${BUCKET}/`;
+            const existing = (product.image_urls || []).filter((u) => {
+                try {
+                    return typeof u === "string" && u.includes(marker) && new URL(u).host === supaHost;
+                } catch {
+                    return false;
+                }
+            });
+            const results = await Promise.allSettled(
+                existing.map(async (u) => {
+                    const r = await fetch(u);
+                    if (!r.ok) throw new Error("fetch failed");
+                    return computeDHashServer(Buffer.from(await r.arrayBuffer()));
+                })
+            );
+            const sameHere = results.some((r) => r.status === "fulfilled" && hamming(r.value, hash) <= 4);
+            if (sameHere) return fail("That photo is already on this listing.", 409);
+        }
 
         // 5. Daily AI limit (after the cheap checks, before the AI call)
         const gate = await requireAiUser("edit-photo", 20);

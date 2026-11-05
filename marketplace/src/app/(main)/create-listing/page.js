@@ -161,7 +161,12 @@ function CreateListingContent() {
   const isMerchParam = searchParams.get("merch") === "true";
 
   const [submittedMerch, setSubmittedMerch] = useState(null);
-
+  const [dialog, setDialog] = useState(null);
+  const askConfirm = (opts) => new Promise((resolve) => setDialog({ ...opts, resolve }));
+  const closeDialog = (result) => {
+    dialog?.resolve(result);
+    setDialog(null);
+  };
   const suggestedTags = ["nursing", "medtech", "uniform", "secondhand", "calculator", "books", "brand new"];
 
   // Number of days is a plain number now (no free text), so the fee can't be miscalculated
@@ -467,16 +472,24 @@ function CreateListingContent() {
           return;
         }
         if (
-          check.same_image_title &&
-          !isOfficialOrgMerch &&
-          !window.confirm(`One of these photos looks like one in your listing "${check.same_image_title}". If this is a different item (for example another color), you can post it anyway. Post this one?`)
+          check.near_title &&
+          !(await askConfirm({
+            title: "Similar listing found",
+            message: `You already have a similar listing: "${check.near_title}". Post this one anyway?`,
+            confirmLabel: "Post anyway",
+          }))
         ) {
           setLoading(false);
           return;
         }
         if (
-          check.near_title &&
-          !window.confirm(`You already have a similar listing: "${check.near_title}". Post this one anyway?`)
+          check.same_image_title &&
+          !isOfficialOrgMerch &&
+          !(await askConfirm({
+            title: "Looks like another listing of yours",
+            message: `One of these photos looks like one in your listing "${check.same_image_title}". If this is a different item (for example another color), you can post it anyway.`,
+            confirmLabel: "Yes, post it",
+          }))
         ) {
           setLoading(false);
           return;
@@ -1112,6 +1125,39 @@ function CreateListingContent() {
                 I Understand, Go to My Listings
               </button>
 
+            </div>
+          </div>
+        )}
+
+        {/* CONFIRM DIALOG (similar title / look-alike photo) */}
+        {dialog && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl max-w-sm w-full shadow-2xl space-y-5">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-2xl shrink-0">
+                  <Info size={20} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-black tracking-tight text-foreground">{dialog.title}</h3>
+                  <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">{dialog.message}</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => closeDialog(false)}
+                  className="flex-1 py-3 bg-neutral-100 dark:bg-neutral-900 text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => closeDialog(true)}
+                  className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity"
+                >
+                  {dialog.confirmLabel || "Continue"}
+                </button>
+              </div>
             </div>
           </div>
         )}
