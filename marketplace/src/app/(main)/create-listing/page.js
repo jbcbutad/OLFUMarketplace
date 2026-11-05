@@ -328,6 +328,7 @@ function CreateListingContent() {
       "tags",
       JSON.stringify(tagList.filter((t) => !RESERVED_TAGS.includes(t.toLowerCase())))
     );
+    form.append("merch", isOfficialOrgMerch ? "true" : "false");
 
     const blobs = await Promise.all(
       images.map((file) => compressToBlob(file))

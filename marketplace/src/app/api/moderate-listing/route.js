@@ -213,8 +213,25 @@ export async function POST(req) {
             return heldForReview("moderation_unavailable");
         }
 
+        // Official merch from a verified org: product renders/mockups are acceptable.
+        // The flag is only trusted if the profile really is a verified org.
+        let merchNote = "";
+        if (form.get("merch") === "true") {
+            const { data: prof } = await supabase
+                .from("profiles")
+                .select("is_verified_org")
+                .eq("id", user.id)
+                .maybeSingle();
+            if (prof?.is_verified_org) {
+                merchNote = `
+
+MERCH CONTEXT:
+This listing is official merchandise from a verified student organization. Merchandise is often shown with product renders or mockups before it is produced. For this listing, a clean render or mockup of the merchandise itself is acceptable: do NOT flag it as "not_an_item" just because it is not a photograph. Still flag images that are mainly a person, scenery or a screenshot, or that do not match the title and description. All other rules (text, tags, weapons, sexual content, drugs, personal documents and so on) apply unchanged.`;
+            }
+        }
+
         const parts = [
-            PROMPT,
+            PROMPT + merchNote,
             `\nLISTING TITLE:\n${title || "None provided"}`,
             `\nLISTING DESCRIPTION:\n${description || "None provided"
             }`,
