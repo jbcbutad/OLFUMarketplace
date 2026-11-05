@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
-import { Edit3, X, Tag, PhilippinePeso, FileText, Layers, Loader2, ShieldCheck } from "lucide-react";
+import { Edit3, X, Tag, PhilippinePeso, FileText, Layers, Loader2, ShieldCheck, ImagePlus } from "lucide-react";
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 import { friendlyListingError } from "@/lib/listingErrors";
@@ -11,6 +11,35 @@ import { friendlyListingError } from "@/lib/listingErrors";
 const MAX_DESCRIPTION = 1000;
 const MAX_STOCK = 999;
 const MAX_PRICE = 100000;
+const MAX_PHOTOS = 10;
+const MAX_PHOTO_MB = 10;
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_PHOTO_EXTS = ["jpg", "jpeg", "png", "webp"];
+
+// Shrinks a photo to a JPEG before upload (same sizes the create-listing page uses)
+const compressToBlob = (file, maxSize = 1600, quality = 0.85) =>
+    new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            URL.revokeObjectURL(url);
+            canvas.toBlob(
+                (blob) => (blob ? resolve(blob) : reject(new Error("compress failed"))),
+                "image/jpeg",
+                quality
+            );
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("load failed"));
+        };
+        img.src = url;
+    });
 
 export default function EditListingModal({ product, onClose, onSaved }) {
     const merch = isMerch(product);
@@ -21,11 +50,14 @@ export default function EditListingModal({ product, onClose, onSaved }) {
     const [saving, setSaving] = useState(false);
     const [photos, setPhotos] = useState(Array.isArray(product.image_urls) ? product.image_urls : []);
     const [removingUrl, setRemovingUrl] = useState(null);
+    const [adding, setAdding] = useState(false);
     const [photosChanged, setPhotosChanged] = useState(false);
-    const canRemovePhotos = ["active", "unavailable", "expired"].includes(product.status) && photos.length > 1;
+    const photosEditable = ["active", "unavailable", "expired"].includes(product.status);
+    const canRemovePhotos = photosEditable && photos.length > 1;
+    const canAddPhotos = photosEditable && photos.length < MAX_PHOTOS;
 
     const handleRemovePhoto = async (url) => {
-        if (removingUrl || saving) return;
+        if (removingUrl || saving || adding) return;
         if (!window.confirm("Remove this photo from your listing?")) return;
         setRemovingUrl(url);
         try {
@@ -46,7 +78,56 @@ export default function EditListingModal({ product, onClose, onSaved }) {
         }
     };
 
-    // If photos were removed, tell the parent so its list refreshes even when the form isn't saved
+    // Adds one photo. The server checks it (type, safety, duplicates) before it is attached.
+    const handleAddPhoto = async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file || adding || saving || removingUrl) return;
+
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (!ALLOWED_PHOTO_TYPES.includes(file.type) || !ALLOWED_PHOTO_EXTS.includes(ext)) {
+            toast.error(`"${file.name}" isn't allowed. Please use a JPG, PNG or WEBP photo.`);
+            return;
+        }
+        if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
+            toast.error(`"${file.name}" is larger than ${MAX_PHOTO_MB} MB.`);
+            return;
+        }
+
+        setAdding(true);
+        try {
+            const jpeg = await compressToBlob(file);
+            const fd = new FormData();
+            fd.append("productId", product.id);
+            fd.append("image", jpeg, "photo.jpg");
+
+            const res = await fetch("/api/add-listing-image", { method: "POST", body: fd });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || "Couldn't add the photo.");
+
+            const nextPhotos = [...photos, data.imageUrl];
+            setPhotos(nextPhotos);
+
+            if (data.flagged) {
+                // The listing is now hidden for review, so close the editor with its new state
+                toast.warning("Safety review required", {
+                    description: "Your new photo triggered our content check. The listing is hidden until a moderator approves it.",
+                    duration: 10000,
+                });
+                onSaved({ ...product, image_urls: nextPhotos, status: "flagged", is_available: false });
+                return;
+            }
+
+            setPhotosChanged(true);
+            toast.success("Photo added.");
+        } catch (err) {
+            toast.error(err.message || "Couldn't add the photo.");
+        } finally {
+            setAdding(false);
+        }
+    };
+
+    // If photos were removed or added, tell the parent so its list refreshes even when the form isn't saved
     const handleClose = () => {
         if (photosChanged) onSaved({ ...product, image_urls: photos });
         else onClose();
@@ -60,6 +141,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
 
     const handleSave = async (e) => {
         e.preventDefault();
+        if (adding || removingUrl) return;
         if (form.description.trim().length > MAX_DESCRIPTION) {
             toast.error(`Description is too long (max ${MAX_DESCRIPTION} characters).`);
             return;
@@ -242,7 +324,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
 
                     {photos.length > 0 && (
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-muted-foreground">Photos ({photos.length})</label>
+                            <label className="text-xs font-bold text-muted-foreground">Photos ({photos.length} / {MAX_PHOTOS})</label>
                             <div className="grid grid-cols-4 gap-2">
                                 {photos.map((url, i) => (
                                     <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border">
@@ -254,7 +336,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemovePhoto(url)}
-                                                disabled={!!removingUrl}
+                                                disabled={!!removingUrl || adding}
                                                 className="absolute top-1 right-1 bg-background/90 p-1 rounded-full text-red-500 shadow-md disabled:opacity-50"
                                             >
                                                 {removingUrl === url ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
@@ -262,16 +344,40 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                                         )}
                                     </div>
                                 ))}
+
+                                {canAddPhotos && (
+                                    <label
+                                        className={`aspect-square flex flex-col items-center justify-center gap-0.5 border-2 border-dashed border-border rounded-xl transition-colors ${adding || saving || removingUrl ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:bg-muted"}`}
+                                    >
+                                        {adding ? (
+                                            <Loader2 size={18} className="animate-spin text-muted-foreground" />
+                                        ) : (
+                                            <ImagePlus size={18} className="text-muted-foreground" />
+                                        )}
+                                        <span className="text-[9px] font-bold uppercase text-muted-foreground">
+                                            {adding ? "Checking" : "Add"}
+                                        </span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/jpeg,image/png,image/webp"
+                                            disabled={adding || saving || !!removingUrl}
+                                            onChange={handleAddPhoto}
+                                        />
+                                    </label>
+                                )}
                             </div>
                             <p className="text-[11px] text-muted-foreground">
-                                You can remove photos here but not add new ones. A listing keeps at least one photo.
+                                {photosEditable
+                                    ? "New photos are checked before they appear, which can take a few seconds. A listing keeps at least one photo."
+                                    : "Photos can't be changed while this listing is under review."}
                             </p>
                         </div>
                     )}
 
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={handleClose} className="flex-1 py-3 bg-muted text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity">Cancel</button>
-                        <button type="submit" disabled={saving} className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity shadow-md flex items-center justify-center gap-2">
+                        <button type="submit" disabled={saving || adding} className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity shadow-md flex items-center justify-center gap-2 disabled:opacity-60">
                             {saving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
                         </button>
                     </div>
