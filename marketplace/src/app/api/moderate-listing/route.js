@@ -61,12 +61,17 @@ For weapons and blades (applies to text, tags and images):
 - If you cannot confidently determine whether something is prohibited, use "flagged" rather than guessing.
 
 ITEM CHECK (applies to the whole listing):
-"approved" requires positive evidence that the images show a real item (or a legitimate service/rental) that a student could hand over, and that it matches the title and description. Do not approve just because nothing harmful is visible.
-Use "flagged" with category "not_an_item" when:
+"approved" requires positive evidence that the images show a real item (or a legitimate service/rental) that a student could hand over, and that it is the same KIND of item the title and description describe. Do not approve just because nothing harmful is visible.
+Use "flagged" with category "not_an_item" ONLY when:
 - the image is mainly a person, scenery, or a screenshot rather than the item for sale
 - the image is a drawing, illustration, digital art, or generic picture rather than a photo of the actual item
-- the title or description describes something different from what the images show
+- the images show a clearly DIFFERENT KIND of item than the title and description (for example a calculator listing whose photo shows shoes, or a textbook listing whose photo shows food)
 - If no images were provided, skip this check and judge the text and tags only.
+Do NOT use "not_an_item" for any of these. They are normal and must not change the verdict:
+- the color or shade of the item differs from the title or description (lighting, filters and renders change how colors look; a listing may also show several color variants)
+- a different angle, size, style, packaging, minor detail, or a different variant or model of the same kind of item
+- a photo that is dark, slightly blurry, or cropped, as long as the item is still recognizable
+If you notice such a difference, do not flag it. Mention it briefly in "notes" instead.
 Use "flagged" with category "live_animal" when the image shows a live animal or pet, or the text offers one.
 Never use "rejected" for these; they need a human decision.
 
@@ -80,6 +85,7 @@ Return ONLY valid JSON in this exact structure:
   "bad_tags": [],
   "categories": [],
   "sources": [],
+  "notes": [],
   "reason": "Short explanation"
 }
 
@@ -97,6 +103,7 @@ Rules for the fields:
 - bad_tags = the exact tag strings that are rejected or flagged (empty if none).
 - categories = short category names such as "weapon", "sexual_content", "graphic_violence", "hate", "drugs", "alcohol", "personal_document", "unrelated_content".
 - sources = which part caused the concern: "text", "image", "tags", or a combination.
+- notes = up to 3 short, non-blocking observations (for example "photo color may differ from the title"). Notes never change a verdict. Empty if none.
 - reason = a short explanation suitable for showing to the user or moderator.
 
 If everything is acceptable, return:
@@ -108,6 +115,7 @@ If everything is acceptable, return:
   "bad_tags": [],
   "categories": [],
   "sources": [],
+  "notes": [],
   "reason": "The listing contains ordinary marketplace content."
 }`;
 
@@ -213,8 +221,9 @@ export async function POST(req) {
             return heldForReview("moderation_unavailable");
         }
 
-        // Official merch from a verified org: product renders/mockups are acceptable.
+        // Official merch from a verified org gets extra freedom on photos.
         // The flag is only trusted if the profile really is a verified org.
+        // Merch is also reviewed by an admin before it goes live.
         let merchNote = "";
         if (form.get("merch") === "true") {
             const { data: prof } = await supabase
@@ -226,7 +235,11 @@ export async function POST(req) {
                 merchNote = `
 
 MERCH CONTEXT:
-This listing is official merchandise from a verified student organization. Merchandise is often shown with product renders or mockups before it is produced. For this listing, a clean render or mockup of the merchandise itself is acceptable: do NOT flag it as "not_an_item" just because it is not a photograph. Still flag images that are mainly a person, scenery or a screenshot, or that do not match the title and description. All other rules (text, tags, weapons, sexual content, drugs, personal documents and so on) apply unchanged.`;
+This listing is official merchandise from a verified student organization. An admin also reviews it before it goes live. For this listing the following are all acceptable and must NOT be flagged as "not_an_item":
+- clean product renders or mockups of the merchandise, even if they are not photographs
+- size charts, measurement diagrams, and product-detail graphics for the merchandise
+- several images showing different color variants of the same merchandise, including colors that differ from the title or description
+Still flag images that are mainly a person, scenery or a screenshot, or that show a clearly different kind of item than the title and description. All other rules (text, tags, weapons, sexual content, drugs, personal documents and so on) apply unchanged.`;
             }
         }
 
@@ -361,6 +374,13 @@ This listing is official merchandise from a verified student organization. Merch
                     .filter((t) => submitted.has(t.toLowerCase()))
                 : [];
 
+        // Non-blocking observations. They never affect the verdict.
+        const notes = Array.isArray(parsed?.notes)
+            ? parsed.notes
+                .slice(0, 3)
+                .map((n) => String(n).slice(0, 120))
+            : [];
+
         const reason =
             typeof parsed?.reason === "string"
                 ? parsed.reason.slice(0, 300)
@@ -374,6 +394,7 @@ This listing is official merchandise from a verified student organization. Merch
             bad_tags: badTags,
             categories,
             sources,
+            notes,
             reason,
         });
     } catch (err) {
