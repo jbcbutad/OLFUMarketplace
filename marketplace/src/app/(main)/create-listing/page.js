@@ -458,12 +458,17 @@ function CreateListingContent() {
         console.error("Duplicate pre-check failed:", checkError);
       } else {
         if (check.remaining <= 0) {
-          toast.error("You've reached the limit of 30 new listings per day. Please try again tomorrow.", { duration: 8000 });
+          toast.error("You've reached today's limit of new listings. Please try again tomorrow.", { duration: 8000 });
           setLoading(false);
           return;
         }
         if (check.exact) {
           toast.error("You already have a live listing with this title. Edit that one or change the title.", { duration: 8000 });
+          setLoading(false);
+          return;
+        }
+        if (!isOfficialOrgMerch && check.same_image_count >= check.max_same_photo) {
+          toast.error(`You've already used a very similar photo on ${check.max_same_photo} of your listings. Please use a different photo.`, { duration: 8000 });
           setLoading(false);
           return;
         }
@@ -623,7 +628,14 @@ function CreateListingContent() {
           p_product_id: productId,
           p_hashes: imageHashes,
         });
-        if (hashSaveError) console.error("Couldn't save photo fingerprints:", hashSaveError);
+        if (hashSaveError) {
+          if (String(hashSaveError.message || "").includes("PHOTO_LIMIT")) {
+            const limitErr = new Error("photo limit");
+            limitErr.userMessage = String(hashSaveError.message).replace(/^.*PHOTO_LIMIT:\s*/, "");
+            throw limitErr;
+          }
+          console.error("Couldn't save photo fingerprints:", hashSaveError);
+        }
       }
 
       // Record the moderation flag for ANY flagged listing (merch too)
@@ -692,7 +704,7 @@ function CreateListingContent() {
         await cleanupUploads(uploadedPaths);
       }
 
-      toast.error(friendlyListingError(error));
+      toast.error(error?.userMessage || friendlyListingError(error));
     } finally {
       setLoading(false);
     }

@@ -135,6 +135,11 @@ export async function POST(req) {
             const sameHere = results.some((r) => r.status === "fulfilled" && hamming(r.value, hash) <= 4);
             if (sameHere) return fail("That photo is already on this listing.", 409);
 
+            const maxSame = Number(dup?.max_same_photo) || 5;
+            if ((dup?.own_lookalike_count ?? 0) >= maxSame) {
+                return fail(`You've already used this photo on ${maxSame} of your listings. Please use a different photo.`, 409);
+            }
+
             // Looks like a photo on ANOTHER listing of this seller: ask first, don't block.
             // (Reusing a photo across your own listings can be legitimate, e.g. a different color.)
             if (dup?.own_other_title && !confirmSimilar) {
