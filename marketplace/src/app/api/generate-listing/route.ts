@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Provide an image or short text note." }, { status: 400 });
     }
 
-    const gate = await requireAiUser("autofill", 15);
+    const gate = await requireAiUser("autofill", 30);
     if (gate.error) return gate.error;
 
     const promptText = `You are an expert marketplace assistant for Our Lady of Fatima University (OLFU).

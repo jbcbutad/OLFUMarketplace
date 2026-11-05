@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import { ALLOWED_IMAGE_TYPES, sniffImageType } from "@/lib/imageValidation";
+import { requireAiUser } from "@/lib/aiQuota";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -220,6 +221,9 @@ export async function POST(req) {
 
             return heldForReview("moderation_unavailable");
         }
+
+        const gate = await requireAiUser("moderation", 40);
+        if (gate.error) return gate.error;
 
         // Official merch from a verified org gets extra freedom on photos.
         // The flag is only trusted if the profile really is a verified org.
