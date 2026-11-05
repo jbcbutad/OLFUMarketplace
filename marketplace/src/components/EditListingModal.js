@@ -7,6 +7,7 @@ import { Edit3, X, Tag, PhilippinePeso, FileText, Layers, Loader2, ShieldCheck, 
 import { isMerch } from "@/lib/merch";
 import { getListingState } from "@/lib/listingStatus";
 import { friendlyListingError } from "@/lib/listingErrors";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const MAX_DESCRIPTION = 1000;
 const MAX_STOCK = 999;
@@ -47,6 +48,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
     const canEditStock = merch && !expired;
     const currentStock = product.stock_quantity ?? 0;
 
+    const [askConfirm, confirmDialog] = useConfirm();
     const [saving, setSaving] = useState(false);
     const [photos, setPhotos] = useState(Array.isArray(product.image_urls) ? product.image_urls : []);
     const [removingUrl, setRemovingUrl] = useState(null);
@@ -58,7 +60,14 @@ export default function EditListingModal({ product, onClose, onSaved }) {
 
     const handleRemovePhoto = async (url) => {
         if (removingUrl || saving || adding) return;
-        if (!window.confirm("Remove this photo from your listing?")) return;
+        const ok = await askConfirm({
+            title: "Remove this photo?",
+            message: "It comes off your listing right away. You don't need to press Save Changes.",
+            confirmLabel: "Remove photo",
+            tone: "danger",
+        });
+        if (!ok) return;
+
         setRemovingUrl(url);
         try {
             const res = await fetch("/api/remove-listing-image", {
@@ -97,12 +106,30 @@ export default function EditListingModal({ product, onClose, onSaved }) {
         setAdding(true);
         try {
             const jpeg = await compressToBlob(file);
-            const fd = new FormData();
-            fd.append("productId", product.id);
-            fd.append("image", jpeg, "photo.jpg");
 
-            const res = await fetch("/api/add-listing-image", { method: "POST", body: fd });
-            const data = await res.json().catch(() => ({}));
+            const send = async (confirmSimilar) => {
+                const fd = new FormData();
+                fd.append("productId", product.id);
+                fd.append("image", jpeg, "photo.jpg");
+                if (confirmSimilar) fd.append("confirmSimilar", "true");
+                const res = await fetch("/api/add-listing-image", { method: "POST", body: fd });
+                const data = await res.json().catch(() => ({}));
+                return { res, data };
+            };
+
+            let { res, data } = await send(false);
+
+            // The photo looks like one on another listing of yours: ask, then retry if they agree
+            if (res.status === 409 && data.code === "similar_own_listing") {
+                const ok = await askConfirm({
+                    title: "Looks like another listing of yours",
+                    message: `This photo looks like one on your listing "${data.title}". If this is a different item (for example another color), you can add it anyway.`,
+                    confirmLabel: "Add anyway",
+                });
+                if (!ok) return; // nothing was uploaded; the finally block resets the button
+                ({ res, data } = await send(true));
+            }
+
             if (!res.ok) throw new Error(data.error || "Couldn't add the photo.");
 
             const nextPhotos = [...photos, data.imageUrl];
@@ -252,137 +279,140 @@ export default function EditListingModal({ product, onClose, onSaved }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-background border border-border w-full max-w-lg rounded-3xl shadow-2xl p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center border-b border-border pb-4">
-                    <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2.5 text-foreground">
-                        <div className="p-2 bg-foreground/10 text-foreground rounded-xl"><Edit3 size={18} /></div>
-                        Edit Product Details
-                    </h3>
-                    <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors">
-                        <X size={20} />
-                    </button>
-                </div>
-
-                <form onSubmit={handleSave} className="space-y-4">
-                    {merch && (
-                        <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-600">
-                            <ShieldCheck size={12} /> #official-merch (locked)
-                        </span>
-                    )}
-
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><Tag size={14} /> Product Title</label>
-                        <input required className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
-                            value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><PhilippinePeso size={14} /> Price (₱)</label>
-                            <input required type="text" inputMode="decimal" autoComplete="off"
-                                className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
-                                value={form.price}
-                                onChange={(e) => {
-                                    let v = e.target.value.replace(/[^\d.]/g, "");
-                                    const [whole, ...rest] = v.split(".");
-                                    v = rest.length ? `${whole.slice(0, 6)}.${rest.join("").slice(0, 2)}` : whole.slice(0, 6);
-                                    setForm({ ...form, price: v });
-                                }} />
-                        </div>
-
-                        {canEditStock && (
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Layers size={14} /> Total Stock Units Left (max 999)</label>
-                                <input required type="text" inputMode="numeric" autoComplete="off"
-                                    className="w-full bg-muted/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                                    value={form.stock_quantity}
-                                    onChange={(e) => {
-                                        const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
-                                        setForm({
-                                            ...form,
-                                            stock_quantity: digits === "" ? "" : String(Math.min(Number(digits), MAX_STOCK)),
-                                        });
-                                    }} />
-                            </div>
-                        )}
-                        {merch && expired && (
-                            <p className="text-[11px] text-muted-foreground sm:col-span-2">
-                                This drop has expired, so stock can&apos;t be edited. Use Renew &amp; Pay to restock.
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><FileText size={14} /> Description</label>
-                        <textarea rows="4" className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none"
-                            value={form.description} maxLength={MAX_DESCRIPTION} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                        <p className="text-right text-[11px] text-muted-foreground">
-                            {form.description.length} / {MAX_DESCRIPTION}
-                        </p>
-                    </div>
-
-                    {photos.length > 0 && (
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-muted-foreground">Photos ({photos.length} / {MAX_PHOTOS})</label>
-                            <div className="grid grid-cols-4 gap-2">
-                                {photos.map((url, i) => (
-                                    <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                                        <img src={url} alt="" className="w-full h-full object-cover" />
-                                        {i === 0 && (
-                                            <span className="absolute top-1 left-1 bg-foreground text-background text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Cover</span>
-                                        )}
-                                        {canRemovePhotos && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemovePhoto(url)}
-                                                disabled={!!removingUrl || adding}
-                                                className="absolute top-1 right-1 bg-background/90 p-1 rounded-full text-red-500 shadow-md disabled:opacity-50"
-                                            >
-                                                {removingUrl === url ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-
-                                {canAddPhotos && (
-                                    <label
-                                        className={`aspect-square flex flex-col items-center justify-center gap-0.5 border-2 border-dashed border-border rounded-xl transition-colors ${adding || saving || removingUrl ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:bg-muted"}`}
-                                    >
-                                        {adding ? (
-                                            <Loader2 size={18} className="animate-spin text-muted-foreground" />
-                                        ) : (
-                                            <ImagePlus size={18} className="text-muted-foreground" />
-                                        )}
-                                        <span className="text-[9px] font-bold uppercase text-muted-foreground">
-                                            {adding ? "Checking" : "Add"}
-                                        </span>
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/jpeg,image/png,image/webp"
-                                            disabled={adding || saving || !!removingUrl}
-                                            onChange={handleAddPhoto}
-                                        />
-                                    </label>
-                                )}
-                            </div>
-                            <p className="text-[11px] text-muted-foreground">
-                                {photosEditable
-                                    ? "New photos are checked before they appear, which can take a few seconds. A listing keeps at least one photo."
-                                    : "Photos can't be changed while this listing is under review."}
-                            </p>
-                        </div>
-                    )}
-
-                    <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={handleClose} className="flex-1 py-3 bg-muted text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity">Cancel</button>
-                        <button type="submit" disabled={saving || adding} className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity shadow-md flex items-center justify-center gap-2 disabled:opacity-60">
-                            {saving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
+        <>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-background border border-border w-full max-w-lg rounded-3xl shadow-2xl p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-center border-b border-border pb-4">
+                        <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2.5 text-foreground">
+                            <div className="p-2 bg-foreground/10 text-foreground rounded-xl"><Edit3 size={18} /></div>
+                            Edit Product Details
+                        </h3>
+                        <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors">
+                            <X size={20} />
                         </button>
                     </div>
-                </form>
+
+                    <form onSubmit={handleSave} className="space-y-4">
+                        {merch && (
+                            <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-600">
+                                <ShieldCheck size={12} /> #official-merch (locked)
+                            </span>
+                        )}
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><Tag size={14} /> Product Title</label>
+                            <input required className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
+                                value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><PhilippinePeso size={14} /> Price (₱)</label>
+                                <input required type="text" inputMode="decimal" autoComplete="off"
+                                    className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all"
+                                    value={form.price}
+                                    onChange={(e) => {
+                                        let v = e.target.value.replace(/[^\d.]/g, "");
+                                        const [whole, ...rest] = v.split(".");
+                                        v = rest.length ? `${whole.slice(0, 6)}.${rest.join("").slice(0, 2)}` : whole.slice(0, 6);
+                                        setForm({ ...form, price: v });
+                                    }} />
+                            </div>
+
+                            {canEditStock && (
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Layers size={14} /> Total Stock Units Left (max 999)</label>
+                                    <input required type="text" inputMode="numeric" autoComplete="off"
+                                        className="w-full bg-muted/40 border border-emerald-500/30 rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                                        value={form.stock_quantity}
+                                        onChange={(e) => {
+                                            const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                                            setForm({
+                                                ...form,
+                                                stock_quantity: digits === "" ? "" : String(Math.min(Number(digits), MAX_STOCK)),
+                                            });
+                                        }} />
+                                </div>
+                            )}
+                            {merch && expired && (
+                                <p className="text-[11px] text-muted-foreground sm:col-span-2">
+                                    This drop has expired, so stock can&apos;t be edited. Use Renew &amp; Pay to restock.
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-muted-foreground flex items-center gap-1"><FileText size={14} /> Description</label>
+                            <textarea rows="4" className="w-full bg-muted/40 border border-border rounded-xl p-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-foreground transition-all resize-none"
+                                value={form.description} maxLength={MAX_DESCRIPTION} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                            <p className="text-right text-[11px] text-muted-foreground">
+                                {form.description.length} / {MAX_DESCRIPTION}
+                            </p>
+                        </div>
+
+                        {photos.length > 0 && (
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-muted-foreground">Photos ({photos.length} / {MAX_PHOTOS})</label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {photos.map((url, i) => (
+                                        <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                                            <img src={url} alt="" className="w-full h-full object-cover" />
+                                            {i === 0 && (
+                                                <span className="absolute top-1 left-1 bg-foreground text-background text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Cover</span>
+                                            )}
+                                            {canRemovePhotos && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemovePhoto(url)}
+                                                    disabled={!!removingUrl || adding}
+                                                    className="absolute top-1 right-1 bg-background/90 p-1 rounded-full text-red-500 shadow-md disabled:opacity-50"
+                                                >
+                                                    {removingUrl === url ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    {canAddPhotos && (
+                                        <label
+                                            className={`aspect-square flex flex-col items-center justify-center gap-0.5 border-2 border-dashed border-border rounded-xl transition-colors ${adding || saving || removingUrl ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:bg-muted"}`}
+                                        >
+                                            {adding ? (
+                                                <Loader2 size={18} className="animate-spin text-muted-foreground" />
+                                            ) : (
+                                                <ImagePlus size={18} className="text-muted-foreground" />
+                                            )}
+                                            <span className="text-[9px] font-bold uppercase text-muted-foreground">
+                                                {adding ? "Checking" : "Add"}
+                                            </span>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                disabled={adding || saving || !!removingUrl}
+                                                onChange={handleAddPhoto}
+                                            />
+                                        </label>
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {photosEditable
+                                        ? "Photos save as soon as you add or remove them, so you don't need to press Save Changes. New photos are checked first, which can take a few seconds. A listing keeps at least one photo."
+                                        : "Photos can't be changed while this listing is under review."}
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 pt-2">
+                            <button type="button" onClick={handleClose} className="flex-1 py-3 bg-muted text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity">Cancel</button>
+                            <button type="submit" disabled={saving || adding} className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity shadow-md flex items-center justify-center gap-2 disabled:opacity-60">
+                                {saving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </div>
+            {confirmDialog}
+        </>
     );
 }

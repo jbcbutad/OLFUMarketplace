@@ -64,6 +64,8 @@ export async function POST(req) {
         const form = await req.formData();
         const productId = String(form.get("productId") || "");
         const file = form.get("image");
+        // Set by the edit screen after the seller says "add anyway" to the look-alike warning
+        const confirmSimilar = form.get("confirmSimilar") === "true";
 
         if (!UUID_RE.test(productId)) return fail("Invalid request.");
         if (!file || typeof file === "string") return fail("Choose a photo to add.");
@@ -109,7 +111,6 @@ export async function POST(req) {
             return fail("Couldn't check that photo right now. Please try again.", 503);
         }
 
-
         const crossSeller = !!dup?.other_seller_image;
 
         // The same photo twice on one listing is always a mistake (merch variants are exempt).
@@ -133,6 +134,19 @@ export async function POST(req) {
             );
             const sameHere = results.some((r) => r.status === "fulfilled" && hamming(r.value, hash) <= 4);
             if (sameHere) return fail("That photo is already on this listing.", 409);
+
+            // Looks like a photo on ANOTHER listing of this seller: ask first, don't block.
+            // (Reusing a photo across your own listings can be legitimate, e.g. a different color.)
+            if (dup?.own_other_title && !confirmSimilar) {
+                return Response.json(
+                    {
+                        code: "similar_own_listing",
+                        title: String(dup.own_other_title),
+                        error: `This photo looks like one on your listing "${dup.own_other_title}".`,
+                    },
+                    { status: 409 }
+                );
+            }
         }
 
         // 5. Daily AI limit (after the cheap checks, before the AI call)

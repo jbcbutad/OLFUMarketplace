@@ -11,6 +11,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { friendlyListingError } from "@/lib/listingErrors";
 import { computeDHash, hammingDistance } from "@/lib/imageHash";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const compressAndConvertToBase64 = (file, maxWidth = 1024, quality = 0.75) => {
   return new Promise((resolve, reject) => {
@@ -161,12 +162,7 @@ function CreateListingContent() {
   const isMerchParam = searchParams.get("merch") === "true";
 
   const [submittedMerch, setSubmittedMerch] = useState(null);
-  const [dialog, setDialog] = useState(null);
-  const askConfirm = (opts) => new Promise((resolve) => setDialog({ ...opts, resolve }));
-  const closeDialog = (result) => {
-    dialog?.resolve(result);
-    setDialog(null);
-  };
+  const [askConfirm, confirmDialog] = useConfirm();
   const suggestedTags = ["nursing", "medtech", "uniform", "secondhand", "calculator", "books", "brand new"];
 
   // Number of days is a plain number now (no free text), so the fee can't be miscalculated
@@ -1129,38 +1125,7 @@ function CreateListingContent() {
           </div>
         )}
 
-        {/* CONFIRM DIALOG (similar title / look-alike photo) */}
-        {dialog && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-background border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl max-w-sm w-full shadow-2xl space-y-5">
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-2xl shrink-0">
-                  <Info size={20} />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-base font-black tracking-tight text-foreground">{dialog.title}</h3>
-                  <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">{dialog.message}</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => closeDialog(false)}
-                  className="flex-1 py-3 bg-neutral-100 dark:bg-neutral-900 text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => closeDialog(true)}
-                  className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity"
-                >
-                  {dialog.confirmLabel || "Continue"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {confirmDialog}
 
       </div>
     </div>
