@@ -432,13 +432,16 @@ function CreateListingContent() {
         imageHashes = [];
       }
 
-      // The same photo twice inside this listing
-      for (let i = 0; i < imageHashes.length; i++) {
-        for (let j = i + 1; j < imageHashes.length; j++) {
-          if (hammingDistance(imageHashes[i], imageHashes[j]) <= 5) {
-            toast.error(`Photos ${i + 1} and ${j + 1} look identical. Please remove one of them.`, { duration: 8000 });
-            setLoading(false);
-            return;
+      // The same photo twice inside this listing.
+      // Official merch is exempt: colour variants of one product hash almost the same.
+      if (!isOfficialOrgMerch) {
+        for (let i = 0; i < imageHashes.length; i++) {
+          for (let j = i + 1; j < imageHashes.length; j++) {
+            if (hammingDistance(imageHashes[i], imageHashes[j]) <= 5) {
+              toast.error(`Photos ${i + 1} and ${j + 1} look identical. Please remove one of them.`, { duration: 8000 });
+              setLoading(false);
+              return;
+            }
           }
         }
       }
@@ -462,7 +465,7 @@ function CreateListingContent() {
           setLoading(false);
           return;
         }
-        if (check.same_image_title) {
+        if (check.same_image_title && !isOfficialOrgMerch) {
           toast.error(`One of these photos is already used in your listing "${check.same_image_title}". Please use different photos or edit that listing.`, { duration: 8000 });
           setLoading(false);
           return;

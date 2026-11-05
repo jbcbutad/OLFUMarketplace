@@ -19,6 +19,38 @@ export default function EditListingModal({ product, onClose, onSaved }) {
     const currentStock = product.stock_quantity ?? 0;
 
     const [saving, setSaving] = useState(false);
+    const [photos, setPhotos] = useState(Array.isArray(product.image_urls) ? product.image_urls : []);
+    const [removingUrl, setRemovingUrl] = useState(null);
+    const [photosChanged, setPhotosChanged] = useState(false);
+    const canRemovePhotos = ["active", "unavailable", "expired"].includes(product.status) && photos.length > 1;
+
+    const handleRemovePhoto = async (url) => {
+        if (removingUrl || saving) return;
+        if (!window.confirm("Remove this photo from your listing?")) return;
+        setRemovingUrl(url);
+        try {
+            const res = await fetch("/api/remove-listing-image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ productId: product.id, imageUrl: url }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || "Couldn't remove the photo.");
+            setPhotos((prev) => prev.filter((u) => u !== url));
+            setPhotosChanged(true);
+            toast.success("Photo removed.");
+        } catch (err) {
+            toast.error(err.message || "Couldn't remove the photo.");
+        } finally {
+            setRemovingUrl(null);
+        }
+    };
+
+    // If photos were removed, tell the parent so its list refreshes even when the form isn't saved
+    const handleClose = () => {
+        if (photosChanged) onSaved({ ...product, image_urls: photos });
+        else onClose();
+    };
     const [form, setForm] = useState({
         title: product.title,
         price: product.price,
@@ -115,7 +147,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                 await supabase.from("moderation_flags").insert([{
                     user_id: product.seller_id,
                     product_id: product.id,
-                    image_url: product.image_urls?.[0] || null,
+                    image_url: photos[0] || null,
                     verdict: "flagged",
                     categories: moderation.categories || [],
                     reason: moderation.reason || "Flagged during edit update",
@@ -128,7 +160,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                 toast.success("Listing updated.");
             }
 
-            onSaved(changes);
+            onSaved(photosChanged ? { ...changes, image_urls: photos } : changes);
         } catch (err) {
             console.error("Update error:", err);
             toast.error("Failed to update: " + friendlyListingError(err));
@@ -145,7 +177,7 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                         <div className="p-2 bg-foreground/10 text-foreground rounded-xl"><Edit3 size={18} /></div>
                         Edit Product Details
                     </h3>
-                    <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors">
+                    <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -208,8 +240,37 @@ export default function EditListingModal({ product, onClose, onSaved }) {
                         </p>
                     </div>
 
+                    {photos.length > 0 && (
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-muted-foreground">Photos ({photos.length})</label>
+                            <div className="grid grid-cols-4 gap-2">
+                                {photos.map((url, i) => (
+                                    <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                                        <img src={url} alt="" className="w-full h-full object-cover" />
+                                        {i === 0 && (
+                                            <span className="absolute top-1 left-1 bg-foreground text-background text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Cover</span>
+                                        )}
+                                        {canRemovePhotos && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemovePhoto(url)}
+                                                disabled={!!removingUrl}
+                                                className="absolute top-1 right-1 bg-background/90 p-1 rounded-full text-red-500 shadow-md disabled:opacity-50"
+                                            >
+                                                {removingUrl === url ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                                You can remove photos here but not add new ones. A listing keeps at least one photo.
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="flex-1 py-3 bg-muted text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity">Cancel</button>
+                        <button type="button" onClick={handleClose} className="flex-1 py-3 bg-muted text-foreground rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-80 transition-opacity">Cancel</button>
                         <button type="submit" disabled={saving} className="flex-1 py-3 bg-foreground text-background rounded-2xl text-xs font-black uppercase tracking-wider hover:opacity-90 transition-opacity shadow-md flex items-center justify-center gap-2">
                             {saving ? <Loader2 className="animate-spin" size={16} /> : "Save Changes"}
                         </button>
