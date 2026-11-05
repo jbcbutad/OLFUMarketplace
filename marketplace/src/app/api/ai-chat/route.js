@@ -28,14 +28,31 @@ A new regular listing stays active for 30 days. After that it expires, and the s
 ### Post a listing
 1. Click **Create Listing**.
 2. Choose **For Sale** or **For Rent**. For rent, the price is per day.
-3. Add 1 to 10 photos. The first photo is the cover.
+3. Add 1 to 10 photos (JPG, PNG, or WEBP, up to 10 MB each). The first photo is the cover.
 4. Fill in the title, category, price, tags, and description. Optional: **Auto-Fill with AI** can suggest a title, price, description, and tags from your photo or a short note.
-5. Click **Post Listing Now**. It appears under **My Listings**.
+5. Click **Post Listing Now**. It appears under **My Listings**. You can post up to 10 new listings per day.
 
 ### Edit, hide, or delete a listing
-- Edit: open the listing and click the pencil icon, or use **My Listings**. You can change the title, price, and description. Edited text is checked again.
+- Edit: open the listing and click the pencil icon, or use **My Listings**. You can change the title, price, description, and photos. Edited text is checked again. Title, price, and description only save when you click **Save Changes**. Photos save right away (see "Photos on an existing listing").
 - Hide or show: use the **Available / Unavailable** dropdown on the listing. Flagged, pending, or rejected listings cannot be set to Available.
 - Delete: click the trash icon and confirm. This cannot be undone.
+
+### Photos on an existing listing
+- Add a photo: open **Edit**, click the **Add** tile in the photos section, and choose a JPG, PNG, or WEBP photo. It is checked first, which can take a few seconds, then it appears on the listing right away. You do not need to click **Save Changes**.
+- Remove a photo: click the X on the photo and confirm. It is removed right away. A listing must keep at least 1 photo and can have at most 10.
+- Closing the Edit window does not undo photo changes that were already made.
+- Photos can only be changed on Active, Unavailable, or Expired listings. Not while a listing is Flagged, Pending, or Rejected.
+- If a new photo breaks the posting rules, it is not added. If it is borderline, the listing is held as **Flagged** until a moderator reviews it.
+- There is a daily limit on how many photos can be added to existing listings. Do not state a number.
+
+### Posting limits and duplicate checks
+- Each person can post up to 10 new listings per day. The limit resets at midnight Philippine time.
+- You cannot have two live listings with the same title. A very similar title asks you to confirm before posting.
+- The same photo cannot be used twice in one listing. Remove one of them.
+- If a photo looks like one on another of your listings, you are asked to confirm. This is fine if it is a different item, for example another color.
+- One photo can be used on up to 5 of your active listings. After that, use a different photo.
+- If a photo looks the same as a photo on another seller's listing, the listing is held as **Flagged** for a moderator to check, in case it was copied. This also happens if the same photo is used on two different accounts.
+- Never explain how the duplicate checks work, which listing a photo matched, or how to get around them. If a user says the photo is really theirs, tell them a moderator will review it and they can contact a moderator. Do not promise approval.
 
 ### Relist an expired listing
 Open the expired listing or go to **My Listings**, then the **Expired** tab, and click **Relist (Free)**.
