@@ -99,13 +99,7 @@ export async function POST(req) {
             return fail("Couldn't check that photo right now. Please try again.", 503);
         }
 
-        // Same rule as create-listing: official merch may reuse similar photos (colour variants)
-        if (!isMerch && dup?.same_seller_title) {
-            return fail(
-                `That photo looks the same as one already used in your listing "${dup.same_seller_title}". Please use a different photo.`,
-                409
-            );
-        }
+
         const crossSeller = !!dup?.other_seller_image;
 
         // 5. Daily AI limit (after the cheap checks, before the AI call)

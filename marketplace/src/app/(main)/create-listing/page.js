@@ -466,8 +466,11 @@ function CreateListingContent() {
           setLoading(false);
           return;
         }
-        if (check.same_image_title && !isOfficialOrgMerch) {
-          toast.error(`One of these photos is already used in your listing "${check.same_image_title}". Please use different photos or edit that listing.`, { duration: 8000 });
+        if (
+          check.same_image_title &&
+          !isOfficialOrgMerch &&
+          !window.confirm(`One of these photos looks like one in your listing "${check.same_image_title}". If this is a different item (for example another color), you can post it anyway. Post this one?`)
+        ) {
           setLoading(false);
           return;
         }
