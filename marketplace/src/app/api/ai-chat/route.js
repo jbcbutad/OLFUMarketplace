@@ -148,7 +148,7 @@ const MAX_HISTORY_MESSAGES = 12; // keeps cost and prompt-injection surface smal
 
 export async function POST(req) {
   try {
-    const gate = await requireAiUser('chat', 40);
+    const gate = await requireAiUser('chat', 30);
     if (gate.error) return gate.error;
 
     const { history, message } = await req.json();

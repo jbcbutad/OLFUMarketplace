@@ -155,7 +155,7 @@ export async function POST(req) {
         }
 
         // 5. Daily AI limit (after the cheap checks, before the AI call)
-        const gate = await requireAiUser("edit-photo", 20);
+        const gate = await requireAiUser("edit-photo", 30);
         if (gate.error) return gate.error;
 
         // 6. AI moderation: reuse /api/moderate-listing so there is one set of rules

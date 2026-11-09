@@ -356,6 +356,12 @@ function CreateListingContent() {
       );
     }
 
+    if (res.status === 429) {
+      const limitErr = new Error("rate limited");
+      limitErr.userMessage = "You've reached today's limit for posting and editing listings. Please try again tomorrow.";
+      throw limitErr;
+    }
+
     if (!res.ok) {
       throw new Error(
         "Unable to moderate this listing."

@@ -222,7 +222,7 @@ export async function POST(req) {
             return heldForReview("moderation_unavailable");
         }
 
-        const gate = await requireAiUser("moderation", 40);
+        const gate = await requireAiUser("moderation", 60);
         if (gate.error) return gate.error;
 
         // Official merch from a verified org gets extra freedom on photos.

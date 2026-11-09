@@ -116,7 +116,7 @@ async function analyzeWithGroq(base64Image, groqKey) {
 
 export async function POST(req) {
     try {
-        const gate = await requireAiUser("image-search", 20);
+        const gate = await requireAiUser("image-search", 30);
         if (gate.error) return gate.error;
 
         const formData = await req.formData();
