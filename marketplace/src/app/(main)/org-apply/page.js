@@ -97,10 +97,10 @@ export default function OrgApplyPage() {
             const { error } = await supabase.from("org_applications").insert([
                 {
                     user_id: user.id,
-                    org_name: formData.org_name,
-                    department: formData.department,
-                    contact_email: formData.contact_email,
-                    description: formData.description,
+                    org_name: formData.org_name.trim().slice(0, 100),
+                    department: formData.department.trim().slice(0, 100),
+                    contact_email: formData.contact_email.trim().slice(0, 120),
+                    description: formData.description.trim().slice(0, 1000),
                     status: "pending",
                 },
             ]);

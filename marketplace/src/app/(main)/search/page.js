@@ -14,7 +14,11 @@ export default async function SearchPage({ searchParams }) {
 
   if (searchQuery) {
     const stopWords = new Set(["a", "an", "the", "and", "or", "for", "with", "in", "of", "on", "at", "to", "is"]);
-    const sanitizedQuery = searchQuery.replace(/['"{}\[\]]/g, "").trim();
+    const sanitizedQuery = searchQuery
+      .slice(0, 100)
+      .replace(/['"{}\[\]]/g, "")
+      .replace(/[,()%\\*]/g, " ")
+      .trim();
     const words = sanitizedQuery
       .split(/\s+/)
       .map((w) => w.trim().toLowerCase())

@@ -351,7 +351,7 @@ export default function ChatRoom() {
       const { error } = await supabase.from("reports").insert({
         reporter_id: currentUser.id,
         reported_id: otherUser.id,
-        reason: reportReason.trim(),
+        reason: reportReason.trim().slice(0, 1000),
         context_room_id: activeRoomId,
         status: "pending",
       });

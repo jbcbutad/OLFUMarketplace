@@ -168,6 +168,7 @@ export default function ChatInput({ roomId, sellerId }) {
 
           <input
             type="text"
+            maxLength={2000}
             value={text}
             onChange={(e) => {
               setText(e.target.value);

@@ -18,6 +18,12 @@ export async function POST(req: Request) {
     const { roomId, body, content, image_url } = await req.json();
 
     const text = String(body ?? content ?? "").trim();
+    if (text.length > 2000) {
+      return NextResponse.json(
+        { error: "Message is too long (max 2000 characters)." },
+        { status: 400 }
+      );
+    }
     const finalBody = text || (image_url ? "Sent an image" : "");
 
     if (!roomId) {

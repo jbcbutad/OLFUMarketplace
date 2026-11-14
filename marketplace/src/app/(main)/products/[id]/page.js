@@ -230,7 +230,7 @@ export default function ProductDetailPage({ params }) {
       const { error } = await supabase.from("reports").insert({
         reporter_id: currentUser.id,
         reported_id: product.seller_id,
-        reason: `[Product Report: "${product.title}"] - ${reportReason.trim()}`,
+        reason: `[Product Report: "${product.title}"] - ${reportReason.trim().slice(0, 1000)}`,
         context_room_id: null,
         product_id: product.id,
         status: "pending",

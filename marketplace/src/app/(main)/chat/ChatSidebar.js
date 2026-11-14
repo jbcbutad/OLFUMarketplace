@@ -443,11 +443,18 @@ export default function ChatSidebar() {
 
         if (!currentUser) return;
 
+        // Strip characters that could change the filter (commas, brackets, quotes, wildcards)
+        const term = query.replace(/[,%()"'\\*]/g, " ").trim();
+        if (term.length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
         const { data, error } = await supabase
             .from("users")
             .select('id, "First_Name", "Last_Name", avatar_url')
             .neq("id", currentUser.id)
-            .or(`"First_Name".ilike.%${query}%, "Last_Name".ilike.%${query}%`)
+            .or(`"First_Name".ilike.%${term}%, "Last_Name".ilike.%${term}%`)
             .limit(5);
 
         if (error) {
